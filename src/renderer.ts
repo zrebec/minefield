@@ -1,0 +1,293 @@
+import { CANVAS_W, CANVAS_H, ROWS, COLS, CELL, C } from './constants.ts'
+import type { GameState, AirplaneState } from './game.ts'
+import { getCharRow } from './font.ts'
+import {
+  PLAYER_RIGHT, PLAYER_LEFT, PLAYER_UP, PLAYER_DOWN,
+  MINE, EXPLOSION_1, EXPLOSION_2, FLAG, GROUND_A, GROUND_B,
+  AIRPLANE as PLANE_SPRITE,
+} from './sprites.ts'
+
+const STATUS_Y = ROWS * CELL  // 176
+
+// ─── Low-level draw primitives ────────────────────────────────────────────────
+
+function drawSprite(
+  ctx: CanvasRenderingContext2D,
+  sprite: Uint8Array,
+  x: number, y: number,
+  ink: string, paper: string,
+): void {
+  ctx.fillStyle = paper
+  ctx.fillRect(x, y, CELL, CELL)
+  ctx.fillStyle = ink
+  for (let row = 0; row < 8; row++) {
+    const byte = sprite[row]
+    for (let bit = 0; bit < 8; bit++) {
+      if (byte & (0x80 >> bit)) ctx.fillRect(x + bit, y + row, 1, 1)
+    }
+  }
+}
+
+function drawChar(
+  ctx: CanvasRenderingContext2D,
+  code: number,
+  x: number, y: number,
+  ink: string, paper?: string,
+): void {
+  if (paper !== undefined) {
+    ctx.fillStyle = paper
+    ctx.fillRect(x, y, CELL, CELL)
+  }
+  ctx.fillStyle = ink
+  for (let row = 0; row < 8; row++) {
+    const byte = getCharRow(code, row)
+    for (let bit = 0; bit < 8; bit++) {
+      if (byte & (0x80 >> bit)) ctx.fillRect(x + bit, y + row, 1, 1)
+    }
+  }
+}
+
+function drawText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number, y: number,
+  ink: string, paper?: string,
+): void {
+  for (let i = 0; i < text.length; i++) {
+    drawChar(ctx, text.charCodeAt(i), x + i * CELL, y, ink, paper)
+  }
+}
+
+function drawTextCentered(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  y: number,
+  ink: string, paper?: string,
+): void {
+  const x = Math.floor((COLS - text.length) / 2) * CELL
+  drawText(ctx, text, x, y, ink, paper)
+}
+
+// ─── Cell rendering ───────────────────────────────────────────────────────────
+
+function getCellInkPaper(state: GameState, col: number, row: number): [string, string] {
+  const cell = state.grid[row][col]
+  const isPlayer = col === state.playerCol && row === state.playerRow
+
+  if (isPlayer) {
+    if (state.phase === 'exploding') return [C.B_YELLOW, C.B_RED]
+    return [C.B_WHITE, C.BLACK]
+  }
+  if (cell.exploded) return [C.B_YELLOW, C.BLACK]
+  if (cell.flagged) return [C.B_CYAN, C.BLACK]
+  if (state.debugMode && cell.hasMine) return [C.B_RED, C.BLACK]
+  if (cell.visited) return [C.B_YELLOW, C.BLACK]
+
+  // Checkerboard for unvisited ground
+  return (col + row) % 2 === 0
+    ? [C.B_GREEN, C.BLACK]
+    : [C.GREEN, C.BLACK]
+}
+
+function renderCell(ctx: CanvasRenderingContext2D, state: GameState, col: number, row: number): void {
+  const x = col * CELL
+  const y = row * CELL
+  const cell = state.grid[row][col]
+  const isPlayer = col === state.playerCol && row === state.playerRow
+  const [ink, paper] = getCellInkPaper(state, col, row)
+
+  const ground = (col + row) % 2 === 0 ? GROUND_A : GROUND_B
+
+  if (isPlayer) {
+    if (state.phase === 'exploding') {
+      const frame = state.flashTimer > 300 ? EXPLOSION_1 : EXPLOSION_2
+      drawSprite(ctx, frame, x, y, ink, paper)
+    } else {
+      const sprite = state.playerDir === 'left' ? PLAYER_LEFT
+        : state.playerDir === 'up' ? PLAYER_UP
+        : state.playerDir === 'down' ? PLAYER_DOWN
+        : PLAYER_RIGHT
+      drawSprite(ctx, sprite, x, y, ink, paper)
+    }
+    return
+  }
+
+  if (cell.exploded) {
+    drawSprite(ctx, EXPLOSION_2, x, y, ink, paper)
+    return
+  }
+
+  if (cell.flagged) {
+    drawSprite(ctx, FLAG, x, y, ink, paper)
+    return
+  }
+
+  if (state.debugMode && cell.hasMine) {
+    drawSprite(ctx, MINE, x, y, ink, paper)
+    return
+  }
+
+  drawSprite(ctx, ground, x, y, ink, paper)
+}
+
+// ─── Airplane rendering ───────────────────────────────────────────────────────
+
+function renderAirplane(ctx: CanvasRenderingContext2D, plane: AirplaneState): void {
+  const x = Math.floor(plane.x)
+  const y = plane.y
+
+  // Flip sprite for left-moving plane
+  if (plane.dir === -1) {
+    // Mirror manually: draw flipped
+    ctx.fillStyle = C.BLACK
+    ctx.fillRect(x, y, CELL, CELL)
+    ctx.fillStyle = C.B_WHITE
+    for (let row = 0; row < 8; row++) {
+      const byte = PLANE_SPRITE[row]
+      for (let bit = 0; bit < 8; bit++) {
+        if (byte & (0x80 >> bit)) ctx.fillRect(x + (7 - bit), y + row, 1, 1)
+      }
+    }
+  } else {
+    drawSprite(ctx, PLANE_SPRITE, x, y, C.B_WHITE, C.BLACK)
+  }
+}
+
+// ─── Status bar ───────────────────────────────────────────────────────────────
+
+function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void {
+  // Background
+  ctx.fillStyle = C.BLACK
+  ctx.fillRect(0, STATUS_Y, CANVAS_W, 16)
+
+  // Row 1: SCORE:NNNNN  LVL:N
+  const scoreStr = `SCORE:${String(state.score).padStart(5, '0')}`
+  const lvlStr = `LVL:${state.level + 1}`
+  drawText(ctx, scoreStr, 0, STATUS_Y, C.B_WHITE, C.BLACK)
+  drawText(ctx, lvlStr, (COLS - lvlStr.length) * CELL, STATUS_Y, C.B_CYAN, C.BLACK)
+
+  // Row 2: MINES:NNN  LIVES:███
+  const minesRemaining = state.totalMines - state.explodedMines
+  const minesStr = `MINES:${String(minesRemaining).padStart(3, '0')}`
+  drawText(ctx, minesStr, 0, STATUS_Y + CELL, C.B_WHITE, C.BLACK)
+
+  // Lives: filled block per life
+  const livesLabel = 'LIVES:'
+  const livesX = (COLS - livesLabel.length - state.lives) * CELL
+  drawText(ctx, livesLabel, livesX, STATUS_Y + CELL, C.B_WHITE, C.BLACK)
+  for (let i = 0; i < state.lives; i++) {
+    drawChar(ctx, 127, livesX + (livesLabel.length + i) * CELL, STATUS_Y + CELL, C.B_GREEN, C.BLACK)
+  }
+
+  // Aircraft warning (blinking)
+  if (state.airplane && state.airplane.warningBlink) {
+    drawTextCentered(ctx, '** AIRCRAFT **', STATUS_Y, C.B_YELLOW, C.BLACK)
+  }
+}
+
+// ─── Overlays ─────────────────────────────────────────────────────────────────
+
+function renderFlashOverlay(ctx: CanvasRenderingContext2D, state: GameState): void {
+  if (state.flashTimer <= 0 || !state.flashOn) return
+  ctx.fillStyle = C.B_WHITE
+  ctx.globalAlpha = 0.85
+  ctx.fillRect(0, 0, CANVAS_W, ROWS * CELL)
+  ctx.globalAlpha = 1.0
+}
+
+
+function renderGameOver(ctx: CanvasRenderingContext2D, state: GameState): void {
+  ctx.fillStyle = C.BLACK
+  ctx.globalAlpha = 0.75
+  ctx.fillRect(0, 0, CANVAS_W, ROWS * CELL)
+  ctx.globalAlpha = 1.0
+
+  const cy = Math.floor(ROWS / 2) - 3
+  drawTextCentered(ctx, 'GAME  OVER', cy * CELL, C.B_RED, C.BLACK)
+  drawTextCentered(ctx, `SCORE: ${String(state.score).padStart(5, '0')}`, (cy + 2) * CELL, C.B_WHITE, C.BLACK)
+  if (state.blink) {
+    drawTextCentered(ctx, 'PRESS ANY KEY', (cy + 5) * CELL, C.B_YELLOW, C.BLACK)
+  }
+}
+
+function renderLevelComplete(ctx: CanvasRenderingContext2D, state: GameState): void {
+  ctx.fillStyle = C.BLACK
+  ctx.globalAlpha = 0.6
+  ctx.fillRect(0, 0, CANVAS_W, ROWS * CELL)
+  ctx.globalAlpha = 1.0
+
+  const cy = Math.floor(ROWS / 2) - 2
+  drawTextCentered(ctx, 'LEVEL  COMPLETE!', cy * CELL, C.B_GREEN, C.BLACK)
+  drawTextCentered(ctx, `SCORE: ${String(state.score).padStart(5, '0')}`, (cy + 2) * CELL, C.B_WHITE, C.BLACK)
+  if (state.blink) {
+    drawTextCentered(ctx, 'GET READY...', (cy + 4) * CELL, C.B_CYAN, C.BLACK)
+  }
+}
+
+// ─── Intro screen ─────────────────────────────────────────────────────────────
+
+export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean): void {
+  ctx.fillStyle = C.BLACK
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
+
+  // Border frame (solid blocks)
+  const ink = C.B_CYAN
+  const paper = C.BLACK
+  // Top & bottom border rows
+  for (let c = 0; c < COLS; c++) {
+    drawChar(ctx, 127, c * CELL, 2 * CELL, ink, paper)
+    drawChar(ctx, 127, c * CELL, 19 * CELL, ink, paper)
+  }
+  // Left & right border columns
+  for (let r = 3; r <= 18; r++) {
+    drawChar(ctx, 127, 0, r * CELL, ink, paper)
+    drawChar(ctx, 127, 31 * CELL, r * CELL, ink, paper)
+  }
+
+  drawTextCentered(ctx, 'M I N E F I E L D', 5 * CELL, C.B_CYAN, C.BLACK)
+  drawTextCentered(ctx, 'ZX SPECTRUM EDITION', 7 * CELL, C.CYAN, C.BLACK)
+
+  // Separator line
+  for (let c = 1; c < COLS - 1; c++) {
+    drawChar(ctx, 0x2D, c * CELL, 9 * CELL, C.BLUE, C.BLACK)  // '-' as line
+  }
+
+  drawTextCentered(ctx, 'ARROWS = MOVE', 11 * CELL, C.WHITE, C.BLACK)
+  drawTextCentered(ctx, 'F = FLAG MINE', 12 * CELL, C.WHITE, C.BLACK)
+  drawTextCentered(ctx, 'CROSS THE FIELD!', 14 * CELL, C.B_GREEN, C.BLACK)
+
+  if (blink) {
+    drawTextCentered(ctx, 'PRESS ANY KEY', 16 * CELL, C.B_YELLOW, C.BLACK)
+  }
+
+  // Copyright-style footer
+  drawTextCentered(ctx, '(C) 2026 RETRO EDITION', 20 * CELL, C.BLUE, C.BLACK)
+}
+
+// ─── Main render entry ────────────────────────────────────────────────────────
+
+export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState): void {
+  // Clear
+  ctx.fillStyle = C.BLACK
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
+
+  // Grid
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      renderCell(ctx, state, col, row)
+    }
+  }
+
+  // Airplane
+  if (state.airplane) renderAirplane(ctx, state.airplane)
+
+  // Status bar
+  renderStatusBar(ctx, state)
+
+  // Flash overlay (on top of game, below other overlays)
+  renderFlashOverlay(ctx, state)
+
+  // Phase overlays
+  if (state.phase === 'gameover') renderGameOver(ctx, state)
+  if (state.phase === 'levelcomplete') renderLevelComplete(ctx, state)
+}
