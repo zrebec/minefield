@@ -1,7 +1,7 @@
 import { CANVAS_W, CELL, ROWS } from './constants.ts'
 import { LEVEL_CONFIGS, AIRPLANE_CROSS_MS } from './config.ts'
 import { type GameState, addDropMines } from './game.ts'
-import { startAirplane, stopAirplane } from './audio.ts'
+import { startAirplane, stopAmbientSounds } from './audio.ts'
 
 const DROP_DELAY_MS = 1000
 
@@ -45,7 +45,7 @@ export function updateAirplane(state: GameState, dtMs: number): void {
 
   const offscreen = plane.dir === 1 ? plane.x > CANVAS_W + 16 : plane.x < -16
   if (offscreen) {
-    stopAirplane()
+    stopAmbientSounds()
     state.airplane = null
     scheduleNext(state)
   }

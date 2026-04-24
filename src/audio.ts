@@ -119,7 +119,7 @@ export function startAirplane(): void {
   airplaneOsc.start(now)
 }
 
-export function stopAirplane(): void {
+export function stopAmbientSounds(): void {
   if (!ctx || !airplaneGain || !airplaneOsc || !airplaneLfo) return
   const now = ctx.currentTime
   airplaneGain.gain.linearRampToValueAtTime(0, now + 0.3)

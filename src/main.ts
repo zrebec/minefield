@@ -2,7 +2,7 @@ import { CANVAS_W, CANVAS_H, C } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
 import { createGame, type GameState } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumeAnyKey } from './input.ts'
-import { initAudio, stopAirplane } from './audio.ts'
+import { initAudio, stopAmbientSounds } from './audio.ts'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro } from './renderer.ts'
@@ -52,7 +52,7 @@ function gameLoop(timestamp: number): void {
     setBorderColor(C.B_BLUE)
     if (consumeAnyKey()) {
       initAudioOnce()
-      stopAirplane()
+      stopAmbientSounds()
       state = createGame(0)
       appPhase = 'ingame'
       setBorderColor(C.BLACK)
@@ -90,7 +90,7 @@ function gameLoop(timestamp: number): void {
     state.levelCompleteTimer -= dt
     if (state.levelCompleteTimer <= 0) {
       const prevScore = state.score
-      stopAirplane()
+      stopAmbientSounds()
       state = createGame(state.level + 1, prevScore)
     }
 
@@ -98,7 +98,7 @@ function gameLoop(timestamp: number): void {
     setBorderColor(C.B_RED)
     if (consumeAnyKey()) {
       initAudioOnce()
-      stopAirplane()
+      stopAmbientSounds()
       appPhase = 'intro'
       setBorderColor(C.B_BLUE)
     }
