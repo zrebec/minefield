@@ -73,14 +73,11 @@ function placeMines(grid: Cell[][], count: number, safeCol: number, safeRow: num
 
 export function countNeighborMines(grid: Cell[][], col: number, row: number): number {
   let count = 0
-  for (let dr = -1; dr <= 1; dr++) {
-    for (let dc = -1; dc <= 1; dc++) {
-      if (dr === 0 && dc === 0) continue
-      const r = row + dr
-      const c = col + dc
-      if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-        if (grid[r][c].hasMine && !grid[r][c].exploded) count++
-      }
+  for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    const r = row + dr
+    const c = col + dc
+    if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+      if (grid[r][c].hasMine && !grid[r][c].exploded) count++
     }
   }
   return count
