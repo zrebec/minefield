@@ -125,6 +125,27 @@ export function countWarningMines(grid: Cell[][], col: number, row: number): num
   return Math.min(count, 8)
 }
 
+export function applyClusterBlast(state: GameState, centerCol: number, centerRow: number): void {
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue
+      const cr = centerRow + dr
+      const cc = centerCol + dc
+      if (cr >= 0 && cr < ROWS && cc >= 0 && cc < COLS) {
+        const nb = state.grid[cr][cc]
+        if (nb.hasMine && !nb.exploded) {
+          nb.exploded = true
+          nb.hasMine = false
+          state.explodedMines++
+        } else if (!nb.visited && !nb.exploded) {
+          nb.visited = true
+          nb.hasGem = false
+        }
+      }
+    }
+  }
+}
+
 export function createGame(level = 0, initialScore = 0): GameState {
   const cfg = LEVEL_CONFIGS[Math.min(level, LEVEL_CONFIGS.length - 1)]
   const grid = makeGrid()

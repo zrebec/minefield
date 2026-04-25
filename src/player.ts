@@ -1,6 +1,6 @@
 import { COLS, ROWS } from './constants.ts'
 import { START_COL, START_ROW, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER } from './config.ts'
-import { type GameState, countWarningMines } from './game.ts'
+import { type GameState, countWarningMines, applyClusterBlast } from './game.ts'
 import type { Direction } from './input.ts'
 import { playWarning, playExplosion, playGemCollect } from './audio.ts'
 
@@ -26,28 +26,7 @@ export function movePlayer(state: GameState, dir: Direction): void {
   const cell = state.grid[newRow][newCol]
 
   if (cell.hasMine && !cell.exploded) {
-    // Cluster mine: blast all 8 surrounding cells — mines chain-explode,
-    // safe cells are revealed as visited (yellow trail)
-    if (cell.mineType === 'cluster') {
-      for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
-          if (dr === 0 && dc === 0) continue
-          const cr = newRow + dr
-          const cc = newCol + dc
-          if (cr >= 0 && cr < ROWS && cc >= 0 && cc < COLS) {
-            const nb = state.grid[cr][cc]
-            if (nb.hasMine && !nb.exploded) {
-              nb.exploded = true
-              nb.hasMine = false
-              state.explodedMines++
-            } else if (!nb.visited && !nb.exploded) {
-              nb.visited = true
-              nb.hasGem = false  // gem swept away by blast
-            }
-          }
-        }
-      }
-    }
+    if (cell.mineType === 'cluster') applyClusterBlast(state, newCol, newRow)
     cell.exploded = true
     cell.hasMine = false
     state.explodedMines++

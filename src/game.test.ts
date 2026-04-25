@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { countWarningMines, createGame, addDropMinesInBand, type Cell, type MineType } from './game.ts'
+import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, type Cell, type MineType } from './game.ts'
 import { COLS, ROWS } from './constants.ts'
 import { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, GEM_COUNT } from './config.ts'
 
@@ -302,6 +302,108 @@ describe('gem placement', () => {
     const state = createGame(0)
     expect(state.gemsTotal).toBe(GEM_COUNT)
     expect(state.gemsCollected).toBe(0)
+  })
+})
+
+// ── applyClusterBlast ─────────────────────────────────────────────────────────
+
+describe('applyClusterBlast', () => {
+  it('marks all 8 surrounding safe cells as visited', () => {
+    const state = createGame(0)
+    // Clear mines near center to isolate the test
+    for (let r = 4; r <= 6; r++)
+      for (let c = 4; c <= 6; c++) { state.grid[r][c].hasMine = false; state.grid[r][c].exploded = false }
+
+    applyClusterBlast(state, 5, 5)
+
+    const neighbors = [
+      [4,4],[5,4],[6,4],
+      [4,5],      [6,5],
+      [4,6],[5,6],[6,6],
+    ]
+    for (const [col, row] of neighbors) {
+      expect(state.grid[row][col].visited).toBe(true)
+    }
+  })
+
+  it('does not mark the center cell as visited', () => {
+    const state = createGame(0)
+    state.grid[5][5].hasMine = false
+    applyClusterBlast(state, 5, 5)
+    expect(state.grid[5][5].visited).toBe(false)
+  })
+
+  it('chain-explodes mines in the 8 surrounding cells', () => {
+    const state = createGame(0)
+    for (let r = 4; r <= 6; r++)
+      for (let c = 4; c <= 6; c++) state.grid[r][c].hasMine = false
+    // Place mines in 3 of the 8 surrounding cells
+    setMine(state.grid, 4, 4)
+    setMine(state.grid, 6, 5)
+    setMine(state.grid, 5, 6)
+    const minesBefore = state.explodedMines
+
+    applyClusterBlast(state, 5, 5)
+
+    expect(state.explodedMines).toBe(minesBefore + 3)
+    expect(state.grid[4][4].exploded).toBe(true)
+    expect(state.grid[5][6].exploded).toBe(true)
+    expect(state.grid[6][5].exploded).toBe(true)
+  })
+
+  it('chain-exploded cells are not marked as visited', () => {
+    const state = createGame(0)
+    for (let r = 4; r <= 6; r++)
+      for (let c = 4; c <= 6; c++) state.grid[r][c].hasMine = false
+    setMine(state.grid, 4, 4)
+
+    applyClusterBlast(state, 5, 5)
+
+    expect(state.grid[4][4].visited).toBe(false)
+    expect(state.grid[4][4].exploded).toBe(true)
+  })
+
+  it('does not re-explode already exploded cells', () => {
+    const state = createGame(0)
+    for (let r = 4; r <= 6; r++)
+      for (let c = 4; c <= 6; c++) state.grid[r][c].hasMine = false
+    state.grid[4][4].hasMine = true
+    state.grid[4][4].exploded = true  // already exploded
+    const minesBefore = state.explodedMines
+
+    applyClusterBlast(state, 5, 5)
+
+    expect(state.explodedMines).toBe(minesBefore)
+  })
+
+  it('clears gems swept by the blast', () => {
+    const state = createGame(0)
+    for (let r = 4; r <= 6; r++)
+      for (let c = 4; c <= 6; c++) { state.grid[r][c].hasMine = false }
+    state.grid[4][4].hasGem = true
+
+    applyClusterBlast(state, 5, 5)
+
+    expect(state.grid[4][4].hasGem).toBe(false)
+    expect(state.grid[4][4].visited).toBe(true)
+  })
+
+  it('does not visit already visited cells (no double-visit)', () => {
+    const state = createGame(0)
+    for (let r = 4; r <= 6; r++)
+      for (let c = 4; c <= 6; c++) state.grid[r][c].hasMine = false
+    state.grid[4][4].visited = true  // already visited
+
+    applyClusterBlast(state, 5, 5)
+
+    // Still visited, no error
+    expect(state.grid[4][4].visited).toBe(true)
+  })
+
+  it('handles blast at grid corner without out-of-bounds crash', () => {
+    const state = createGame(0)
+    state.grid[0][0].hasMine = false
+    expect(() => applyClusterBlast(state, 0, 0)).not.toThrow()
   })
 })
 

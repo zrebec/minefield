@@ -81,8 +81,8 @@ function getCellInkPaper(state: GameState, col: number, row: number): [string, s
   if (cell.exploded) return [C.B_YELLOW, C.BLACK]
   if (cell.flagged) return [C.B_CYAN, C.BLACK]
   if (state.debugMode && cell.hasMine) {
-    const ink = cell.mineType === 'cluster' ? C.B_MAGENTA
-      : cell.mineType === 'beacon' ? C.B_YELLOW
+    const ink = cell.mineType === 'cluster' ? C.B_YELLOW
+      : cell.mineType === 'beacon' ? C.B_CYAN
       : C.B_RED
     return [ink, C.BLACK]
   }
