@@ -2,6 +2,7 @@ import { COLS, ROWS } from './constants.ts'
 import { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, GEM_COUNT, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO } from './config.ts'
 
 export type GamePhase = 'intro' | 'playing' | 'exploding' | 'levelcomplete' | 'gameover'
+export type RunState = 'idle' | 'running' | 'paused'
 export type Dir = 'up' | 'down' | 'left' | 'right'
 export type MineType = 'normal' | 'cluster' | 'beacon'
 
@@ -48,6 +49,7 @@ export interface GameState {
   gemsCollected: number
   droppedMines: Array<{ col: number; row: number }>
   dropFlashTimer: number
+  runState: RunState
 }
 
 function makeGrid(): Cell[][] {
@@ -156,6 +158,7 @@ export function createGame(level = 0, initialScore = 0): GameState {
     gemsCollected: 0,
     droppedMines: [],
     dropFlashTimer: 0,
+    runState: 'idle',
   }
 }
 

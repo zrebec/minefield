@@ -185,10 +185,13 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, STATUS_Y, CANVAS_W, 16)
 
-  // Row 1: SCORE:NNNNN  [COMBO:xN | LVL:N]
+  // Row 1: SCORE:NNNNN  [COMBO:xN | IDLE | LVL:N]
   const scoreStr = `SCORE:${String(state.score).padStart(5, '0')}`
   drawText(ctx, scoreStr, 0, STATUS_Y, C.B_WHITE, C.BLACK)
-  if (state.comboCount >= 2) {
+  if (state.runState === 'idle') {
+    const idleStr = 'SCOUT'
+    drawText(ctx, idleStr, (COLS - idleStr.length) * CELL, STATUS_Y, C.B_GREEN, C.BLACK)
+  } else if (state.comboCount >= 2) {
     const comboStr = `COMBO:x${state.comboCount}`
     drawText(ctx, comboStr, (COLS - comboStr.length) * CELL, STATUS_Y, C.B_YELLOW, C.BLACK)
   } else {
@@ -237,6 +240,16 @@ function renderGameOver(ctx: CanvasRenderingContext2D, state: GameState): void {
   drawTextCentered(ctx, `SCORE: ${String(state.score).padStart(5, '0')}`, (cy + 2) * CELL, C.B_WHITE, C.BLACK)
   if (state.blink) {
     drawTextCentered(ctx, 'PRESS ANY KEY', (cy + 5) * CELL, C.B_YELLOW, C.BLACK)
+  }
+}
+
+function renderPaused(ctx: CanvasRenderingContext2D, state: GameState): void {
+  ctx.fillStyle = C.BLACK
+  ctx.globalAlpha = 0.6
+  ctx.fillRect(0, 0, CANVAS_W, ROWS * CELL)
+  ctx.globalAlpha = 1.0
+  if (state.blink) {
+    drawTextCentered(ctx, '** PAUSED **', Math.floor(ROWS / 2) * CELL, C.B_WHITE, C.BLACK)
   }
 }
 
@@ -318,6 +331,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState): vo
   renderFlashOverlay(ctx, state)
 
   // Phase overlays
+  if (state.phase === 'playing' && state.runState === 'paused') renderPaused(ctx, state)
   if (state.phase === 'gameover') renderGameOver(ctx, state)
   if (state.phase === 'levelcomplete') renderLevelComplete(ctx, state)
 }

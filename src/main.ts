@@ -1,7 +1,7 @@
 import { CANVAS_W, CANVAS_H, C } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
 import { createGame, type GameState } from './game.ts'
-import { initInput, tickMovement, consumeFlag, consumeDebug, consumeAnyKey } from './input.ts'
+import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey } from './input.ts'
 import { initAudio, stopAmbientSounds } from './audio.ts'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
@@ -62,29 +62,47 @@ function gameLoop(timestamp: number): void {
     return
   }
 
-  if (consumeDebug()) state.debugMode = !state.debugMode
   state.blink = blink
 
   if (state.phase === 'playing') {
-    if (state.comboTimer > 0) {
-      state.comboTimer -= dt
-      if (state.comboTimer <= 0) {
-        state.comboTimer = 0
-        state.comboCount = 0
+    if (state.runState === 'idle') {
+      // Debug available only in idle — scout before starting
+      if (consumeDebug()) state.debugMode = !state.debugMode
+      consumePause()  // drain P — can't pause before starting
+      const dir = tickMovement(dt)
+      if (dir) {
+        state.runState = 'running'
+        state.debugMode = false   // debug off permanently for this level
+        movePlayer(state, dir)
       }
-    }
-    if (state.dropFlashTimer > 0) {
-      state.dropFlashTimer -= dt
-      if (state.dropFlashTimer <= 0) {
-        state.dropFlashTimer = 0
-        state.droppedMines = []
+      if (consumeFlag()) toggleFlag(state)
+      setBorderColor(C.BLACK)
+
+    } else if (state.runState === 'running') {
+      consumeDebug()  // drain — debug not available while running
+      if (consumePause()) state.runState = 'paused'
+
+      if (state.comboTimer > 0) {
+        state.comboTimer -= dt
+        if (state.comboTimer <= 0) { state.comboTimer = 0; state.comboCount = 0 }
       }
+      if (state.dropFlashTimer > 0) {
+        state.dropFlashTimer -= dt
+        if (state.dropFlashTimer <= 0) { state.dropFlashTimer = 0; state.droppedMines = [] }
+      }
+      const dir = tickMovement(dt)
+      if (dir) movePlayer(state, dir)
+      if (consumeFlag()) toggleFlag(state)
+      updateAirplane(state, dt)
+      setBorderColor(C.BLACK)
+
+    } else {
+      // paused — drain all inputs except P
+      consumeDebug()
+      if (consumePause()) state.runState = 'running'
+      tickMovement(dt)   // drain direction queue
+      consumeFlag()
     }
-    const dir = tickMovement(dt)
-    if (dir) movePlayer(state, dir)
-    if (consumeFlag()) toggleFlag(state)
-    updateAirplane(state, dt)
-    setBorderColor(C.BLACK)
 
   } else if (state.phase === 'exploding') {
     state.flashTimer -= dt

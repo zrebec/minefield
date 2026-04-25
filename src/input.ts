@@ -9,6 +9,7 @@ const DIR_KEYS: Record<string, Direction> = {
 const held = new Set<string>()
 let pendingFlag = false
 let pendingDebug = false
+let pendingPause = false
 let pendingAnyKey = false
 
 let repeatDir: Direction | null = null
@@ -31,6 +32,7 @@ export function initInput(): void {
     }
 
     if (e.key === 'f' || e.key === 'F') pendingFlag = true
+    if (e.key === 'p' || e.key === 'P') pendingPause = true
 
     if (e.ctrlKey && e.shiftKey && (e.key === 'b' || e.key === 'B')) {
       pendingDebug = true
@@ -71,6 +73,10 @@ export function consumeFlag(): boolean {
 
 export function consumeDebug(): boolean {
   const v = pendingDebug; pendingDebug = false; return v
+}
+
+export function consumePause(): boolean {
+  const v = pendingPause; pendingPause = false; return v
 }
 
 export function consumeAnyKey(): boolean {
