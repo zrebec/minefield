@@ -297,6 +297,7 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean): void
 
   drawTextCentered(ctx, 'ARROWS = MOVE', 11 * CELL, C.WHITE, C.BLACK)
   drawTextCentered(ctx, 'F = FLAG MINE', 12 * CELL, C.WHITE, C.BLACK)
+  drawTextCentered(ctx, 'P = PAUSE', 13 * CELL, C.WHITE, C.BLACK)
   drawTextCentered(ctx, 'CROSS THE FIELD!', 14 * CELL, C.B_GREEN, C.BLACK)
 
   if (blink) {
