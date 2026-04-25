@@ -1,6 +1,6 @@
 import { CANVAS_W, CELL, ROWS } from './constants.ts'
 import { LEVEL_CONFIGS, AIRPLANE_CROSS_MS, AIRPLANE_APPROACH_MS } from './config.ts'
-import { type GameState, addDropMines } from './game.ts'
+import { type GameState, addDropMinesInBand } from './game.ts'
 import { startAirplane, stopAmbientSounds, startApproachSound, isApproachSoundActive } from './audio.ts'
 
 const DROP_DELAY_MS = 1000
@@ -42,7 +42,8 @@ export function updateAirplane(state: GameState, dtMs: number): void {
       const cfg = LEVEL_CONFIGS[Math.min(state.level, LEVEL_CONFIGS.length - 1)]
       const count = cfg.acMineDropMin +
         Math.floor(Math.random() * (cfg.acMineDropMax - cfg.acMineDropMin + 1))
-      addDropMines(state, count)
+      const planeRow = Math.floor(plane.y / CELL)
+      addDropMinesInBand(state, count, planeRow, Math.min(planeRow + 2, ROWS - 1))
       plane.dropDone = true
       dropScheduled = false
     }
@@ -58,7 +59,7 @@ export function updateAirplane(state: GameState, dtMs: number): void {
 
 function spawnAirplane(state: GameState): void {
   const goRight = Math.random() > 0.5
-  const yRow = Math.floor(Math.random() * Math.floor(ROWS / 3))
+  const yRow = Math.floor(Math.random() * (ROWS - 2))  // 0..ROWS-3 so band [row..row+2] fits
   dropScheduled = false
   dropTimer = 0
   state.airplane = {

@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { countWarningMines, createGame, addDropMines, type Cell, type MineType } from './game.ts'
+import { describe, it, expect } from 'vitest'
+import { countWarningMines, createGame, addDropMinesInBand, type Cell, type MineType } from './game.ts'
 import { COLS, ROWS } from './constants.ts'
-import { BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, GEM_COUNT } from './config.ts'
+import { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, GEM_COUNT } from './config.ts'
 
 // ── Grid helpers ──────────────────────────────────────────────────────────────
 
@@ -224,18 +224,48 @@ describe('mine type placement via createGame', () => {
     }
   })
 
-  it('dropped mines (addDropMines) are always normal type', () => {
+  it('dropped mines (addDropMinesInBand) are always normal type', () => {
     const state = createGame(3)
-    addDropMines(state, 10)
-    // We can't easily isolate which were dropped, but we can verify
-    // that the function doesn't crash and mine types are still valid
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const cell = state.grid[r][c]
-        if (cell.hasMine) {
-          expect(['normal', 'beacon', 'cluster']).toContain(cell.mineType)
-        }
+    addDropMinesInBand(state, 5, 5, 7)
+    for (const { col, row } of state.droppedMines) {
+      expect(state.grid[row][col].mineType).toBe('normal')
+    }
+  })
+
+  it('addDropMinesInBand places mines only within the specified row band', () => {
+    const state = createGame(0)
+    addDropMinesInBand(state, 10, 3, 5)
+    for (const { row } of state.droppedMines) {
+      expect(row).toBeGreaterThanOrEqual(3)
+      expect(row).toBeLessThanOrEqual(5)
+    }
+  })
+
+  it('addDropMinesInBand sets dropFlashTimer to 500', () => {
+    const state = createGame(0)
+    addDropMinesInBand(state, 3, 0, 2)
+    expect(state.dropFlashTimer).toBe(500)
+  })
+
+  it('addDropMinesInBand records dropped positions in droppedMines', () => {
+    const state = createGame(0)
+    addDropMinesInBand(state, 3, 0, 2)
+    expect(state.droppedMines.length).toBeGreaterThan(0)
+    expect(state.droppedMines.length).toBeLessThanOrEqual(3)
+  })
+
+  it('addDropMinesInBand does not place mines on visited cells', () => {
+    const state = createGame(0)
+    // Mark a large area as visited
+    for (let r = 0; r <= 2; r++) {
+      for (let c = 0; c < COLS - 1; c++) {
+        state.grid[r][c].hasMine = false
+        state.grid[r][c].visited = true
       }
+    }
+    addDropMinesInBand(state, 5, 0, 2)
+    for (const { col, row } of state.droppedMines) {
+      expect(state.grid[row][col].visited).toBe(false)
     }
   })
 })

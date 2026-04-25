@@ -46,6 +46,8 @@ export interface GameState {
   comboTimer: number
   gemsTotal: number
   gemsCollected: number
+  droppedMines: Array<{ col: number; row: number }>
+  dropFlashTimer: number
 }
 
 function makeGrid(): Cell[][] {
@@ -152,21 +154,25 @@ export function createGame(level = 0, initialScore = 0): GameState {
     comboTimer: 0,
     gemsTotal: GEM_COUNT,
     gemsCollected: 0,
+    droppedMines: [],
+    dropFlashTimer: 0,
   }
 }
 
-export function addDropMines(state: GameState, count: number): void {
-  let added = 0
+export function addDropMinesInBand(state: GameState, count: number, minRow: number, maxRow: number): void {
+  const dropped: Array<{ col: number; row: number }> = []
   let attempts = 0
-  while (added < count && attempts < count * 20) {
+  while (dropped.length < count && attempts < count * 20) {
     attempts++
     const col = randomInt(0, COLS - 2)
-    const row = randomInt(0, ROWS - 1)
+    const row = randomInt(minRow, maxRow)
     if (state.grid[row][col].hasMine) continue
     if (state.grid[row][col].visited) continue
     state.grid[row][col].hasMine = true
     state.grid[row][col].mineType = 'normal'
     state.totalMines++
-    added++
+    dropped.push({ col, row })
   }
+  state.droppedMines = dropped
+  state.dropFlashTimer = 500
 }

@@ -100,6 +100,20 @@ function renderCell(ctx: CanvasRenderingContext2D, state: GameState, col: number
   const y = row * CELL
   const cell = state.grid[row][col]
   const isPlayer = col === state.playerCol && row === state.playerRow
+
+  // Flash newly dropped mines so player sees where they landed
+  if (state.dropFlashTimer > 0 && !isPlayer) {
+    const isDropped = state.droppedMines.some(m => m.col === col && m.row === row)
+    if (isDropped) {
+      const flashOn = Math.floor(state.dropFlashTimer / 100) % 2 === 1
+      if (flashOn) {
+        ctx.fillStyle = C.B_WHITE
+        ctx.fillRect(x, y, CELL, CELL)
+        return
+      }
+    }
+  }
+
   const [ink, paper] = getCellInkPaper(state, col, row)
 
   const ground = (col + row) % 2 === 0 ? GROUND_A : GROUND_B

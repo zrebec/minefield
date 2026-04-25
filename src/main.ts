@@ -73,6 +73,13 @@ function gameLoop(timestamp: number): void {
         state.comboCount = 0
       }
     }
+    if (state.dropFlashTimer > 0) {
+      state.dropFlashTimer -= dt
+      if (state.dropFlashTimer <= 0) {
+        state.dropFlashTimer = 0
+        state.droppedMines = []
+      }
+    }
     const dir = tickMovement(dt)
     if (dir) movePlayer(state, dir)
     if (consumeFlag()) toggleFlag(state)
