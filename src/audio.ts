@@ -5,6 +5,8 @@ let masterGain: GainNode | null = null
 let airplaneOsc: OscillatorNode | null = null
 let airplaneLfo: OscillatorNode | null = null
 let airplaneGain: GainNode | null = null
+let approachOsc: OscillatorNode | null = null
+let approachGain: GainNode | null = null
 let lastWarnTime = 0
 
 export function initAudio(): void {
@@ -96,7 +98,43 @@ export function playGameOver(): void {
   notes.forEach((f, i) => beep(f, 220, now + i * 0.27))
 }
 
+export function startApproachSound(): void {
+  if (!ctx || approachOsc || airplaneOsc) return
+  const ac = ctx
+  const now = ac.currentTime
+  approachGain = ac.createGain()
+  approachGain.gain.value = 0.04
+  approachGain.connect(masterGain!)
+  approachOsc = ac.createOscillator()
+  approachOsc.type = 'square'
+  approachOsc.frequency.value = 1300
+  approachOsc.connect(approachGain)
+  approachOsc.start(now)
+}
+
+export function stopApproachSound(): void {
+  if (!ctx || !approachOsc) return
+  const now = ctx.currentTime
+  approachGain?.gain.linearRampToValueAtTime(0, now + 0.2)
+  approachOsc.stop(now + 0.25)
+  approachOsc = null
+  approachGain = null
+}
+
+export function isApproachSoundActive(): boolean {
+  return approachOsc !== null
+}
+
+export function playGemCollect(comboCount: number): void {
+  if (!ctx) return
+  const now = ctx.currentTime
+  const freq = Math.min(880 + (comboCount - 1) * 110, 1760)
+  beep(freq, 60, now)
+  if (comboCount >= 2) beep(Math.min(freq * 1.25, 2200), 60, now + 0.09)
+}
+
 export function startAirplane(): void {
+  stopApproachSound()
   if (!ctx || airplaneOsc) return
   const ac = ctx
   const now = ac.currentTime
@@ -120,6 +158,7 @@ export function startAirplane(): void {
 }
 
 export function stopAmbientSounds(): void {
+  stopApproachSound()
   if (!ctx || !airplaneGain || !airplaneOsc || !airplaneLfo) return
   const now = ctx.currentTime
   airplaneGain.gain.linearRampToValueAtTime(0, now + 0.3)

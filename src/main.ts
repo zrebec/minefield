@@ -66,6 +66,13 @@ function gameLoop(timestamp: number): void {
   state.blink = blink
 
   if (state.phase === 'playing') {
+    if (state.comboTimer > 0) {
+      state.comboTimer -= dt
+      if (state.comboTimer <= 0) {
+        state.comboTimer = 0
+        state.comboCount = 0
+      }
+    }
     const dir = tickMovement(dt)
     if (dir) movePlayer(state, dir)
     if (consumeFlag()) toggleFlag(state)

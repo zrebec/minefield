@@ -1,7 +1,7 @@
 import { CANVAS_W, CELL, ROWS } from './constants.ts'
-import { LEVEL_CONFIGS, AIRPLANE_CROSS_MS } from './config.ts'
+import { LEVEL_CONFIGS, AIRPLANE_CROSS_MS, AIRPLANE_APPROACH_MS } from './config.ts'
 import { type GameState, addDropMines } from './game.ts'
-import { startAirplane, stopAmbientSounds } from './audio.ts'
+import { startAirplane, stopAmbientSounds, startApproachSound, isApproachSoundActive } from './audio.ts'
 
 const DROP_DELAY_MS = 1000
 
@@ -10,6 +10,11 @@ let dropTimer = 0
 
 export function updateAirplane(state: GameState, dtMs: number): void {
   state.nextAircraftMs -= dtMs
+
+  if (!state.airplane && state.phase === 'playing' &&
+      state.nextAircraftMs <= AIRPLANE_APPROACH_MS && !isApproachSoundActive()) {
+    startApproachSound()
+  }
 
   if (state.nextAircraftMs <= 0 && !state.airplane && state.phase === 'playing') {
     spawnAirplane(state)

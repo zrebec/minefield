@@ -115,6 +115,18 @@ export const GROUND_B = new Uint8Array([
   0x00, // ........
 ])
 
+// Gem — diamond collectible
+export const GEM = new Uint8Array([
+  0x18, // ...##...
+  0x3C, // ..####..
+  0x7E, // .######.
+  0xFF, // ########
+  0xFF, // ########
+  0x7E, // .######.
+  0x3C, // ..####..
+  0x18, // ...##...
+])
+
 export function mirrorSprite(src: Uint8Array): Uint8Array {
   const out = new Uint8Array(8)
   for (let r = 0; r < 8; r++) {

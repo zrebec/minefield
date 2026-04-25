@@ -4,7 +4,7 @@ import { getCharRow } from './font.ts'
 import {
   PLAYER_RIGHT, PLAYER_LEFT, PLAYER_UP, PLAYER_DOWN,
   MINE, EXPLOSION_1, EXPLOSION_2, FLAG, GROUND_A, GROUND_B,
-  AIRPLANE as PLANE_SPRITE,
+  AIRPLANE as PLANE_SPRITE, GEM,
 } from './sprites.ts'
 
 const STATUS_Y = ROWS * CELL  // 176
@@ -80,7 +80,13 @@ function getCellInkPaper(state: GameState, col: number, row: number): [string, s
   }
   if (cell.exploded) return [C.B_YELLOW, C.BLACK]
   if (cell.flagged) return [C.B_CYAN, C.BLACK]
-  if (state.debugMode && cell.hasMine) return [C.B_RED, C.BLACK]
+  if (state.debugMode && cell.hasMine) {
+    const ink = cell.mineType === 'cluster' ? C.B_MAGENTA
+      : cell.mineType === 'beacon' ? C.B_YELLOW
+      : C.B_RED
+    return [ink, C.BLACK]
+  }
+  if (cell.hasGem && !cell.visited) return [C.B_CYAN, C.BLACK]
   if (cell.visited) return [C.B_YELLOW, C.BLACK]
 
   // Checkerboard for unvisited ground
@@ -127,6 +133,11 @@ function renderCell(ctx: CanvasRenderingContext2D, state: GameState, col: number
     return
   }
 
+  if (cell.hasGem && !cell.visited) {
+    drawSprite(ctx, GEM, x, y, C.B_CYAN, C.BLACK)
+    return
+  }
+
   drawSprite(ctx, ground, x, y, ink, paper)
 }
 
@@ -160,11 +171,16 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, STATUS_Y, CANVAS_W, 16)
 
-  // Row 1: SCORE:NNNNN  LVL:N
+  // Row 1: SCORE:NNNNN  [COMBO:xN | LVL:N]
   const scoreStr = `SCORE:${String(state.score).padStart(5, '0')}`
-  const lvlStr = `LVL:${state.level + 1}`
   drawText(ctx, scoreStr, 0, STATUS_Y, C.B_WHITE, C.BLACK)
-  drawText(ctx, lvlStr, (COLS - lvlStr.length) * CELL, STATUS_Y, C.B_CYAN, C.BLACK)
+  if (state.comboCount >= 2) {
+    const comboStr = `COMBO:x${state.comboCount}`
+    drawText(ctx, comboStr, (COLS - comboStr.length) * CELL, STATUS_Y, C.B_YELLOW, C.BLACK)
+  } else {
+    const lvlStr = `LVL:${state.level + 1}`
+    drawText(ctx, lvlStr, (COLS - lvlStr.length) * CELL, STATUS_Y, C.B_CYAN, C.BLACK)
+  }
 
   // Row 2: MINES:NNN  LIVES:███
   const minesRemaining = state.totalMines - state.explodedMines

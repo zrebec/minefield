@@ -1,8 +1,12 @@
 import { COLS, ROWS } from './constants.ts'
-import { START_COL, START_ROW, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS } from './config.ts'
-import { type GameState, countNeighborMines } from './game.ts'
+import { START_COL, START_ROW, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER } from './config.ts'
+import { type GameState, countWarningMines } from './game.ts'
 import type { Direction } from './input.ts'
-import { playWarning, playExplosion } from './audio.ts'
+import { playWarning, playExplosion, playGemCollect } from './audio.ts'
+
+function comboMultiplier(comboCount: number): number {
+  return Math.min(1 + (comboCount - 1) * 0.1, COMBO_MAX_MULTIPLIER)
+}
 
 export function movePlayer(state: GameState, dir: Direction): void {
   if (state.phase !== 'playing') return
@@ -22,6 +26,21 @@ export function movePlayer(state: GameState, dir: Direction): void {
   const cell = state.grid[newRow][newCol]
 
   if (cell.hasMine && !cell.exploded) {
+    // Cluster mine: chain-explode adjacent mines before triggering
+    if (cell.mineType === 'cluster') {
+      for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        const cr = newRow + dr
+        const cc = newCol + dc
+        if (cr >= 0 && cr < ROWS && cc >= 0 && cc < COLS) {
+          const nb = state.grid[cr][cc]
+          if (nb.hasMine && !nb.exploded && !nb.visited) {
+            nb.exploded = true
+            nb.hasMine = false
+            state.explodedMines++
+          }
+        }
+      }
+    }
     cell.exploded = true
     cell.hasMine = false
     state.explodedMines++
@@ -39,11 +58,22 @@ export function movePlayer(state: GameState, dir: Direction): void {
 
   if (!cell.visited) {
     cell.visited = true
-    const mult = SCORE_MULTIPLIERS[Math.min(state.level, SCORE_MULTIPLIERS.length - 1)]
-    state.score += Math.round(SCORE_PER_CELL * mult)
+    state.comboCount++
+    state.comboTimer = COMBO_DURATION_MS
+    const levelMult = SCORE_MULTIPLIERS[Math.min(state.level, SCORE_MULTIPLIERS.length - 1)]
+    const cMult = comboMultiplier(state.comboCount)
+    state.score += Math.round(SCORE_PER_CELL * levelMult * cMult)
   }
 
-  const nearby = countNeighborMines(state.grid, newCol, newRow)
+  if (cell.hasGem) {
+    cell.hasGem = false
+    state.gemsCollected++
+    const cMult = comboMultiplier(state.comboCount)
+    state.score += Math.round(GEM_SCORE * cMult)
+    playGemCollect(state.comboCount)
+  }
+
+  const nearby = countWarningMines(state.grid, newCol, newRow)
   playWarning(nearby)
 }
 

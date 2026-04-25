@@ -129,3 +129,38 @@ export const AIRCRAFT_WARN_BLINK_MS = 250
 
 // Čas zobrazenia "LEVEL COMPLETE" overlay pred prechodom na ďalší level (ms)
 export const LEVEL_COMPLETE_DELAY_MS = 2500
+
+// ── Zbierateľné predmety (Gems) ───────────────────────────────────────────────
+
+// Počet gemov rozmiestených na hracej ploche každý level
+export const GEM_COUNT = 7
+
+// Základný bonus za zozbieranie gemu (pred combo multiplikátorom)
+export const GEM_SCORE = 75
+
+// ── Combo systém ──────────────────────────────────────────────────────────────
+
+// Ako dlho (ms) zostáva combo aktívne bez nového kroku na novú bunku
+export const COMBO_DURATION_MS = 2500
+
+// Maximálny combo multiplikátor (2.0 = dvojnásobné skóre)
+export const COMBO_MAX_MULTIPLIER = 2.0
+
+// ── Typy mín ──────────────────────────────────────────────────────────────────
+
+// Od ktorého levelu (0-indexed) sa objavujú beacon míny
+export const BEACON_MINE_LEVEL = 1   // od levelu 2
+
+// Podiel beacon mín zo všetkých mín (0.12 = 12%)
+export const BEACON_MINE_RATIO = 0.12
+
+// Od ktorého levelu (0-indexed) sa objavujú cluster míny
+export const CLUSTER_MINE_LEVEL = 2  // od levelu 3
+
+// Podiel cluster mín zo všetkých mín (0.15 = 15%)
+export const CLUSTER_MINE_RATIO = 0.15
+
+// ── Lietadlo — priblíženie ────────────────────────────────────────────────────
+
+// Koľko ms pred spawnom lietadla sa spustí vzdialený zvuk motora
+export const AIRPLANE_APPROACH_MS = 5000
