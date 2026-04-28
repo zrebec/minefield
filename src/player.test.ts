@@ -13,6 +13,8 @@ vi.mock('./audio.ts', () => ({
   playWarning: vi.fn(),
   playExplosion: vi.fn(),
   playGemCollect: vi.fn(),
+  playFootstep: vi.fn(),
+  isAmbientSoundActive: vi.fn().mockReturnValue(false),
 }))
 
 // Clean state at position (5,5) with no mines, cleared visited flags

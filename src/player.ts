@@ -2,7 +2,7 @@ import { COLS, ROWS } from './constants.ts'
 import { START_COL, START_ROW, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER } from './config.ts'
 import { type GameState, countWarningMines, applyClusterBlast } from './game.ts'
 import type { Direction } from './input.ts'
-import { playWarning, playExplosion, playGemCollect } from './audio.ts'
+import { playWarning, playExplosion, playGemCollect, playFootstep, isAmbientSoundActive } from './audio.ts'
 
 function comboMultiplier(comboCount: number): number {
   return Math.min(1 + (comboCount - 1) * 0.1, COMBO_MAX_MULTIPLIER)
@@ -52,6 +52,7 @@ export function movePlayer(state: GameState, dir: Direction): void {
     state.score += Math.round(SCORE_PER_CELL * levelMult * cMult)
   }
 
+  const hadGem = cell.hasGem
   if (cell.hasGem) {
     cell.hasGem = false
     state.gemsCollected++
@@ -61,7 +62,11 @@ export function movePlayer(state: GameState, dir: Direction): void {
   }
 
   const nearby = countWarningMines(state.grid, newCol, newRow)
-  playWarning(nearby)
+  if (nearby > 0) {
+    playWarning(nearby)
+  } else if (!hadGem && !isAmbientSoundActive()) {
+    playFootstep()
+  }
 }
 
 export function respawnPlayer(state: GameState): void {

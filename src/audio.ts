@@ -125,6 +125,15 @@ export function isApproachSoundActive(): boolean {
   return approachOsc !== null
 }
 
+export function isAmbientSoundActive(): boolean {
+  return approachOsc !== null || airplaneOsc !== null
+}
+
+export function playFootstep(): void {
+  if (!ctx) return
+  beep(85, 28, ctx.currentTime)
+}
+
 export function playGemCollect(comboCount: number): void {
   if (!ctx) return
   const now = ctx.currentTime
