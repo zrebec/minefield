@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, type Cell, type MineType } from './game.ts'
 import { COLS, ROWS } from './constants.ts'
-import { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, GEM_COUNT } from './config.ts'
+import { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, GEM_COUNT, START_COL, START_ROW } from './config.ts'
 
 // ── Grid helpers ──────────────────────────────────────────────────────────────
 
@@ -419,5 +419,15 @@ describe('createGame initial state', () => {
   it('preserves score across levels', () => {
     const state = createGame(2, 1234)
     expect(state.score).toBe(1234)
+  })
+
+  it('marks starting cell as visited from the start', () => {
+    const state = createGame(0)
+    expect(state.grid[START_ROW][START_COL].visited).toBe(true)
+  })
+
+  it('initializes playerWalkFrame to 0', () => {
+    const state = createGame(0)
+    expect(state.playerWalkFrame).toBe(0)
   })
 })
