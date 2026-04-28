@@ -304,12 +304,15 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean): void
   drawTextCentered(ctx, 'P = PAUSE', 13 * CELL, C.WHITE, C.BLACK)
   drawTextCentered(ctx, 'CROSS THE FIELD!', 14 * CELL, C.B_GREEN, C.BLACK)
 
+  drawTextCentered(ctx, 'REQUIRES HARDWARE KEYBOARD', 15 * CELL, C.YELLOW, C.BLACK)
+
   if (blink) {
-    drawTextCentered(ctx, 'PRESS ANY KEY', 16 * CELL, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, 'PRESS ANY KEY', 17 * CELL, C.B_YELLOW, C.BLACK)
   }
 
-  // Copyright-style footer
-  drawTextCentered(ctx, '(C) 2026 RETRO EDITION', 20 * CELL, C.BLUE, C.BLACK)
+  // Copyright-style footer with build number
+  const build = import.meta.env.VITE_APP_BUILD ?? 'DEV'
+  drawTextCentered(ctx, `(C) 2026  BUILD:${build}`, 20 * CELL, C.BLUE, C.BLACK)
 }
 
 // ─── Main render entry ────────────────────────────────────────────────────────
