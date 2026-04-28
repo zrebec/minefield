@@ -18,9 +18,10 @@
       }
 
       #game {
-        /* Canvas is 256×192 logical pixels, displayed at 4× */
-        width: 1024px;
-        height: 768px;
+        /* Scale to fit viewport, never exceed native 4× size, keep 4:3 ratio */
+        width: min(1024px, 100vw, calc(100dvh * 4 / 3));
+        height: auto;
+        aspect-ratio: 4 / 3;
         image-rendering: pixelated;
         image-rendering: crisp-edges;
         display: block;
