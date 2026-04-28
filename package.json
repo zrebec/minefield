@@ -10,6 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "dependencies": {
+    "zx-kit": "file:../zx-kit"
+  },
   "devDependencies": {
     "typescript": "~6.0.2",
     "vite": "^8.0.9",

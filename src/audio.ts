@@ -1,7 +1,14 @@
 import { MASTER_VOLUME, WARN_DEBOUNCE_MS } from './config.ts'
+import {
+  initAudio as _initAudio,
+  resumeAudio,
+  beep,
+  getAudioContext,
+  getMasterGain,
+} from 'zx-kit'
 
-let ctx: AudioContext | null = null
-let masterGain: GainNode | null = null
+export { resumeAudio }
+
 let airplaneOsc: OscillatorNode | null = null
 let airplaneLfo: OscillatorNode | null = null
 let airplaneGain: GainNode | null = null
@@ -10,39 +17,11 @@ let approachGain: GainNode | null = null
 let lastWarnTime = 0
 
 export function initAudio(): void {
-  if (ctx) return
-  ctx = new AudioContext()
-  masterGain = ctx.createGain()
-  masterGain.gain.value = MASTER_VOLUME
-  masterGain.connect(ctx.destination)
-}
-
-export function resumeAudio(): void {
-  if (ctx && ctx.state === 'suspended') void ctx.resume()
-}
-
-function ensureCtx(): AudioContext {
-  if (!ctx || !masterGain) throw new Error('audio not init')
-  return ctx
-}
-
-function beep(freq: number, durationMs: number, startTime: number): void {
-  const ac = ensureCtx()
-  const osc = ac.createOscillator()
-  const gain = ac.createGain()
-  osc.type = 'square'
-  osc.frequency.value = freq
-  gain.gain.setValueAtTime(0, startTime)
-  gain.gain.linearRampToValueAtTime(0.8, startTime + 0.005)
-  gain.gain.setValueAtTime(0.8, startTime + durationMs / 1000 - 0.005)
-  gain.gain.linearRampToValueAtTime(0, startTime + durationMs / 1000)
-  osc.connect(gain)
-  gain.connect(masterGain!)
-  osc.start(startTime)
-  osc.stop(startTime + durationMs / 1000 + 0.01)
+  _initAudio(MASTER_VOLUME)
 }
 
 export function playWarning(mineCount: number): void {
+  const ctx = getAudioContext()
   if (!ctx || mineCount === 0) return
   resumeAudio()
   const now = ctx.currentTime
@@ -66,14 +45,14 @@ export function playWarning(mineCount: number): void {
 }
 
 export function playExplosion(): void {
+  const ctx = getAudioContext()
   if (!ctx) return
-  const ac = ctx
-  const now = ac.currentTime
-  const gain = ac.createGain()
+  const now = ctx.currentTime
+  const gain = ctx.createGain()
   gain.gain.setValueAtTime(0.9, now)
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5)
-  gain.connect(masterGain!)
-  const osc = ac.createOscillator()
+  gain.connect(getMasterGain()!)
+  const osc = ctx.createOscillator()
   osc.type = 'square'
   osc.frequency.setValueAtTime(400, now)
   for (let i = 0; i < 40; i++) {
@@ -85,6 +64,7 @@ export function playExplosion(): void {
 }
 
 export function playWin(): void {
+  const ctx = getAudioContext()
   if (!ctx) return
   const now = ctx.currentTime
   const notes = [262, 330, 392, 523]
@@ -92,6 +72,7 @@ export function playWin(): void {
 }
 
 export function playGameOver(): void {
+  const ctx = getAudioContext()
   if (!ctx) return
   const now = ctx.currentTime
   const notes = [262, 247, 233, 220, 208]
@@ -99,13 +80,13 @@ export function playGameOver(): void {
 }
 
 export function startApproachSound(): void {
+  const ctx = getAudioContext()
   if (!ctx || approachOsc || airplaneOsc) return
-  const ac = ctx
-  const now = ac.currentTime
-  approachGain = ac.createGain()
+  const now = ctx.currentTime
+  approachGain = ctx.createGain()
   approachGain.gain.value = 0.04
-  approachGain.connect(masterGain!)
-  approachOsc = ac.createOscillator()
+  approachGain.connect(getMasterGain()!)
+  approachOsc = ctx.createOscillator()
   approachOsc.type = 'square'
   approachOsc.frequency.value = 1300
   approachOsc.connect(approachGain)
@@ -113,6 +94,7 @@ export function startApproachSound(): void {
 }
 
 export function stopApproachSound(): void {
+  const ctx = getAudioContext()
   if (!ctx || !approachOsc) return
   const now = ctx.currentTime
   approachGain?.gain.linearRampToValueAtTime(0, now + 0.2)
@@ -130,11 +112,13 @@ export function isAmbientSoundActive(): boolean {
 }
 
 export function playFootstep(): void {
+  const ctx = getAudioContext()
   if (!ctx) return
   beep(85, 28, ctx.currentTime)
 }
 
 export function playGemCollect(comboCount: number): void {
+  const ctx = getAudioContext()
   if (!ctx) return
   const now = ctx.currentTime
   const freq = Math.min(880 + (comboCount - 1) * 110, 1760)
@@ -144,20 +128,20 @@ export function playGemCollect(comboCount: number): void {
 
 export function startAirplane(): void {
   stopApproachSound()
+  const ctx = getAudioContext()
   if (!ctx || airplaneOsc) return
-  const ac = ctx
-  const now = ac.currentTime
-  airplaneGain = ac.createGain()
+  const now = ctx.currentTime
+  airplaneGain = ctx.createGain()
   airplaneGain.gain.setValueAtTime(0, now)
   airplaneGain.gain.linearRampToValueAtTime(0.4, now + 0.3)
-  airplaneGain.connect(masterGain!)
-  airplaneOsc = ac.createOscillator()
+  airplaneGain.connect(getMasterGain()!)
+  airplaneOsc = ctx.createOscillator()
   airplaneOsc.type = 'square'
   airplaneOsc.frequency.value = 1300
-  airplaneLfo = ac.createOscillator()
+  airplaneLfo = ctx.createOscillator()
   airplaneLfo.type = 'square'
   airplaneLfo.frequency.value = 12
-  const lfoGain = ac.createGain()
+  const lfoGain = ctx.createGain()
   lfoGain.gain.value = 80
   airplaneLfo.connect(lfoGain)
   lfoGain.connect(airplaneOsc.frequency)
@@ -168,6 +152,7 @@ export function startAirplane(): void {
 
 export function stopAmbientSounds(): void {
   stopApproachSound()
+  const ctx = getAudioContext()
   if (!ctx || !airplaneGain || !airplaneOsc || !airplaneLfo) return
   const now = ctx.currentTime
   airplaneGain.gain.linearRampToValueAtTime(0, now + 0.3)
@@ -179,6 +164,7 @@ export function stopAmbientSounds(): void {
 }
 
 export function playIntroBeep(): void {
+  const ctx = getAudioContext()
   if (!ctx) return
   beep(440, 50, ctx.currentTime)
 }

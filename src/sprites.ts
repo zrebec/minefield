@@ -1,3 +1,6 @@
+import { mirrorSprite } from 'zx-kit'
+export { mirrorSprite }
+
 // All sprites: 8×8 pixels, each byte = one row, bit7 = leftmost pixel
 
 // Player walk frames — A: legs apart, B: legs together
@@ -155,15 +158,3 @@ export const GEM = new Uint8Array([
   0x18, // ...##...
 ])
 
-export function mirrorSprite(src: Uint8Array): Uint8Array {
-  const out = new Uint8Array(8)
-  for (let r = 0; r < 8; r++) {
-    let b = src[r]
-    let m = 0
-    for (let i = 0; i < 8; i++) {
-      if (b & (1 << i)) m |= (1 << (7 - i))
-    }
-    out[r] = m
-  }
-  return out
-}

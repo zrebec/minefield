@@ -1,6 +1,6 @@
 import { CANVAS_W, CANVAS_H, ROWS, COLS, CELL, C } from './constants.ts'
 import type { GameState, AirplaneState } from './game.ts'
-import { getCharRow } from './font.ts'
+import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered } from 'zx-kit'
 import {
   PLAYER_RIGHT_A, PLAYER_RIGHT_B,
   PLAYER_LEFT_A, PLAYER_LEFT_B,
@@ -12,63 +12,14 @@ import {
 
 const STATUS_Y = ROWS * CELL  // 176
 
-// ─── Low-level draw primitives ────────────────────────────────────────────────
-
-function drawSprite(
-  ctx: CanvasRenderingContext2D,
-  sprite: Uint8Array,
-  x: number, y: number,
-  ink: string, paper: string,
-): void {
-  ctx.fillStyle = paper
-  ctx.fillRect(x, y, CELL, CELL)
-  ctx.fillStyle = ink
-  for (let row = 0; row < 8; row++) {
-    const byte = sprite[row]
-    for (let bit = 0; bit < 8; bit++) {
-      if (byte & (0x80 >> bit)) ctx.fillRect(x + bit, y + row, 1, 1)
-    }
-  }
-}
-
-function drawChar(
-  ctx: CanvasRenderingContext2D,
-  code: number,
-  x: number, y: number,
-  ink: string, paper?: string,
-): void {
-  if (paper !== undefined) {
-    ctx.fillStyle = paper
-    ctx.fillRect(x, y, CELL, CELL)
-  }
-  ctx.fillStyle = ink
-  for (let row = 0; row < 8; row++) {
-    const byte = getCharRow(code, row)
-    for (let bit = 0; bit < 8; bit++) {
-      if (byte & (0x80 >> bit)) ctx.fillRect(x + bit, y + row, 1, 1)
-    }
-  }
-}
-
-function drawText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number, y: number,
-  ink: string, paper?: string,
-): void {
-  for (let i = 0; i < text.length; i++) {
-    drawChar(ctx, text.charCodeAt(i), x + i * CELL, y, ink, paper)
-  }
-}
-
+// Bind COLS so callers don't need to pass it every time
 function drawTextCentered(
   ctx: CanvasRenderingContext2D,
   text: string,
   y: number,
   ink: string, paper?: string,
 ): void {
-  const x = Math.floor((COLS - text.length) / 2) * CELL
-  drawText(ctx, text, x, y, ink, paper)
+  _drawTextCentered(ctx, text, y, COLS, ink, paper)
 }
 
 // ─── Cell rendering ───────────────────────────────────────────────────────────
