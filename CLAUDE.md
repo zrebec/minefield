@@ -287,6 +287,35 @@ probedCells: Set<string>  // cleared on any player move
 
 ---
 
+## Zvažované budúce funkcie (NEIMPLEMENTOVANÉ)
+
+> Hra je považovaná za funkčne kompletnú. Tieto funkcie sú zvažované, nie rozhodnuté.
+> ZX Spectrum filozofia: obtiažnosť cez brutalitu a nemožnosť save, nie feature bloat.
+
+### Save / High Score
+
+**High score table** (odporúčané ako Spectrum-autentické):
+- Uložiť top N skóre cez `localStorage`
+- Zobraziť na intro obrazovke alebo samostatnej obrazovke
+- Obsahuje: meno (3 písmená, Spectrum štýl), skóre, level dosiahnutý
+- Veľmi bežné na Spectrum — autentické
+
+**Mid-game save** (menej autentické, zvažované):
+- Uložiť celý `GameState` do `localStorage` (grid, pozícia, životy, skóre)
+- Problém: narúša Spectrum filozofiu "buď dobrý alebo začni odznova"
+- Ak sa implementuje: maximálne 1 save slot, žiadny "save scumming"
+
+### Probe / Digger (kameň na odhalenie mín)
+
+Pozri sekciu **Hráčske pomôcky** vyššie — celý dizajn je zdokumentovaný.
+
+Otvorené rozhodnutia pred implementáciou:
+- Smer hodiť: iba priamo pred hráčom, alebo aj do strán?
+- Curve/arc trajektória (komplexnejšie, menej Spectrum-like)
+- Klávesová skratka: TBD
+
+---
+
 ## Čo NESMIE byť
 
 - Žiadne gradienty, tiene, border-radius
