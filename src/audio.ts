@@ -131,23 +131,30 @@ export function startAirplane(): void {
   const ctx = getAudioContext()
   if (!ctx || airplaneOsc) return
   const now = ctx.currentTime
-  airplaneGain = ctx.createGain()
-  airplaneGain.gain.setValueAtTime(0, now)
-  airplaneGain.gain.linearRampToValueAtTime(0.4, now + 0.3)
-  airplaneGain.connect(getMasterGain()!)
-  airplaneOsc = ctx.createOscillator()
-  airplaneOsc.type = 'square'
-  airplaneOsc.frequency.value = 1300
-  airplaneLfo = ctx.createOscillator()
-  airplaneLfo.type = 'square'
-  airplaneLfo.frequency.value = 12
+
+  const gain = ctx.createGain()
+  gain.gain.setValueAtTime(0, now)
+  gain.gain.linearRampToValueAtTime(0.4, now + 0.3)
+  gain.connect(getMasterGain()!)
+
+  const osc = ctx.createOscillator()
+  osc.type = 'square'
+  osc.frequency.value = 1300
+
+  const lfo = ctx.createOscillator()
+  lfo.type = 'square'
+  lfo.frequency.value = 12
   const lfoGain = ctx.createGain()
   lfoGain.gain.value = 80
-  airplaneLfo.connect(lfoGain)
-  lfoGain.connect(airplaneOsc.frequency)
-  airplaneOsc.connect(airplaneGain)
-  airplaneLfo.start(now)
-  airplaneOsc.start(now)
+  lfo.connect(lfoGain)
+  lfoGain.connect(osc.frequency)
+  osc.connect(gain)
+  lfo.start(now)
+  osc.start(now)
+
+  airplaneGain = gain
+  airplaneOsc = osc
+  airplaneLfo = lfo
 }
 
 export function stopAmbientSounds(): void {
