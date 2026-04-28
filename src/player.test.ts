@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { createGame, type GameState } from './game.ts'
 import { COLS, ROWS } from './constants.ts'
