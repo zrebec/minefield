@@ -41,6 +41,7 @@ export function movePlayer(state: GameState, dir: Direction): void {
 
   state.playerCol = newCol
   state.playerRow = newRow
+  state.playerWalkFrame = state.playerWalkFrame === 0 ? 1 : 0
 
   if (!cell.visited) {
     cell.visited = true

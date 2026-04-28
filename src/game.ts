@@ -33,6 +33,7 @@ export interface GameState {
   playerCol: number
   playerRow: number
   playerDir: Dir
+  playerWalkFrame: number
   flashTimer: number
   flashOn: boolean
   debugMode: boolean
@@ -151,6 +152,7 @@ export function createGame(level = 0, initialScore = 0): GameState {
   const grid = makeGrid()
   placeMines(grid, cfg.mines, START_COL, START_ROW, level)
   placeGems(grid, GEM_COUNT, START_COL, START_ROW)
+  grid[START_ROW][START_COL].visited = true
 
   const firstAcMs = cfg.acFirstMs + Math.random() * (cfg.acFirstMaxMs - cfg.acFirstMs)
 
@@ -163,6 +165,7 @@ export function createGame(level = 0, initialScore = 0): GameState {
     playerCol: START_COL,
     playerRow: START_ROW,
     playerDir: 'right',
+    playerWalkFrame: 0,
     flashTimer: 0,
     flashOn: false,
     debugMode: false,

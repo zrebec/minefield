@@ -1,34 +1,62 @@
 // All sprites: 8×8 pixels, each byte = one row, bit7 = leftmost pixel
 
-// Player — humanoid figure (same sprite used for all directions; mirrored for left)
-export const PLAYER_RIGHT = new Uint8Array([
+// Player walk frames — A: legs apart, B: legs together
+// RIGHT / LEFT (side view, symmetric — LEFT is mirrored at module init)
+export const PLAYER_RIGHT_A = new Uint8Array([
   0x18, // ...##...  head
   0x3C, // ..####..
   0x18, // ...##...  neck
   0x7E, // .######.  arms
   0x18, // ...##...  torso
   0x3C, // ..####..  hips
-  0x24, // ..#..#..  legs
+  0x24, // ..#..#..  legs apart
   0x66, // .##..##.  boots
 ])
+export const PLAYER_RIGHT_B = new Uint8Array([
+  0x18, // ...##...  head
+  0x3C, // ..####..
+  0x18, // ...##...  neck
+  0x7E, // .######.  arms
+  0x18, // ...##...  torso
+  0x3C, // ..####..  hips
+  0x18, // ...##...  legs together
+  0x3C, // ..####..  boots
+])
+export const PLAYER_LEFT_A = mirrorSprite(PLAYER_RIGHT_A)
+export const PLAYER_LEFT_B = mirrorSprite(PLAYER_RIGHT_B)
 
-export const PLAYER_LEFT = new Uint8Array([
-  0x18, 0x3C, 0x18, 0x7E, 0x18, 0x3C, 0x24, 0x66,
+// UP: back of head (no face)
+export const PLAYER_UP_A = new Uint8Array([
+  0x3C, // ..####..  back of head
+  0x7E, // .######.
+  0x18, // ...##...  neck
+  0x7E, // .######.  arms
+  0x18, // ...##...  back
+  0x3C, // ..####..  hips
+  0x24, // ..#..#..  legs apart
+  0x66, // .##..##.  boots
+])
+export const PLAYER_UP_B = new Uint8Array([
+  0x3C, 0x7E, 0x18, 0x7E, 0x18, 0x3C,
+  0x18, // ...##...  legs together
+  0x3C, // ..####..  boots
 ])
 
-export const PLAYER_UP = new Uint8Array([
-  0x3C, // ..####..  head top
-  0x42, // .#....#.
-  0x3C, // ..####..
-  0x7E, // .######.  arms raised
-  0x18, // ...##...
-  0x3C, // ..####..
-  0x24, // ..#..#..
-  0x66, // .##..##.
+// DOWN: front face (dot eyes visible)
+export const PLAYER_DOWN_A = new Uint8Array([
+  0x3C, // ..####..  head
+  0x7E, // .######.
+  0x42, // .#....#.  eyes
+  0x7E, // .######.  arms
+  0x18, // ...##...  torso
+  0x3C, // ..####..  hips
+  0x24, // ..#..#..  legs apart
+  0x66, // .##..##.  boots
 ])
-
-export const PLAYER_DOWN = new Uint8Array([
-  0x18, 0x3C, 0x18, 0x7E, 0x18, 0x3C, 0x24, 0x66,
+export const PLAYER_DOWN_B = new Uint8Array([
+  0x3C, 0x7E, 0x42, 0x7E, 0x18, 0x3C,
+  0x18, // ...##...  legs together
+  0x3C, // ..####..  boots
 ])
 
 // Mine — circular body with spikes

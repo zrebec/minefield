@@ -2,7 +2,10 @@ import { CANVAS_W, CANVAS_H, ROWS, COLS, CELL, C } from './constants.ts'
 import type { GameState, AirplaneState } from './game.ts'
 import { getCharRow } from './font.ts'
 import {
-  PLAYER_RIGHT, PLAYER_LEFT, PLAYER_UP, PLAYER_DOWN,
+  PLAYER_RIGHT_A, PLAYER_RIGHT_B,
+  PLAYER_LEFT_A, PLAYER_LEFT_B,
+  PLAYER_UP_A, PLAYER_UP_B,
+  PLAYER_DOWN_A, PLAYER_DOWN_B,
   MINE, EXPLOSION_1, EXPLOSION_2, FLAG, GROUND_A, GROUND_B,
   AIRPLANE as PLANE_SPRITE, GEM,
 } from './sprites.ts'
@@ -123,10 +126,11 @@ function renderCell(ctx: CanvasRenderingContext2D, state: GameState, col: number
       const frame = state.flashTimer > 300 ? EXPLOSION_1 : EXPLOSION_2
       drawSprite(ctx, frame, x, y, ink, paper)
     } else {
-      const sprite = state.playerDir === 'left' ? PLAYER_LEFT
-        : state.playerDir === 'up' ? PLAYER_UP
-        : state.playerDir === 'down' ? PLAYER_DOWN
-        : PLAYER_RIGHT
+      const f = state.playerWalkFrame === 1
+      const sprite = state.playerDir === 'left'  ? (f ? PLAYER_LEFT_B  : PLAYER_LEFT_A)
+        : state.playerDir === 'up'   ? (f ? PLAYER_UP_B    : PLAYER_UP_A)
+        : state.playerDir === 'down' ? (f ? PLAYER_DOWN_B  : PLAYER_DOWN_A)
+        :                              (f ? PLAYER_RIGHT_B : PLAYER_RIGHT_A)
       drawSprite(ctx, sprite, x, y, ink, paper)
     }
     return

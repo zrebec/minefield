@@ -246,6 +246,47 @@ type GameState = 'intro' | 'playing' | 'exploding' | 'levelcomplete' | 'gameover
 
 ---
 
+## Hráčske pomôcky (player aids)
+
+### Probe — kameň (NEIMPLEMENTOVANÉ, pripravené na implementáciu)
+
+Hráč hodí kameň dopredu aby prieskumal terén pred vstupom. Inšpirácia: reálna technika na mínovom poli.
+
+**Klávesa**: TBD (napr. Space alebo Tab)
+
+**Mechanika hodu:**
+- Smer: smer posledného pohybu hráča
+- Vzdialenosť: `hráčova pozícia + 3` až okraj hernej plochy (random)
+- Odhalenie: 3×3 bunky okolo landing pointu
+- Mína v odhalené oblasti: iba vizuálne viditeľná, **NEDÉTONUJE**
+
+**Trvanie odhalenia:**
+- Dočasné — políčka sú viditeľné kým hráč urobí akýkoľvek pohyb
+- Akonáhle sa hráč pohne, odhalenie zmizne (hráč si musí zapamätať)
+- Žiadny timer — čisto pohybom-triggered reset
+
+**Implementácia (state):**
+```typescript
+probedCells: Set<string>  // cleared on any player move
+// key format: "col,row"
+```
+
+**Cena:**
+- Strhne sa zo skóre: `500 × level`
+- Hráč nemôže hodiť ak má menej skóre ako je cena (nejde do mínusu)
+
+| Level | Cena hoду |
+|-------|-----------|
+| 1     | 500       |
+| 2     | 1000      |
+| 3     | 1500      |
+| 4+    | 2000+     |
+
+**Vizuál probe-odhalených buniek**: odlíšiť od normálne navštívených (iná farba/vzor)
+**Skóre**: probe-revealed bunky nedávajú skóre — hráč tam fyzicky nebol
+
+---
+
 ## Čo NESMIE byť
 
 - Žiadne gradienty, tiene, border-radius
