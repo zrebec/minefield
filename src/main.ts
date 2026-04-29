@@ -22,6 +22,11 @@ let hiName: string[] = []
 let hiCursor = 0
 const letterQueue: string[] = []
 
+// Intro attract-mode cycling
+const INTRO_PAGE_MS = 3000
+let introPage = 0
+let introPageTimer = INTRO_PAGE_MS
+
 function getCanvas(): HTMLCanvasElement {
   return document.getElementById('game') as HTMLCanvasElement
 }
@@ -63,14 +68,21 @@ function gameLoop(timestamp: number): void {
 
   if (appPhase === 'intro') {
     setBorderColor(C.B_BLUE)
+    introPageTimer -= dt
+    if (introPageTimer <= 0) {
+      introPage++
+      introPageTimer = INTRO_PAGE_MS
+    }
     if (consumeAnyKey()) {
       initAudioOnce()
       stopAmbientSounds()
       state = createGame(0)
+      introPage = 0
+      introPageTimer = INTRO_PAGE_MS
       appPhase = 'ingame'
       setBorderColor(C.BLACK)
     }
-    renderIntro(ctx, blink)
+    renderIntro(ctx, blink, introPage)
     requestAnimationFrame(gameLoop)
     return
   }

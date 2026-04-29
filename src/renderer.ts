@@ -265,19 +265,17 @@ export function renderHiScoreEntry(
 
 // ─── Intro screen ─────────────────────────────────────────────────────────────
 
-export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean): void {
+export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page: number): void {
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
 
   // Border frame (solid blocks)
   const ink = C.B_CYAN
   const paper = C.BLACK
-  // Top & bottom border rows
   for (let c = 0; c < COLS; c++) {
     drawChar(ctx, 127, c * CELL, 2 * CELL, ink, paper)
     drawChar(ctx, 127, c * CELL, 19 * CELL, ink, paper)
   }
-  // Left & right border columns
   for (let r = 3; r <= 18; r++) {
     drawChar(ctx, 127, 0, r * CELL, ink, paper)
     drawChar(ctx, 127, 31 * CELL, r * CELL, ink, paper)
@@ -288,17 +286,19 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean): void
 
   // Separator line
   for (let c = 1; c < COLS - 1; c++) {
-    drawChar(ctx, 0x2D, c * CELL, 9 * CELL, C.BLUE, C.BLACK)  // '-' as line
+    drawChar(ctx, 0x2D, c * CELL, 9 * CELL, C.BLUE, C.BLACK)
   }
 
   const scores = loadHighScores()
-  if (scores.length > 0) {
+  if (scores.length > 0 && page % 2 === 1) {
+    // Page 1: high score table
     drawTextCentered(ctx, 'HIGH SCORES', 10 * CELL, C.B_YELLOW, C.BLACK)
     scores.forEach((e, i) => {
       const line = `${i + 1}. ${e.name}  ${String(e.score).padStart(5, '0')}  LVL:${e.level}`
       drawTextCentered(ctx, line, (11 + i) * CELL, C.WHITE, C.BLACK)
     })
   } else {
+    // Page 0: controls
     drawTextCentered(ctx, 'ARROWS = MOVE', 11 * CELL, C.WHITE, C.BLACK)
     drawTextCentered(ctx, 'F = FLAG MINE', 12 * CELL, C.WHITE, C.BLACK)
     drawTextCentered(ctx, 'P = PAUSE', 13 * CELL, C.WHITE, C.BLACK)
