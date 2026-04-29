@@ -11,7 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "zx-kit": "file:../zx-kit"
+    "zx-kit": "^0.1.1"
   },
   "devDependencies": {
     "typescript": "~6.0.2",

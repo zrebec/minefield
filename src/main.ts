@@ -5,9 +5,10 @@ import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consu
 import { initAudio, stopAmbientSounds } from './audio.ts'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
-import { renderFrame, renderIntro } from './renderer.ts'
+import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
+import { isHighScore, saveHighScore } from './highscore.ts'
 
-type AppPhase = 'intro' | 'ingame'
+type AppPhase = 'intro' | 'ingame' | 'hiscore'
 
 let appPhase: AppPhase = 'intro'
 let state: GameState = createGame(0)
@@ -15,6 +16,11 @@ let lastTime = 0
 let blink = true
 let blinkTimer = BLINK_INTERVAL_MS
 let audioReady = false
+
+// Name entry state for hiscore phase
+let hiName: string[] = []
+let hiCursor = 0
+const letterQueue: string[] = []
 
 function getCanvas(): HTMLCanvasElement {
   return document.getElementById('game') as HTMLCanvasElement
@@ -35,6 +41,13 @@ function initAudioOnce(): void {
     initAudio()
     audioReady = true
   }
+}
+
+function enterHiScore(): void {
+  hiName = []
+  hiCursor = 0
+  appPhase = 'hiscore'
+  setBorderColor(C.B_CYAN)
 }
 
 function gameLoop(timestamp: number): void {
@@ -58,6 +71,27 @@ function gameLoop(timestamp: number): void {
       setBorderColor(C.BLACK)
     }
     renderIntro(ctx, blink)
+    requestAnimationFrame(gameLoop)
+    return
+  }
+
+  if (appPhase === 'hiscore') {
+    while (letterQueue.length > 0) {
+      const key = letterQueue.shift()!
+      if (key === 'BS') {
+        if (hiCursor > 0) { hiName.pop(); hiCursor-- }
+      } else if (key === 'ENTER') {
+        if (hiCursor >= 3) {
+          saveHighScore({ name: hiName.join(''), score: state.score, level: state.level + 1 })
+          appPhase = 'intro'
+          setBorderColor(C.B_BLUE)
+        }
+      } else if (hiCursor < 3) {
+        hiName.push(key)
+        hiCursor++
+      }
+    }
+    renderHiScoreEntry(ctx, hiName, hiCursor, blink)
     requestAnimationFrame(gameLoop)
     return
   }
@@ -131,8 +165,12 @@ function gameLoop(timestamp: number): void {
     if (consumeAnyKey()) {
       initAudioOnce()
       stopAmbientSounds()
-      appPhase = 'intro'
-      setBorderColor(C.B_BLUE)
+      if (isHighScore(state.score)) {
+        enterHiScore()
+      } else {
+        appPhase = 'intro'
+        setBorderColor(C.B_BLUE)
+      }
     }
   }
 
@@ -150,6 +188,17 @@ function main(): void {
 
   window.addEventListener('keydown', () => initAudioOnce(), { once: true })
   window.addEventListener('click', () => initAudioOnce(), { once: true })
+
+  window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (appPhase !== 'hiscore') return
+    if (e.key.length === 1 && /[A-Za-z]/.test(e.key)) {
+      letterQueue.push(e.key.toUpperCase())
+    } else if (e.key === 'Backspace') {
+      letterQueue.push('BS')
+    } else if (e.key === 'Enter') {
+      letterQueue.push('ENTER')
+    }
+  })
 
   requestAnimationFrame(gameLoop)
 }

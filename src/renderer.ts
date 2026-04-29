@@ -1,6 +1,7 @@
 import { CANVAS_W, CANVAS_H, ROWS, COLS, CELL, C } from './constants.ts'
 import type { GameState, AirplaneState } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered } from 'zx-kit'
+import { loadHighScores } from './highscore.ts'
 import {
   PLAYER_RIGHT_A, PLAYER_RIGHT_B,
   PLAYER_LEFT_A, PLAYER_LEFT_B,
@@ -222,6 +223,46 @@ function renderLevelComplete(ctx: CanvasRenderingContext2D, state: GameState): v
   }
 }
 
+// ─── Hi-score name entry ──────────────────────────────────────────────────────
+
+export function renderHiScoreEntry(
+  ctx: CanvasRenderingContext2D,
+  name: string[],
+  cursor: number,
+  blink: boolean,
+): void {
+  ctx.fillStyle = C.BLACK
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
+
+  const cy = Math.floor(ROWS / 2) - 4
+  drawTextCentered(ctx, 'NEW HIGH SCORE!', cy * CELL, C.B_YELLOW, C.BLACK)
+  drawTextCentered(ctx, 'ENTER YOUR NAME:', (cy + 2) * CELL, C.B_WHITE, C.BLACK)
+
+  // 3 name slots, spaced 2 chars apart, centered in the 32-char grid
+  const startX = Math.floor((COLS - 5) / 2) * CELL
+  for (let i = 0; i < 3; i++) {
+    const x = startX + i * 2 * CELL
+    const y = (cy + 4) * CELL
+    if (i < name.length) {
+      // already entered — highlight current slot yellow
+      const ink = i === cursor - 1 ? C.B_YELLOW : C.B_WHITE
+      drawChar(ctx, name[i].charCodeAt(0), x, y, ink, C.BLACK)
+    } else if (i === cursor) {
+      // cursor position — blink filled block
+      drawChar(ctx, 127, x, y, blink ? C.B_WHITE : C.BLACK, blink ? C.BLACK : C.B_WHITE)
+    } else {
+      // future empty slot — inverted block as placeholder
+      drawChar(ctx, 127, x, y, C.BLACK, C.WHITE)
+    }
+  }
+
+  if (cursor >= 3) {
+    if (blink) drawTextCentered(ctx, 'PRESS ENTER', (cy + 6) * CELL, C.B_GREEN, C.BLACK)
+  } else {
+    drawTextCentered(ctx, `TYPE ${3 - cursor} MORE LETTER${cursor < 2 ? 'S' : ''}`, (cy + 6) * CELL, C.CYAN, C.BLACK)
+  }
+}
+
 // ─── Intro screen ─────────────────────────────────────────────────────────────
 
 export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean): void {
@@ -250,12 +291,20 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean): void
     drawChar(ctx, 0x2D, c * CELL, 9 * CELL, C.BLUE, C.BLACK)  // '-' as line
   }
 
-  drawTextCentered(ctx, 'ARROWS = MOVE', 11 * CELL, C.WHITE, C.BLACK)
-  drawTextCentered(ctx, 'F = FLAG MINE', 12 * CELL, C.WHITE, C.BLACK)
-  drawTextCentered(ctx, 'P = PAUSE', 13 * CELL, C.WHITE, C.BLACK)
-  drawTextCentered(ctx, 'CROSS THE FIELD!', 14 * CELL, C.B_GREEN, C.BLACK)
-
-  drawTextCentered(ctx, 'REQUIRES HARDWARE KEYBOARD', 15 * CELL, C.YELLOW, C.BLACK)
+  const scores = loadHighScores()
+  if (scores.length > 0) {
+    drawTextCentered(ctx, 'HIGH SCORES', 10 * CELL, C.B_YELLOW, C.BLACK)
+    scores.forEach((e, i) => {
+      const line = `${i + 1}. ${e.name}  ${String(e.score).padStart(5, '0')}  LVL:${e.level}`
+      drawTextCentered(ctx, line, (11 + i) * CELL, C.WHITE, C.BLACK)
+    })
+  } else {
+    drawTextCentered(ctx, 'ARROWS = MOVE', 11 * CELL, C.WHITE, C.BLACK)
+    drawTextCentered(ctx, 'F = FLAG MINE', 12 * CELL, C.WHITE, C.BLACK)
+    drawTextCentered(ctx, 'P = PAUSE', 13 * CELL, C.WHITE, C.BLACK)
+    drawTextCentered(ctx, 'CROSS THE FIELD!', 14 * CELL, C.B_GREEN, C.BLACK)
+    drawTextCentered(ctx, 'REQUIRES HARDWARE KEYBOARD', 15 * CELL, C.YELLOW, C.BLACK)
+  }
 
   if (blink) {
     drawTextCentered(ctx, 'PRESS ANY KEY', 17 * CELL, C.B_YELLOW, C.BLACK)
