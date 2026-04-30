@@ -2,7 +2,7 @@ import { CANVAS_W, CANVAS_H, C } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
 import { createGame, type GameState, type GamePhase } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey } from './input.ts'
-import { initAudio, stopAmbientSounds, startIntroJingle, stopIntroJingle } from './audio.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle } from './audio.ts'
 import { flashBorder } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
@@ -47,7 +47,7 @@ function initAudioOnce(): void {
   if (!audioReady) {
     initAudio()
     audioReady = true
-    if (appPhase === 'intro') startIntroJingle()
+    playStartupJingle()
   }
 }
 
@@ -78,7 +78,6 @@ function gameLoop(timestamp: number): void {
     }
     if (consumeAnyKey()) {
       initAudioOnce()
-      stopIntroJingle()
       stopAmbientSounds()
       state = createGame(0)
       introPage = 0

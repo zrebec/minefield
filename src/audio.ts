@@ -18,61 +18,36 @@ let approachOsc: OscillatorNode | null = null
 let approachGain: GainNode | null = null
 let lastWarnTime = 0
 
-// Korobeiniki — Russian folk song, 19th century, public domain (Tetris Theme A)
-const INTRO_JINGLE: Note[] = [
-  // — Phrase 1 —
-  { freq: 659, dur: 400 },  // E5 ♩
-  { freq: 494, dur: 200 },  // B4 ♪
-  { freq: 523, dur: 200 },  // C5 ♪
-  { freq: 587, dur: 400 },  // D5 ♩
-  { freq: 523, dur: 200 },  // C5 ♪
-  { freq: 494, dur: 200 },  // B4 ♪
-  { freq: 440, dur: 400 },  // A4 ♩
-  { freq: 440, dur: 200 },  // A4 ♪
-  { freq: 523, dur: 200 },  // C5 ♪
-  { freq: 659, dur: 400 },  // E5 ♩
-  { freq: 587, dur: 200 },  // D5 ♪
-  { freq: 523, dur: 200 },  // C5 ♪
-  { freq: 494, dur: 600 },  // B4 ♩.
-  { freq: 523, dur: 200 },  // C5 ♪
-  { freq: 587, dur: 400 },  // D5 ♩
-  { freq: 659, dur: 400 },  // E5 ♩
-  { freq: 523, dur: 400 },  // C5 ♩
-  { freq: 440, dur: 400 },  // A4 ♩
-  { freq: 440, dur: 400 },  // A4 ♩
-  { freq: 0,   dur: 400 },  // rest
-  // — Phrase 2 —
-  { freq: 587, dur: 600 },  // D5 ♩.
-  { freq: 698, dur: 200 },  // F5 ♪
-  { freq: 880, dur: 400 },  // A5 ♩
-  { freq: 784, dur: 200 },  // G5 ♪
-  { freq: 698, dur: 200 },  // F5 ♪
-  { freq: 659, dur: 600 },  // E5 ♩.
-  { freq: 523, dur: 200 },  // C5 ♪
-  { freq: 659, dur: 400 },  // E5 ♩
-  { freq: 587, dur: 200 },  // D5 ♪
-  { freq: 523, dur: 200 },  // C5 ♪
-  { freq: 494, dur: 600 },  // B4 ♩.
-  { freq: 494, dur: 200 },  // B4 ♪
-  { freq: 523, dur: 200 },  // C5 ♪
-  { freq: 587, dur: 400 },  // D5 ♩
-  { freq: 659, dur: 400 },  // E5 ♩
-  { freq: 523, dur: 400 },  // C5 ♩
-  { freq: 440, dur: 400 },  // A4 ♩
-  { freq: 440, dur: 400 },  // A4 ♩
-  { freq: 0,   dur: 800 },  // rest before repeat
+// One-shot horror sting — plays once on first user interaction
+const STARTUP_JINGLE: Note[] = [
+  // Ascending diminished 7th arpeggio — ominous rise
+  { freq: 262, dur: 120 },  // C4
+  { freq: 311, dur: 120 },  // Eb4
+  { freq: 370, dur: 120 },  // F#4 — tritone from C
+  { freq: 440, dur: 120 },  // A4
+  { freq: 523, dur: 120 },  // C5
+  { freq: 622, dur: 120 },  // Eb5
+  { freq: 740, dur: 300 },  // F#5 — peak, held
+  { freq: 0,   dur: 200 },  // silence — tension
+  // Minor second trill — dissonant, unsettling
+  { freq: 440, dur: 70 },
+  { freq: 466, dur: 70 },
+  { freq: 440, dur: 70 },
+  { freq: 466, dur: 70 },
+  { freq: 440, dur: 70 },
+  { freq: 466, dur: 70 },
+  { freq: 440, dur: 70 },
+  { freq: 0,   dur: 250 },  // silence — hold tension
+  // Final tritone stab — diabolus in musica
+  { freq: 196, dur: 120 },  // G3
+  { freq: 0,   dur: 60  },
+  { freq: 131, dur: 120 },  // C3
+  { freq: 0,   dur: 60  },
+  { freq: 185, dur: 700 },  // F#3 — tritone from C, ominous end
 ]
-const INTRO_JINGLE_MS = INTRO_JINGLE.reduce((s, n) => s + n.dur, 0)
 
-let introTimer: ReturnType<typeof setTimeout> | null = null
-
-export function startIntroJingle(): void {
-  playPattern(INTRO_JINGLE)
-  introTimer = setTimeout(startIntroJingle, INTRO_JINGLE_MS)
-}
-
-export function stopIntroJingle(): void {
-  if (introTimer !== null) { clearTimeout(introTimer); introTimer = null }
+export function playStartupJingle(): void {
+  playPattern(STARTUP_JINGLE)
 }
 
 export function initAudio(): void {
