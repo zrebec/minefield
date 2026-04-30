@@ -8,7 +8,7 @@ import {
   PLAYER_UP_A, PLAYER_UP_B,
   PLAYER_DOWN_A, PLAYER_DOWN_B,
   MINE, EXPLOSION_1, EXPLOSION_2, FLAG, GROUND_A, GROUND_B,
-  AIRPLANE as PLANE_SPRITE, GEM,
+  AIRPLANE_RIGHT, AIRPLANE_LEFT, GEM,
 } from './sprites.ts'
 
 const STATUS_Y = ROWS * CELL  // 176
@@ -116,22 +116,8 @@ function renderCell(ctx: CanvasRenderingContext2D, state: GameState, col: number
 function renderAirplane(ctx: CanvasRenderingContext2D, plane: AirplaneState): void {
   const x = Math.floor(plane.x)
   const y = plane.y
-
-  // Flip sprite for left-moving plane
-  if (plane.dir === -1) {
-    // Mirror manually: draw flipped
-    ctx.fillStyle = C.BLACK
-    ctx.fillRect(x, y, CELL, CELL)
-    ctx.fillStyle = C.B_WHITE
-    for (let row = 0; row < 8; row++) {
-      const byte = PLANE_SPRITE[row]
-      for (let bit = 0; bit < 8; bit++) {
-        if (byte & (0x80 >> bit)) ctx.fillRect(x + (7 - bit), y + row, 1, 1)
-      }
-    }
-  } else {
-    drawSprite(ctx, PLANE_SPRITE, x, y, C.B_WHITE, C.BLACK)
-  }
+  const sprite = plane.dir === -1 ? AIRPLANE_LEFT : AIRPLANE_RIGHT
+  drawSprite(ctx, sprite, x, y, C.B_WHITE, C.BLACK)
 }
 
 // ─── Status bar ───────────────────────────────────────────────────────────────

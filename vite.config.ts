@@ -1,9 +1,8 @@
 import { defineConfig } from 'vite'
 import { readFileSync } from 'fs'
 
-const zxKitVersion = (JSON.parse(
-  readFileSync('./node_modules/zx-kit/package.json', 'utf-8')
-) as { version: string }).version
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8')) as { dependencies: Record<string, string> }
+const zxKitVersion = pkg.dependencies['zx-kit'].replace(/^[\^~>=]/, '')
 
 export default defineConfig({
   base: '/minefield/',

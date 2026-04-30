@@ -98,8 +98,8 @@ export const EXPLOSION_2 = new Uint8Array([
   0x81, // #......#
 ])
 
-// Airplane — simple silhouette facing right
-export const AIRPLANE = new Uint8Array([
+// Airplane — simple silhouette
+export const AIRPLANE_RIGHT = new Uint8Array([
   0x00, // ........
   0x04, // .....#..  tail fin
   0x06, // .....##.
@@ -109,6 +109,7 @@ export const AIRPLANE = new Uint8Array([
   0x04, // .....#..
   0x00, // ........
 ])
+export const AIRPLANE_LEFT = mirrorSprite(AIRPLANE_RIGHT)
 
 // Flag — pole with flag on top
 export const FLAG = new Uint8Array([
