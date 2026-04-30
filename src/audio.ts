@@ -99,10 +99,12 @@ export function startApproachSound(): void {
 
 export function stopApproachSound(): void {
   const ctx = getAudioContext()
-  if (!ctx || !approachOsc) return
+  const osc = approachOsc
+  const gain = approachGain
+  if (!ctx || !osc) return
   const now = ctx.currentTime
-  approachGain?.gain.linearRampToValueAtTime(0, now + 0.2)
-  approachOsc.stop(now + 0.25)
+  gain?.gain.linearRampToValueAtTime(0, now + 0.2)
+  osc.stop(now + 0.25)
   approachOsc = null
   approachGain = null
 }
