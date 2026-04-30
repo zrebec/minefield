@@ -1,12 +1,12 @@
-import { C } from './constants.ts'
+import { C, CANVAS_W, CELL, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
 import { createGame, type GameState, type GamePhase } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
-import { flashBorder, setupCanvas } from 'zx-kit'
+import { flashBorder, setupCanvas, drawProgressBar, tickUI, renderUI, resetUI } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
-import { renderFrame, renderIntro, renderHiScoreEntry, renderVolumeBar } from './renderer.ts'
+import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
 import { isHighScore, saveHighScore } from './highscore.ts'
 
 type AppPhase = 'intro' | 'ingame' | 'hiscore'
@@ -24,8 +24,23 @@ let hiName: string[] = []
 let hiCursor = 0
 const letterQueue: string[] = []
 
-let volBarTimer = 0
-const VOL_BAR_DISPLAY_MS = 1500
+const VOL_BAR_W = 10 * CELL  // 10 chars × 8 px
+const VOL_BAR_X = (CANVAS_W - VOL_BAR_W) / 2
+const VOL_BAR_Y = Math.floor(ROWS / 2) * CELL
+
+function volBar() {
+  return {
+    id: 'volume',
+    x: VOL_BAR_X,
+    y: VOL_BAR_Y,
+    width: VOL_BAR_W,
+    value: getMasterVolume(),
+    ink: C.B_GREEN,
+    paper: C.BLACK,
+    border: { style: 'solid' as const },
+    visibilityLength: 1500,
+  }
+}
 
 // Intro attract-mode cycling
 const INTRO_PAGE_MS = 3000
@@ -51,7 +66,7 @@ function initAudioOnce(): void {
 function enterHiScore(): void {
   hiName = []
   hiCursor = 0
-  resetInput()
+  resetInput(); resetUI()
   appPhase = 'hiscore'
   flashBorder(C.B_WHITE, 2, 80, C.B_CYAN)
 }
@@ -61,10 +76,9 @@ function gameLoop(timestamp: number): void {
   lastTime = timestamp
   const ctx = getCtx()
 
-  // Global volume control
-  if (consumeVolUp()) { increaseVolume(); volBarTimer = VOL_BAR_DISPLAY_MS }
-  if (consumeVolDown()) { decreaseVolume(); volBarTimer = VOL_BAR_DISPLAY_MS }
-  if (volBarTimer > 0) volBarTimer -= dt
+  // Global volume control — drawProgressBar registers state; renderUI redraws after world render
+  if (consumeVolUp()) { increaseVolume(); drawProgressBar(ctx, volBar()) }
+  if (consumeVolDown()) { decreaseVolume(); drawProgressBar(ctx, volBar()) }
 
   blinkTimer -= dt
   if (blinkTimer <= 0) {
@@ -85,12 +99,12 @@ function gameLoop(timestamp: number): void {
       state = createGame(0)
       introPage = 0
       introPageTimer = INTRO_PAGE_MS
-      resetInput()
+      resetInput(); resetUI()
       appPhase = 'ingame'
       setBorderColor(C.BLACK)
     }
     renderIntro(ctx, blink, introPage)
-    if (volBarTimer > 0) renderVolumeBar(ctx, getMasterVolume())
+    tickUI(dt); renderUI(ctx)
     requestAnimationFrame(gameLoop)
     return
   }
@@ -103,7 +117,7 @@ function gameLoop(timestamp: number): void {
       } else if (key === 'ENTER') {
         if (hiCursor >= 3) {
           saveHighScore({ name: hiName.join(''), score: state.score, level: state.level + 1 })
-          resetInput()
+          resetInput(); resetUI()
           appPhase = 'intro'
           setBorderColor(C.B_BLUE)
         }
@@ -113,7 +127,7 @@ function gameLoop(timestamp: number): void {
       }
     }
     renderHiScoreEntry(ctx, hiName, hiCursor, blink)
-    if (volBarTimer > 0) renderVolumeBar(ctx, getMasterVolume())
+    tickUI(dt); renderUI(ctx)
     requestAnimationFrame(gameLoop)
     return
   }
@@ -173,7 +187,7 @@ function gameLoop(timestamp: number): void {
 
   } else if (state.phase === 'levelcomplete') {
     setBorderColor(C.B_GREEN)
-    resetInput()
+    resetInput(); resetUI()
     state.levelCompleteTimer -= dt
     if (state.levelCompleteTimer <= 0) {
       const prevScore = state.score
@@ -184,7 +198,7 @@ function gameLoop(timestamp: number): void {
   } else if (state.phase === 'gameover') {
     setBorderColor(C.B_RED)
     if (consumeAnyKey()) {
-      resetInput()
+      resetInput(); resetUI()
       initAudioOnce()
       stopAmbientSounds()
       if (isHighScore(state.score)) {
@@ -198,7 +212,7 @@ function gameLoop(timestamp: number): void {
 
   prevGamePhase = state.phase
   renderFrame(ctx, state)
-  if (volBarTimer > 0) renderVolumeBar(ctx, getMasterVolume())
+  tickUI(dt); renderUI(ctx)
   requestAnimationFrame(gameLoop)
 }
 
