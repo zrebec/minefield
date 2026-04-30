@@ -6,6 +6,7 @@ import {
   getAudioContext,
   getMasterGain,
   playPattern,
+  type Note,
 } from 'zx-kit'
 
 export { resumeAudio }
@@ -16,6 +17,63 @@ let airplaneGain: GainNode | null = null
 let approachOsc: OscillatorNode | null = null
 let approachGain: GainNode | null = null
 let lastWarnTime = 0
+
+// Korobeiniki — Russian folk song, 19th century, public domain (Tetris Theme A)
+const INTRO_JINGLE: Note[] = [
+  // — Phrase 1 —
+  { freq: 659, dur: 400 },  // E5 ♩
+  { freq: 494, dur: 200 },  // B4 ♪
+  { freq: 523, dur: 200 },  // C5 ♪
+  { freq: 587, dur: 400 },  // D5 ♩
+  { freq: 523, dur: 200 },  // C5 ♪
+  { freq: 494, dur: 200 },  // B4 ♪
+  { freq: 440, dur: 400 },  // A4 ♩
+  { freq: 440, dur: 200 },  // A4 ♪
+  { freq: 523, dur: 200 },  // C5 ♪
+  { freq: 659, dur: 400 },  // E5 ♩
+  { freq: 587, dur: 200 },  // D5 ♪
+  { freq: 523, dur: 200 },  // C5 ♪
+  { freq: 494, dur: 600 },  // B4 ♩.
+  { freq: 523, dur: 200 },  // C5 ♪
+  { freq: 587, dur: 400 },  // D5 ♩
+  { freq: 659, dur: 400 },  // E5 ♩
+  { freq: 523, dur: 400 },  // C5 ♩
+  { freq: 440, dur: 400 },  // A4 ♩
+  { freq: 440, dur: 400 },  // A4 ♩
+  { freq: 0,   dur: 400 },  // rest
+  // — Phrase 2 —
+  { freq: 587, dur: 600 },  // D5 ♩.
+  { freq: 698, dur: 200 },  // F5 ♪
+  { freq: 880, dur: 400 },  // A5 ♩
+  { freq: 784, dur: 200 },  // G5 ♪
+  { freq: 698, dur: 200 },  // F5 ♪
+  { freq: 659, dur: 600 },  // E5 ♩.
+  { freq: 523, dur: 200 },  // C5 ♪
+  { freq: 659, dur: 400 },  // E5 ♩
+  { freq: 587, dur: 200 },  // D5 ♪
+  { freq: 523, dur: 200 },  // C5 ♪
+  { freq: 494, dur: 600 },  // B4 ♩.
+  { freq: 494, dur: 200 },  // B4 ♪
+  { freq: 523, dur: 200 },  // C5 ♪
+  { freq: 587, dur: 400 },  // D5 ♩
+  { freq: 659, dur: 400 },  // E5 ♩
+  { freq: 523, dur: 400 },  // C5 ♩
+  { freq: 440, dur: 400 },  // A4 ♩
+  { freq: 440, dur: 400 },  // A4 ♩
+  { freq: 0,   dur: 800 },  // rest before repeat
+]
+const INTRO_JINGLE_MS = INTRO_JINGLE.reduce((s, n) => s + n.dur, 0)
+
+let introTimer: ReturnType<typeof setTimeout> | null = null
+
+export function startIntroJingle(): void {
+  playPattern(INTRO_JINGLE)
+  introTimer = setTimeout(startIntroJingle, INTRO_JINGLE_MS)
+}
+
+export function stopIntroJingle(): void {
+  if (introTimer !== null) { clearTimeout(introTimer); introTimer = null }
+}
 
 export function initAudio(): void {
   _initAudio(MASTER_VOLUME)
@@ -118,18 +176,14 @@ export function isAmbientSoundActive(): boolean {
 }
 
 export function playFootstep(): void {
-  const ctx = getAudioContext()
-  if (!ctx) return
-  beep(85, 28, ctx.currentTime)
+  playPattern([{ freq: 85, dur: 28 }])
 }
 
 export function playGemCollect(comboCount: number): void {
-  const ctx = getAudioContext()
-  if (!ctx) return
-  const now = ctx.currentTime
   const freq = Math.min(880 + (comboCount - 1) * 110, 1760)
-  beep(freq, 60, now)
-  if (comboCount >= 2) beep(Math.min(freq * 1.25, 2200), 60, now + 0.09)
+  const notes: Note[] = [{ freq, dur: 60 }, { freq: 0, dur: 30 }]
+  if (comboCount >= 2) notes.push({ freq: Math.min(freq * 1.25, 2200), dur: 60 })
+  playPattern(notes)
 }
 
 export function startAirplane(): void {
@@ -176,8 +230,3 @@ export function stopAmbientSounds(): void {
   airplaneGain = null
 }
 
-export function playIntroBeep(): void {
-  const ctx = getAudioContext()
-  if (!ctx) return
-  beep(440, 50, ctx.currentTime)
-}
