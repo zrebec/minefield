@@ -5,6 +5,7 @@ import {
   beep,
   getAudioContext,
   getMasterGain,
+  playPattern,
 } from 'zx-kit'
 
 export { resumeAudio }
@@ -64,19 +65,22 @@ export function playExplosion(): void {
 }
 
 export function playWin(): void {
-  const ctx = getAudioContext()
-  if (!ctx) return
-  const now = ctx.currentTime
-  const notes = [262, 330, 392, 523]
-  notes.forEach((f, i) => beep(f, 120, now + i * 0.15))
+  playPattern([
+    { freq: 262, dur: 150 },
+    { freq: 330, dur: 150 },
+    { freq: 392, dur: 150 },
+    { freq: 523, dur: 150 },
+  ])
 }
 
 export function playGameOver(): void {
-  const ctx = getAudioContext()
-  if (!ctx) return
-  const now = ctx.currentTime
-  const notes = [262, 247, 233, 220, 208]
-  notes.forEach((f, i) => beep(f, 220, now + i * 0.27))
+  playPattern([
+    { freq: 262, dur: 270 },
+    { freq: 247, dur: 270 },
+    { freq: 233, dur: 270 },
+    { freq: 220, dur: 270 },
+    { freq: 208, dur: 270 },
+  ])
 }
 
 export function startApproachSound(): void {

@@ -1,8 +1,9 @@
 import { CANVAS_W, CANVAS_H, C } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
-import { createGame, type GameState } from './game.ts'
+import { createGame, type GameState, type GamePhase } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey } from './input.ts'
 import { initAudio, stopAmbientSounds } from './audio.ts'
+import { flashBorder } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
@@ -16,6 +17,7 @@ let lastTime = 0
 let blink = true
 let blinkTimer = BLINK_INTERVAL_MS
 let audioReady = false
+let prevGamePhase: GamePhase = 'playing'
 
 // Name entry state for hiscore phase
 let hiName: string[] = []
@@ -52,7 +54,7 @@ function enterHiScore(): void {
   hiName = []
   hiCursor = 0
   appPhase = 'hiscore'
-  setBorderColor(C.B_CYAN)
+  flashBorder(C.B_WHITE, 2, 80, C.B_CYAN)
 }
 
 function gameLoop(timestamp: number): void {
@@ -151,14 +153,12 @@ function gameLoop(timestamp: number): void {
     }
 
   } else if (state.phase === 'exploding') {
+    if (prevGamePhase !== 'exploding') flashBorder(C.B_WHITE, 3, 100)
     state.flashTimer -= dt
     if (state.flashTimer > 0) {
-      // Flash: biele/čierne záblesky — EXPLOSION_FLASH_MS / 100ms per flash
       state.flashOn = Math.floor(state.flashTimer / (EXPLOSION_FLASH_MS / 6)) % 2 === 0
-      setBorderColor(state.flashOn ? C.B_WHITE : C.BLACK)
     } else {
       state.flashOn = false
-      setBorderColor(C.BLACK)
       respawnPlayer(state)
       consumeAnyKey()  // discard mine-step key so gameover doesn't auto-skip
     }
@@ -186,6 +186,7 @@ function gameLoop(timestamp: number): void {
     }
   }
 
+  prevGamePhase = state.phase
   renderFrame(ctx, state)
   requestAnimationFrame(gameLoop)
 }
