@@ -1,12 +1,12 @@
 import { C } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
 import { createGame, type GameState, type GamePhase } from './game.ts'
-import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey } from './input.ts'
-import { initAudio, stopAmbientSounds, playStartupJingle } from './audio.ts'
+import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown } from './input.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
 import { flashBorder, setupCanvas } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
-import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
+import { renderFrame, renderIntro, renderHiScoreEntry, renderVolumeBar } from './renderer.ts'
 import { isHighScore, saveHighScore } from './highscore.ts'
 
 type AppPhase = 'intro' | 'ingame' | 'hiscore'
@@ -23,6 +23,9 @@ let prevGamePhase: GamePhase = 'playing'
 let hiName: string[] = []
 let hiCursor = 0
 const letterQueue: string[] = []
+
+let volBarTimer = 0
+const VOL_BAR_DISPLAY_MS = 1500
 
 // Intro attract-mode cycling
 const INTRO_PAGE_MS = 3000
@@ -48,6 +51,7 @@ function initAudioOnce(): void {
 function enterHiScore(): void {
   hiName = []
   hiCursor = 0
+  resetInput()
   appPhase = 'hiscore'
   flashBorder(C.B_WHITE, 2, 80, C.B_CYAN)
 }
@@ -56,6 +60,11 @@ function gameLoop(timestamp: number): void {
   const dt = Math.min(timestamp - lastTime, 100)
   lastTime = timestamp
   const ctx = getCtx()
+
+  // Global volume control
+  if (consumeVolUp()) { increaseVolume(); volBarTimer = VOL_BAR_DISPLAY_MS }
+  if (consumeVolDown()) { decreaseVolume(); volBarTimer = VOL_BAR_DISPLAY_MS }
+  if (volBarTimer > 0) volBarTimer -= dt
 
   blinkTimer -= dt
   if (blinkTimer <= 0) {
@@ -76,10 +85,12 @@ function gameLoop(timestamp: number): void {
       state = createGame(0)
       introPage = 0
       introPageTimer = INTRO_PAGE_MS
+      resetInput()
       appPhase = 'ingame'
       setBorderColor(C.BLACK)
     }
     renderIntro(ctx, blink, introPage)
+    if (volBarTimer > 0) renderVolumeBar(ctx, getMasterVolume())
     requestAnimationFrame(gameLoop)
     return
   }
@@ -92,6 +103,7 @@ function gameLoop(timestamp: number): void {
       } else if (key === 'ENTER') {
         if (hiCursor >= 3) {
           saveHighScore({ name: hiName.join(''), score: state.score, level: state.level + 1 })
+          resetInput()
           appPhase = 'intro'
           setBorderColor(C.B_BLUE)
         }
@@ -101,6 +113,7 @@ function gameLoop(timestamp: number): void {
       }
     }
     renderHiScoreEntry(ctx, hiName, hiCursor, blink)
+    if (volBarTimer > 0) renderVolumeBar(ctx, getMasterVolume())
     requestAnimationFrame(gameLoop)
     return
   }
@@ -160,6 +173,7 @@ function gameLoop(timestamp: number): void {
 
   } else if (state.phase === 'levelcomplete') {
     setBorderColor(C.B_GREEN)
+    resetInput()
     state.levelCompleteTimer -= dt
     if (state.levelCompleteTimer <= 0) {
       const prevScore = state.score
@@ -170,6 +184,7 @@ function gameLoop(timestamp: number): void {
   } else if (state.phase === 'gameover') {
     setBorderColor(C.B_RED)
     if (consumeAnyKey()) {
+      resetInput()
       initAudioOnce()
       stopAmbientSounds()
       if (isHighScore(state.score)) {
@@ -183,6 +198,7 @@ function gameLoop(timestamp: number): void {
 
   prevGamePhase = state.phase
   renderFrame(ctx, state)
+  if (volBarTimer > 0) renderVolumeBar(ctx, getMasterVolume())
   requestAnimationFrame(gameLoop)
 }
 

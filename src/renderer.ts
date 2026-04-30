@@ -305,6 +305,22 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
 
 // ─── Main render entry ────────────────────────────────────────────────────────
 
+export function renderVolumeBar(ctx: CanvasRenderingContext2D, volume: number): void {
+  const BAR_CHARS = 10
+  const filled = Math.round(volume * BAR_CHARS)
+  const filledStr = '\x7f'.repeat(filled)
+  const emptyStr = '-'.repeat(BAR_CHARS - filled)
+  const label = 'VOL:'
+  const totalLen = label.length + BAR_CHARS
+  const x = Math.floor((COLS - totalLen) / 2) * CELL
+  const y = Math.floor(ROWS / 2) * CELL - CELL
+  ctx.fillStyle = C.BLACK
+  ctx.fillRect(x - CELL, y - CELL, (totalLen + 2) * CELL, CELL * 3)
+  drawText(ctx, label, x, y, C.B_YELLOW, C.BLACK)
+  if (filledStr) drawText(ctx, filledStr, x + label.length * CELL, y, C.B_GREEN, C.BLACK)
+  if (emptyStr) drawText(ctx, emptyStr, x + (label.length + filled) * CELL, y, C.WHITE, C.BLACK)
+}
+
 export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState): void {
   // Clear
   ctx.fillStyle = C.BLACK
