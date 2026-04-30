@@ -1,9 +1,9 @@
-import { CANVAS_W, CANVAS_H, C } from './constants.ts'
+import { C } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
 import { createGame, type GameState, type GamePhase } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle } from './audio.ts'
-import { flashBorder } from 'zx-kit'
+import { flashBorder, setupCanvas } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
@@ -29,14 +29,8 @@ const INTRO_PAGE_MS = 3000
 let introPage = 0
 let introPageTimer = INTRO_PAGE_MS
 
-function getCanvas(): HTMLCanvasElement {
-  return document.getElementById('game') as HTMLCanvasElement
-}
-
 function getCtx(): CanvasRenderingContext2D {
-  const ctx = getCanvas().getContext('2d')!
-  ctx.imageSmoothingEnabled = false
-  return ctx
+  return (document.getElementById('game') as HTMLCanvasElement).getContext('2d')!
 }
 
 function setBorderColor(color: string): void {
@@ -193,9 +187,11 @@ function gameLoop(timestamp: number): void {
 }
 
 function main(): void {
-  const canvas = getCanvas()
-  canvas.width = CANVAS_W
-  canvas.height = CANVAS_H
+  const canvas = document.getElementById('game') as HTMLCanvasElement
+  setupCanvas(canvas, 4)
+  // CSS handles responsive display — clear inline size set by setupCanvas
+  canvas.style.width = ''
+  canvas.style.height = ''
 
   initInput()
   setBorderColor(C.B_BLUE)

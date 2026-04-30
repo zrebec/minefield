@@ -2,4 +2,5 @@
 
 interface ImportMetaEnv {
   readonly VITE_APP_BUILD?: string
+  readonly VITE_ZX_KIT_VERSION?: string
 }

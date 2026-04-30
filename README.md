@@ -1,11 +1,12 @@
 # MINEFIELD — ZX Spectrum Edition
 
 > Retro browserová hra inšpirovaná klasickými ZX Spectrum hrami z 80. rokov.  
-> Vanilla TypeScript · HTML5 Canvas · Web Audio API · žiadne externé knižnice
+> Vanilla TypeScript · HTML5 Canvas · Web Audio API · [zx-kit](https://www.npmjs.com/package/zx-kit)
 
 ![ZX Spectrum style screenshot placeholder](https://img.shields.io/badge/ZX_Spectrum-256×192-00CD00?style=flat-square&labelColor=000000)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.x-0000FF?style=flat-square&labelColor=000000)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.x-0000FF?style=flat-square&labelColor=000000)
 ![Vite](https://img.shields.io/badge/Vite-8.x-FFFF00?style=flat-square&labelColor=000000)
+![zx-kit](https://img.shields.io/badge/zx--kit-0.2.2-00CDCD?style=flat-square&labelColor=000000)
 
 ---
 
@@ -18,7 +19,7 @@ každých pár desiatok sekúnd preletí lietadlo, ktoré zhodí nové míny.
 
 Hra je zámerný hold éře ZX Spectra (1982): pixelová grafika bez anti-aliasingu,
 presná 15-farebná paleta, 8×8 bitmapový font priamo z ROM, štipľavý zvuk zo square
-wave oscilátora. Žiadne moderné efekty, žiadne knižnice — len čistý kód a retro pocit.
+wave oscilátora. Žiadne moderné efekty — len čistý kód a retro pocit.
 
 ---
 
@@ -28,6 +29,7 @@ wave oscilátora. Žiadne moderné efekty, žiadne knižnice — len čistý kó
 |--------|-------|
 | `←` `→` `↑` `↓` | Pohyb hráča (key-repeat po 150 ms, interval 80 ms) |
 | `F` | Označiť/odznačiť bunku **pred** hráčom ako podozrivú (vlajka) |
+| `P` | Pauza / pokračovanie |
 | `CTRL+SHIFT+B` | Debug mód — zobrazí všetky míny |
 
 ### Zvukové varovania (po každom kroku)
@@ -79,29 +81,31 @@ vstúpi na bunku, celý blok sa prepne na bielu/čiernu — presne ako na reáln
 
 ### 2. Bitmapový font z ROM
 ZX Spectrum ROM font (256 znakov, 8×8 px každý) je zakódovaný priamo ako `Uint8Array`
-v `font.ts` — 768 bajtov pre ASCII 32–127. Každý bit v bajte = jeden pixel.
+v `zx-kit/font.ts` — 96 znakov × 8 bajtov. Každý bit v bajte = jeden pixel.
 Renderuje sa manuálne cez `fillRect(x, y, 1, 1)` — žiadne CSS fonty, žiadny `fillText`.
 
 ### 3. Web Audio API — square wave
 Spectrum mal 1-bit zvuk: buď signál, alebo ticho. Emulujeme to cez `OscillatorNode`
-s `type = "square"`. Každý "pip" má 5 ms attack a release (eliminácia kliknutí),
-varovania sú debounced (180 ms) aby sa neprekrývali pri rýchlom pohybe.
-Zvuk lietadla používa LFO (12 Hz square oscillator → gain node → frequency param).
+s `type = "square"`. Zvukové vzory (varovania, fanfáry) sa definujú cez `playPattern()`
+z `zx-kit` — sekvencia `Note[]` hodnôt `{ freq, dur }`. Zvuk lietadla používa LFO
+(12 Hz square oscillator → gain node → frequency param).
 
-### 4. Canvas škálovanie bez rozmazania
-Interná hra beží na **256×192 px** (originálne Spectrum rozlíšenie). Canvas element
-má tieto rozmery natívne; CSS ho škáluje 4× na 1024×768 px s `image-rendering: pixelated`.
-`imageSmoothingEnabled = false` zabezpečuje ostré pixely bez akéhokoľvek interpolovania.
+### 4. Canvas škálovanie — setupCanvas + ctx.scale
+`setupCanvas(canvas, 4)` z `zx-kit` nastaví canvas na 1024×768 px (4× ZX Spectrum
+rozlíšenie 256×192) a aplikuje `ctx.scale(4, 4)`. Všetky následné kresliace volania
+používajú **herné pixelové súradnice** (0–255, 0–191) — transformácia prebehne
+automaticky. CSS `image-rendering: pixelated` zabezpečuje ostré pixely aj pri
+dodatočnom CSS škálovaní na menších obrazovkách.
 
 ### 5. Key repeat systém
 Prehliadač má vlastný key-repeat, ale ten nie je spoľahlivý naprieč OS. Implementujeme
-vlastný: prvý pohyb ihneď (immediate flag), potom delay 150 ms, potom repeat každých
-80 ms. To dáva pocit správnej Spectrum odozvy.
+vlastný (cez `zx-kit/input.ts`): prvý pohyb ihneď (immediate flag), potom delay 150 ms,
+potom repeat každých 80 ms. To dáva pocit správnej Spectrum odozvy.
 
 ### 6. Bezel / border
 ZX Spectrum TV border je emulovaný cez `document.body.style.backgroundColor` —
-mení sa so stavom hry (modrá = intro, čierna = hra, biela/čierna = flash explózie,
-zelená = level complete, červená = game over).
+mení sa so stavom hry (modrá = intro, čierna = hra, flash explózie cez `flashBorder()`
+z `zx-kit`, zelená = level complete, červená = game over).
 
 ---
 
@@ -110,17 +114,21 @@ zelená = level complete, červená = game over).
 ```
 src/
 ├── config.ts      ← VŠETKY herné parametre (laditeľné, hot-reload)
-├── constants.ts   ← Technické konštanty: rozlíšenie, paleta
-├── font.ts        ← ZX Spectrum ROM font data + getCharRow()
+├── constants.ts   ← Technické konštanty: rozlíšenie, re-export palety z zx-kit
+├── font.ts        ← Re-export ZX Spectrum ROM fontu z zx-kit
 ├── sprites.ts     ← Všetky sprite-y ako Uint8Array (8×8 px)
 ├── audio.ts       ← Web Audio engine: varovania, explózia, fanfára, lietadlo
-├── input.ts       ← Keyboard + vlastný key-repeat systém
+├── input.ts       ← Wrapper okolo zx-kit input (nastavenie key-repeat z config)
 ├── game.ts        ← GameState, Cell grid, mínové pole, createGame()
 ├── player.ts      ← Pohyb, kolízia, flag, respawn, scoring
 ├── airplane.ts    ← Airplane timer, animácia, mine drop
 ├── renderer.ts    ← Canvas rendering: grid, sprites, status bar, overlays
 └── main.ts        ← Game loop (requestAnimationFrame), fázové prepínanie
 ```
+
+**Závislosti:**
+- `zx-kit` — ZX Spectrum primitívy (paleta, font, renderer helpers, audio, input)
+- Žiadne iné runtime závislosti — len Web Platform APIs
 
 **Render order** (každý frame):
 1. Clear canvas
@@ -135,6 +143,7 @@ src/
 npm install
 npm run dev    # http://localhost:5173
 npm run build  # produkčný build → dist/
+npm test       # unit testy (Vitest)
 ```
 
 ---
@@ -146,13 +155,10 @@ npm run build  # produkčný build → dist/
 - **Power-upy**: lietadlo občas zhodí aj bonus (extra život, časové spomalenie)
 - **Rôzne terény**: voda (spomalenie), cesta (bonus rýchlosť), bunker (ochrana pred 1 explóziou)
 - **Multiplayer** (lokálny): dvaja hráči na jednej klávesnici, kto skôr prejde
-- **Highscore tabuľka**: localStorage top 10 s menami
 
 ### Vizuál
-- **Animovaný hráč**: 2-framová animácia chôdze (striedanie nôh)
 - **Väčší sprite lietadla**: 16×8 px (2 bunky šírky) pre lepšiu viditeľnosť
 - **Loading bar** na intro obrazovke (ZX Spectrum "loading" nostalgia)
-- **Attributové blikanie** (FLASH bit): blikajúce bunky pre špeciálne udalosti
 - **Explózia rozmetie susedné bunky**: vizuálny efekt debris
 
 ### Zvuk
@@ -164,7 +170,6 @@ npm run build  # produkčný build → dist/
 - **Service Worker + PWA**: hrateľné offline, pridateľné na plochu
 - **Touch ovládanie**: swipe gesty pre mobilné zariadenia
 - **Replay systém**: zaznamená vstupy, umožní si prezrieť cestu
-- **Level editor**: jednoduché nástroje na tvorbu vlastných polí
 
 ---
 

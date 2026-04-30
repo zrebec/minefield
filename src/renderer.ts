@@ -310,9 +310,11 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
     drawTextCentered(ctx, 'PRESS ANY KEY', 17 * CELL, C.B_YELLOW, C.BLACK)
   }
 
-  // Copyright-style footer with build number
+  // Copyright-style footer with build + ZX-KIT version (for owner's reference)
   const build = import.meta.env.VITE_APP_BUILD ?? 'DEV'
-  drawTextCentered(ctx, `(C) 2026  BUILD:${build}`, 20 * CELL, C.BLUE, C.BLACK)
+  const zxKit = import.meta.env.VITE_ZX_KIT_VERSION ?? '?'
+  drawTextCentered(ctx, `(C) 2026  RELEASE:${build}`, 20 * CELL, C.BLUE, C.BLACK)
+  drawTextCentered(ctx, `ZX-KIT:${zxKit}`, 21 * CELL, C.BLUE, C.BLACK)
 }
 
 // ─── Main render entry ────────────────────────────────────────────────────────

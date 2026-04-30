@@ -2,7 +2,6 @@ import { MASTER_VOLUME, WARN_DEBOUNCE_MS } from './config.ts'
 import {
   initAudio as _initAudio,
   resumeAudio,
-  beep,
   getAudioContext,
   getMasterGain,
   playPattern,
@@ -55,9 +54,9 @@ export function initAudio(): void {
 }
 
 export function playWarning(mineCount: number): void {
+  if (mineCount === 0) return
   const ctx = getAudioContext()
-  if (!ctx || mineCount === 0) return
-  resumeAudio()
+  if (!ctx) return
   const now = ctx.currentTime
   if (now - lastWarnTime < WARN_DEBOUNCE_MS / 1000) return
   lastWarnTime = now
@@ -73,9 +72,12 @@ export function playWarning(mineCount: number): void {
     [110, 300,  4, 25],
   ]
   const [freq, dur, pips, gap] = configs[Math.min(mineCount, 8) - 1]
+  const notes: Note[] = []
   for (let i = 0; i < pips; i++) {
-    beep(freq, dur, now + i * (dur + gap) / 1000)
+    notes.push({ freq, dur })
+    if (i < pips - 1) notes.push({ freq: 0, dur: gap })
   }
+  playPattern(notes)
 }
 
 export function playExplosion(): void {
