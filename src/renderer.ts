@@ -1,6 +1,6 @@
 import { CANVAS_W, CANVAS_H, ROWS, COLS, CELL, C } from './constants.ts'
 import type { GameState, AirplaneState } from './game.ts'
-import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered } from 'zx-kit'
+import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, type SpectrumColor } from 'zx-kit'
 import { loadHighScores } from './highscore.ts'
 import {
   PLAYER_RIGHT_A, PLAYER_RIGHT_B,
@@ -17,7 +17,7 @@ function drawTextCentered(
   ctx: CanvasRenderingContext2D,
   text: string,
   y: number,
-  ink: string, paper?: string,
+  ink: SpectrumColor, paper?: SpectrumColor,
 ): void {
   _drawTextCentered(ctx, text, y, COLS, ink, paper)
 }
@@ -35,10 +35,10 @@ function renderPlayer(ctx: CanvasRenderingContext2D, state: GameState): void {
   }
 
   const f = state.playerWalkFrame === 1
-  const sprite = state.playerDir === 'left'  ? (f ? PLAYER_LEFT_B  : PLAYER_LEFT_A)
-    : state.playerDir === 'up'   ? (f ? PLAYER_UP_B    : PLAYER_UP_A)
-    : state.playerDir === 'down' ? (f ? PLAYER_DOWN_B  : PLAYER_DOWN_A)
-    :                              (f ? PLAYER_RIGHT_B : PLAYER_RIGHT_A)
+  const sprite = state.playerDir === 'left' ? (f ? PLAYER_LEFT_B : PLAYER_LEFT_A)
+    : state.playerDir === 'up' ? (f ? PLAYER_UP_B : PLAYER_UP_A)
+      : state.playerDir === 'down' ? (f ? PLAYER_DOWN_B : PLAYER_DOWN_A)
+        : (f ? PLAYER_RIGHT_B : PLAYER_RIGHT_A)
   drawSprite(ctx, sprite, x, y, C.B_WHITE, C.BLACK)
 }
 
@@ -235,7 +235,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState): vo
       const mineType = tile.metadata?.mineType as string
       const ink = mineType === 'cluster' ? C.B_YELLOW
         : mineType === 'beacon' ? C.B_CYAN
-        : C.B_RED
+          : C.B_RED
       drawSprite(ctx, MINE, x * CELL, y * CELL, ink, C.BLACK)
     }
   }

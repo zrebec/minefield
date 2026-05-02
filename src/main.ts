@@ -3,7 +3,7 @@ import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
 import { createGame, type GameState, type GamePhase } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
-import { flashBorder, setupCanvas, drawProgressBar, tickUI, renderUI, resetUI } from 'zx-kit'
+import { flashBorder, setupCanvas, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
@@ -51,7 +51,7 @@ function getCtx(): CanvasRenderingContext2D {
   return (document.getElementById('game') as HTMLCanvasElement).getContext('2d')!
 }
 
-function setBorderColor(color: string): void {
+function setBorderColor(color: SpectrumColor): void {
   document.body.style.backgroundColor = color
 }
 
