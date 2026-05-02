@@ -127,14 +127,16 @@ export function startApproachSound(): void {
   const ctx = getAudioContext()
   if (!ctx || approachOsc || airplaneOsc) return
   const now = ctx.currentTime
-  approachGain = ctx.createGain()
-  approachGain.gain.value = 0.04
-  approachGain.connect(getMasterGain()!)
-  approachOsc = ctx.createOscillator()
-  approachOsc.type = 'square'
-  approachOsc.frequency.value = 1300
-  approachOsc.connect(approachGain)
-  approachOsc.start(now)
+  const gain = ctx.createGain()
+  gain.gain.value = 0.04
+  gain.connect(getMasterGain()!)
+  const osc = ctx.createOscillator()
+  osc.type = 'square'
+  osc.frequency.value = 1300
+  osc.connect(gain)
+  osc.start(now)
+  approachGain = gain
+  approachOsc = osc
 }
 
 export function stopApproachSound(): void {
