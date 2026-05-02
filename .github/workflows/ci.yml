@@ -1,8 +1,8 @@
-name: Deploy to GitHub Pages
+name: CI & Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Release (changelog + tag)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release --no-ci
+
   build:
+    needs: release   # počká na release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
