@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -29,9 +31,9 @@ jobs:
         run: npm ci
 
       - name: Build
-        env:
-          VITE_APP_BUILD: ${{ github.run_number }}
-        run: npm run build
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "untagged")
+          VITE_APP_BUILD=$TAG npm run build
 
       - name: Verify dist/index.html
         run: cat dist/index.html

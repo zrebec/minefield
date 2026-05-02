@@ -1,5 +1,8 @@
 import { mirrorSprite } from 'zx-kit'
+import type { Tile } from 'zx-kit'
+import { C } from './constants.ts'
 export { mirrorSprite }
+export type { Tile }
 
 // All sprites: 8×8 pixels, each byte = one row, bit7 = leftmost pixel
 
@@ -158,4 +161,77 @@ export const GEM = new Uint8Array([
   0x3C, // ..####..
   0x18, // ...##...
 ])
+
+// ─── Tile factories ───────────────────────────────────────────────────────────
+// variant 'a' = (col+row)%2===0, 'b' = odd — encodes checkerboard parity
+
+export type CellVariant = 'a' | 'b'
+
+export function makeTileGround(variant: CellVariant): Tile {
+  return {
+    sprite: variant === 'a' ? GROUND_A : GROUND_B,
+    ink: variant === 'a' ? C.B_GREEN : C.GREEN,
+    paper: C.BLACK,
+    solid: false,
+    id: 'ground',
+    metadata: { variant },
+  }
+}
+
+// Hidden mine — visually identical to ground, logical state encoded in id/metadata
+export function makeTileMine(mineType: string, variant: CellVariant): Tile {
+  return {
+    sprite: variant === 'a' ? GROUND_A : GROUND_B,
+    ink: variant === 'a' ? C.B_GREEN : C.GREEN,
+    paper: C.BLACK,
+    solid: false,
+    id: 'mine',
+    metadata: { mineType, variant },
+  }
+}
+
+export function makeTileGem(): Tile {
+  return {
+    sprite: GEM,
+    ink: C.B_CYAN,
+    paper: C.BLACK,
+    solid: false,
+    id: 'gem',
+  }
+}
+
+export function makeTileVisited(variant: CellVariant): Tile {
+  return {
+    sprite: variant === 'a' ? GROUND_A : GROUND_B,
+    ink: C.B_YELLOW,
+    paper: C.BLACK,
+    solid: false,
+    id: 'visited',
+    metadata: { variant },
+  }
+}
+
+// underneath: original tile id before flag was placed; needed to restore on unflag
+export function makeTileFlag(
+  underneath: string,
+  mineType: string | undefined,
+  variant: CellVariant | undefined,
+): Tile {
+  return {
+    sprite: FLAG,
+    ink: C.B_CYAN,
+    paper: C.BLACK,
+    solid: false,
+    id: 'flag',
+    metadata: { underneath, mineType, variant },
+  }
+}
+
+export const TILE_EXPLODED: Tile = {
+  sprite: EXPLOSION_2,
+  ink: C.B_YELLOW,
+  paper: C.BLACK,
+  solid: false,
+  id: 'exploded',
+}
 

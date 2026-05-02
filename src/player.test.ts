@@ -8,6 +8,7 @@ import {
   EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS,
   COMBO_DURATION_MS, GEM_SCORE,
 } from './config.ts'
+import { makeTileGround, makeTileMine, makeTileVisited, makeTileGem } from './sprites.ts'
 
 vi.mock('./audio.ts', () => ({
   playWarning: vi.fn(),
@@ -17,15 +18,16 @@ vi.mock('./audio.ts', () => ({
   isAmbientSoundActive: vi.fn().mockReturnValue(false),
 }))
 
-// Clean state at position (5,5) with no mines, cleared visited flags
+function cellVariant(col: number, row: number): 'a' | 'b' {
+  return (col + row) % 2 === 0 ? 'a' : 'b'
+}
+
+// Clean state at position (5,5) with all cells set to unvisited ground
 function makeState(col = 5, row = 5): GameState {
   const state = createGame(0)
   for (let r = 0; r < ROWS; r++)
     for (let c = 0; c < COLS; c++) {
-      state.grid[r][c].hasMine = false
-      state.grid[r][c].visited = false
-      state.grid[r][c].flagged = false
-      state.grid[r][c].hasGem = false
+      state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
     }
   state.playerCol = col
   state.playerRow = row
@@ -76,9 +78,9 @@ describe('movePlayer — direction update', () => {
 
   it('updates playerDir even on a blocked move (wall)', () => {
     const state = makeState(0, 5)
-    movePlayer(state, 'left')   // blocked — col would go -1
-    expect(state.playerDir).toBe('left')  // direction still updates
-    expect(state.playerCol).toBe(0)       // position stays
+    movePlayer(state, 'left')
+    expect(state.playerDir).toBe('left')
+    expect(state.playerCol).toBe(0)
   })
 })
 
@@ -129,7 +131,7 @@ describe('movePlayer — level complete', () => {
   it('does not update player position on level complete trigger', () => {
     const state = makeState(COLS - 1, 5)
     movePlayer(state, 'right')
-    expect(state.playerCol).toBe(COLS - 1)  // stays at last col
+    expect(state.playerCol).toBe(COLS - 1)
   })
 })
 
@@ -138,29 +140,28 @@ describe('movePlayer — level complete', () => {
 describe('movePlayer — mine hit', () => {
   it('sets phase to exploding', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasMine = true
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
     movePlayer(state, 'right')
     expect(state.phase).toBe('exploding')
   })
 
-  it('marks mine cell as exploded and removes mine flag', () => {
+  it('marks mine cell as exploded', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasMine = true
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
     movePlayer(state, 'right')
-    expect(state.grid[5][6].exploded).toBe(true)
-    expect(state.grid[5][6].hasMine).toBe(false)
+    expect(state.map.getTile(6, 5)?.id).toBe('exploded')
   })
 
   it('increments explodedMines counter', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasMine = true
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
     movePlayer(state, 'right')
     expect(state.explodedMines).toBe(1)
   })
 
   it('moves player onto the mine cell', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasMine = true
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
     movePlayer(state, 'right')
     expect(state.playerCol).toBe(6)
     expect(state.playerRow).toBe(5)
@@ -168,7 +169,7 @@ describe('movePlayer — mine hit', () => {
 
   it('sets flashTimer and flashOn', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasMine = true
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
     movePlayer(state, 'right')
     expect(state.flashTimer).toBe(EXPLOSION_FLASH_MS)
     expect(state.flashOn).toBe(true)
@@ -176,24 +177,24 @@ describe('movePlayer — mine hit', () => {
 
   it('does not add score for stepping on mine', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasMine = true
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
     movePlayer(state, 'right')
     expect(state.score).toBe(0)
   })
 
   it('does not toggle playerWalkFrame on mine hit', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasMine = true
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
     movePlayer(state, 'right')
     expect(state.playerWalkFrame).toBe(0)
   })
 
   it('does not step on already-exploded mine (treats as safe cell)', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasMine = true
-    state.grid[5][6].exploded = true
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
+    state.map.setTile(6, 5, { sprite: new Uint8Array(8), ink: '#CDCD00', paper: '#000000', solid: false, id: 'exploded' })
     movePlayer(state, 'right')
-    expect(state.phase).toBe('playing')  // no explosion
+    expect(state.phase).toBe('playing')
   })
 })
 
@@ -210,18 +211,18 @@ describe('movePlayer — normal move', () => {
   it('marks destination cell as visited', () => {
     const state = makeState(5, 5)
     movePlayer(state, 'right')
-    expect(state.grid[5][6].visited).toBe(true)
+    expect(state.map.getTile(6, 5)?.id).toBe('visited')
   })
 
   it('does not mark source cell as visited', () => {
     const state = makeState(5, 5)
     movePlayer(state, 'right')
-    expect(state.grid[5][5].visited).toBe(false)
+    expect(state.map.getTile(5, 5)?.id).toBe('ground')
   })
 
   it('does not re-score already visited cell', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].visited = true
+    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5)))
     movePlayer(state, 'right')
     expect(state.score).toBe(0)
     expect(state.comboCount).toBe(0)
@@ -267,8 +268,8 @@ describe('movePlayer — score and combo', () => {
 
   it('applies increasing combo multiplier on consecutive new cells', () => {
     const state = makeState(5, 5)
-    movePlayer(state, 'right')   // comboCount=1, mult=1.0
-    movePlayer(state, 'right')   // comboCount=2, mult=1.1
+    movePlayer(state, 'right')
+    movePlayer(state, 'right')
     const expected =
       Math.round(SCORE_PER_CELL * SCORE_MULTIPLIERS[0] * 1.0) +
       Math.round(SCORE_PER_CELL * SCORE_MULTIPLIERS[0] * 1.1)
@@ -277,7 +278,7 @@ describe('movePlayer — score and combo', () => {
 
   it('does not increment combo when revisiting cell', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].visited = true
+    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5)))
     movePlayer(state, 'right')
     expect(state.comboCount).toBe(0)
     expect(state.comboTimer).toBe(0)
@@ -285,7 +286,7 @@ describe('movePlayer — score and combo', () => {
 
   it('uses level multiplier for score', () => {
     const state = makeState(5, 5)
-    state.level = 1  // SCORE_MULTIPLIERS[1] = 1.2
+    state.level = 1
     movePlayer(state, 'right')
     const expected = Math.round(SCORE_PER_CELL * SCORE_MULTIPLIERS[1] * 1.0)
     expect(state.score).toBe(expected)
@@ -295,16 +296,16 @@ describe('movePlayer — score and combo', () => {
 // ── movePlayer — gem collection ───────────────────────────────────────────────
 
 describe('movePlayer — gem collection', () => {
-  it('removes gem from cell when collected', () => {
+  it('removes gem from cell when collected (cell becomes visited)', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasGem = true
+    state.map.setTile(6, 5, makeTileGem())
     movePlayer(state, 'right')
-    expect(state.grid[5][6].hasGem).toBe(false)
+    expect(state.map.getTile(6, 5)?.id).toBe('visited')
   })
 
   it('increments gemsCollected counter', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasGem = true
+    state.map.setTile(6, 5, makeTileGem())
     const before = state.gemsCollected
     movePlayer(state, 'right')
     expect(state.gemsCollected).toBe(before + 1)
@@ -312,22 +313,11 @@ describe('movePlayer — gem collection', () => {
 
   it('adds GEM_SCORE on top of cell score', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasGem = true
+    state.map.setTile(6, 5, makeTileGem())
     movePlayer(state, 'right')
     const cellScore = Math.round(SCORE_PER_CELL * SCORE_MULTIPLIERS[0] * 1.0)
     const gemScore  = Math.round(GEM_SCORE * 1.0)
     expect(state.score).toBe(cellScore + gemScore)
-  })
-
-  it('does not collect gem on already-visited cell', () => {
-    const state = makeState(5, 5)
-    state.grid[5][6].visited = true
-    state.grid[5][6].hasGem = true
-    const before = state.gemsCollected
-    movePlayer(state, 'right')
-    // gem still collected (code checks hasGem independently of visited)
-    expect(state.gemsCollected).toBe(before + 1)
-    expect(state.grid[5][6].hasGem).toBe(false)
   })
 })
 
@@ -355,7 +345,7 @@ describe('movePlayer — walk animation', () => {
 
   it('does not toggle playerWalkFrame on mine hit', () => {
     const state = makeState(5, 5)
-    state.grid[5][6].hasMine = true
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
     movePlayer(state, 'right')
     expect(state.playerWalkFrame).toBe(0)
   })
@@ -414,44 +404,44 @@ describe('toggleFlag', () => {
     const state = makeState(5, 5)
     state.playerDir = 'right'
     toggleFlag(state)
-    expect(state.grid[5][6].flagged).toBe(true)
+    expect(state.map.getTile(6, 5)?.id).toBe('flag')
   })
 
   it('flags cell in front when facing up', () => {
     const state = makeState(5, 5)
     state.playerDir = 'up'
     toggleFlag(state)
-    expect(state.grid[4][5].flagged).toBe(true)
+    expect(state.map.getTile(5, 4)?.id).toBe('flag')
   })
 
   it('flags cell in front when facing down', () => {
     const state = makeState(5, 5)
     state.playerDir = 'down'
     toggleFlag(state)
-    expect(state.grid[6][5].flagged).toBe(true)
+    expect(state.map.getTile(5, 6)?.id).toBe('flag')
   })
 
   it('flags cell in front when facing left', () => {
     const state = makeState(5, 5)
     state.playerDir = 'left'
     toggleFlag(state)
-    expect(state.grid[5][4].flagged).toBe(true)
+    expect(state.map.getTile(4, 5)?.id).toBe('flag')
   })
 
   it('unflags already-flagged cell (toggle)', () => {
     const state = makeState(5, 5)
     state.playerDir = 'right'
-    state.grid[5][6].flagged = true
     toggleFlag(state)
-    expect(state.grid[5][6].flagged).toBe(false)
+    toggleFlag(state)
+    expect(state.map.getTile(6, 5)?.id).toBe('ground')
   })
 
   it('does not flag a visited cell', () => {
     const state = makeState(5, 5)
     state.playerDir = 'right'
-    state.grid[5][6].visited = true
+    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5)))
     toggleFlag(state)
-    expect(state.grid[5][6].flagged).toBe(false)
+    expect(state.map.getTile(6, 5)?.id).toBe('visited')
   })
 
   it('does nothing when phase is not playing', () => {
@@ -459,7 +449,7 @@ describe('toggleFlag', () => {
     state.phase = 'gameover'
     state.playerDir = 'right'
     toggleFlag(state)
-    expect(state.grid[5][6].flagged).toBe(false)
+    expect(state.map.getTile(6, 5)?.id).toBe('ground')
   })
 
   it('does not crash when player faces grid edge', () => {

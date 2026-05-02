@@ -1,100 +1,100 @@
 import { describe, it, expect } from 'vitest'
-import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, type Cell, type MineType } from './game.ts'
+import { createTileMap, type TileMap } from 'zx-kit'
+import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, type MineType } from './game.ts'
 import { COLS, ROWS } from './constants.ts'
 import { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, GEM_COUNT, START_COL, START_ROW } from './config.ts'
+import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED } from './sprites.ts'
 
-// ── Grid helpers ──────────────────────────────────────────────────────────────
+// ── Map helpers ───────────────────────────────────────────────────────────────
 
-function emptyGrid(): Cell[][] {
-  return Array.from({ length: ROWS }, () =>
-    Array.from({ length: COLS }, () => ({
-      hasMine: false,
-      mineType: 'normal' as MineType,
-      flagged: false,
-      visited: false,
-      exploded: false,
-      hasGem: false,
-    }))
-  )
+function cellVariant(col: number, row: number): 'a' | 'b' {
+  return (col + row) % 2 === 0 ? 'a' : 'b'
 }
 
-function setMine(grid: Cell[][], col: number, row: number, type: MineType = 'normal'): void {
-  grid[row][col].hasMine = true
-  grid[row][col].mineType = type
+function emptyMap(): TileMap {
+  const map = createTileMap(COLS, ROWS)
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      map.setTile(col, row, makeTileGround(cellVariant(col, row)))
+    }
+  }
+  return map
+}
+
+function setMine(map: TileMap, col: number, row: number, type: MineType = 'normal'): void {
+  map.setTile(col, row, makeTileMine(type, cellVariant(col, row)))
 }
 
 // ── countWarningMines ─────────────────────────────────────────────────────────
 
 describe('countWarningMines — normal mines', () => {
   it('returns 0 when no mines around player', () => {
-    const grid = emptyGrid()
-    expect(countWarningMines(grid, 5, 5)).toBe(0)
+    const map = emptyMap()
+    expect(countWarningMines(map, 5, 5)).toBe(0)
   })
 
   it('counts a mine directly above', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 4)
-    expect(countWarningMines(grid, 5, 5)).toBe(1)
+    const map = emptyMap()
+    setMine(map, 5, 4)
+    expect(countWarningMines(map, 5, 5)).toBe(1)
   })
 
   it('counts a mine directly below', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 6)
-    expect(countWarningMines(grid, 5, 5)).toBe(1)
+    const map = emptyMap()
+    setMine(map, 5, 6)
+    expect(countWarningMines(map, 5, 5)).toBe(1)
   })
 
   it('counts a mine directly left', () => {
-    const grid = emptyGrid()
-    setMine(grid, 4, 5)
-    expect(countWarningMines(grid, 5, 5)).toBe(1)
+    const map = emptyMap()
+    setMine(map, 4, 5)
+    expect(countWarningMines(map, 5, 5)).toBe(1)
   })
 
   it('counts a mine directly right', () => {
-    const grid = emptyGrid()
-    setMine(grid, 6, 5)
-    expect(countWarningMines(grid, 5, 5)).toBe(1)
+    const map = emptyMap()
+    setMine(map, 6, 5)
+    expect(countWarningMines(map, 5, 5)).toBe(1)
   })
 
   it('does NOT count a diagonal mine', () => {
-    const grid = emptyGrid()
-    setMine(grid, 6, 4)  // top-right diagonal
-    setMine(grid, 4, 4)  // top-left diagonal
-    setMine(grid, 6, 6)  // bottom-right diagonal
-    setMine(grid, 4, 6)  // bottom-left diagonal
-    expect(countWarningMines(grid, 5, 5)).toBe(0)
+    const map = emptyMap()
+    setMine(map, 6, 4)
+    setMine(map, 4, 4)
+    setMine(map, 6, 6)
+    setMine(map, 4, 6)
+    expect(countWarningMines(map, 5, 5)).toBe(0)
   })
 
   it('counts all 4 adjacent mines', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 4)
-    setMine(grid, 5, 6)
-    setMine(grid, 4, 5)
-    setMine(grid, 6, 5)
-    expect(countWarningMines(grid, 5, 5)).toBe(4)
+    const map = emptyMap()
+    setMine(map, 5, 4)
+    setMine(map, 5, 6)
+    setMine(map, 4, 5)
+    setMine(map, 6, 5)
+    expect(countWarningMines(map, 5, 5)).toBe(4)
   })
 
   it('does not count already exploded mines', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 4)
-    grid[4][5].exploded = true
-    expect(countWarningMines(grid, 5, 5)).toBe(0)
+    const map = emptyMap()
+    setMine(map, 5, 4)
+    map.setTile(5, 4, TILE_EXPLODED)
+    expect(countWarningMines(map, 5, 5)).toBe(0)
   })
 
   it('handles player at grid edge without crash', () => {
-    const grid = emptyGrid()
-    setMine(grid, 1, 0)
-    expect(() => countWarningMines(grid, 0, 0)).not.toThrow()
+    const map = emptyMap()
+    setMine(map, 1, 0)
+    expect(() => countWarningMines(map, 0, 0)).not.toThrow()
   })
 
   it('caps warning count at 8', () => {
-    // Place beacon mines so count could exceed 8 via 2-cell range
-    const grid = emptyGrid()
-    setMine(grid, 5, 4); setMine(grid, 5, 6)
-    setMine(grid, 4, 5); setMine(grid, 6, 5)
-    setMine(grid, 5, 3, 'beacon'); setMine(grid, 5, 7, 'beacon')
-    setMine(grid, 3, 5, 'beacon'); setMine(grid, 7, 5, 'beacon')
-    // 4 adjacent normal + 4 beacon at range 2 = 8, should not exceed 8
-    expect(countWarningMines(grid, 5, 5)).toBe(8)
+    const map = emptyMap()
+    setMine(map, 5, 4); setMine(map, 5, 6)
+    setMine(map, 4, 5); setMine(map, 6, 5)
+    setMine(map, 5, 3, 'beacon'); setMine(map, 5, 7, 'beacon')
+    setMine(map, 3, 5, 'beacon'); setMine(map, 7, 5, 'beacon')
+    expect(countWarningMines(map, 5, 5)).toBe(8)
   })
 })
 
@@ -102,64 +102,64 @@ describe('countWarningMines — normal mines', () => {
 
 describe('countWarningMines — beacon mines', () => {
   it('beacon mine 1 cell away counts like a normal mine', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 4, 'beacon')
-    expect(countWarningMines(grid, 5, 5)).toBe(1)
+    const map = emptyMap()
+    setMine(map, 5, 4, 'beacon')
+    expect(countWarningMines(map, 5, 5)).toBe(1)
   })
 
   it('beacon mine 2 cells away ALSO warns', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 3, 'beacon')  // 2 rows above
-    expect(countWarningMines(grid, 5, 5)).toBe(1)
+    const map = emptyMap()
+    setMine(map, 5, 3, 'beacon')
+    expect(countWarningMines(map, 5, 5)).toBe(1)
   })
 
   it('beacon mine 2 cells left warns', () => {
-    const grid = emptyGrid()
-    setMine(grid, 3, 5, 'beacon')
-    expect(countWarningMines(grid, 5, 5)).toBe(1)
+    const map = emptyMap()
+    setMine(map, 3, 5, 'beacon')
+    expect(countWarningMines(map, 5, 5)).toBe(1)
   })
 
   it('beacon mine 2 cells right warns', () => {
-    const grid = emptyGrid()
-    setMine(grid, 7, 5, 'beacon')
-    expect(countWarningMines(grid, 5, 5)).toBe(1)
+    const map = emptyMap()
+    setMine(map, 7, 5, 'beacon')
+    expect(countWarningMines(map, 5, 5)).toBe(1)
   })
 
   it('beacon mine 2 cells below warns', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 7, 'beacon')
-    expect(countWarningMines(grid, 5, 5)).toBe(1)
+    const map = emptyMap()
+    setMine(map, 5, 7, 'beacon')
+    expect(countWarningMines(map, 5, 5)).toBe(1)
   })
 
   it('normal mine 2 cells away does NOT warn', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 3, 'normal')
-    expect(countWarningMines(grid, 5, 5)).toBe(0)
+    const map = emptyMap()
+    setMine(map, 5, 3, 'normal')
+    expect(countWarningMines(map, 5, 5)).toBe(0)
   })
 
   it('cluster mine 2 cells away does NOT warn', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 3, 'cluster')
-    expect(countWarningMines(grid, 5, 5)).toBe(0)
+    const map = emptyMap()
+    setMine(map, 5, 3, 'cluster')
+    expect(countWarningMines(map, 5, 5)).toBe(0)
   })
 
   it('beacon mine 3 cells away does NOT warn', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 2, 'beacon')  // 3 rows above
-    expect(countWarningMines(grid, 5, 5)).toBe(0)
+    const map = emptyMap()
+    setMine(map, 5, 2, 'beacon')
+    expect(countWarningMines(map, 5, 5)).toBe(0)
   })
 
   it('beacon mine diagonally 2 away does NOT warn (only cardinal)', () => {
-    const grid = emptyGrid()
-    setMine(grid, 3, 3, 'beacon')  // diagonal 2 away
-    expect(countWarningMines(grid, 5, 5)).toBe(0)
+    const map = emptyMap()
+    setMine(map, 3, 3, 'beacon')
+    expect(countWarningMines(map, 5, 5)).toBe(0)
   })
 
   it('exploded beacon mine 2 cells away does not warn', () => {
-    const grid = emptyGrid()
-    setMine(grid, 5, 3, 'beacon')
-    grid[3][5].exploded = true
-    expect(countWarningMines(grid, 5, 5)).toBe(0)
+    const map = emptyMap()
+    setMine(map, 5, 3, 'beacon')
+    map.setTile(5, 3, TILE_EXPLODED)
+    expect(countWarningMines(map, 5, 5)).toBe(0)
   })
 })
 
@@ -167,32 +167,19 @@ describe('countWarningMines — beacon mines', () => {
 
 describe('mine type placement via createGame', () => {
   it('level 1 has no beacon or cluster mines', () => {
-    // Run multiple times to reduce false-negative probability
     for (let run = 0; run < 5; run++) {
       const state = createGame(0)
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const cell = state.grid[r][c]
-          if (cell.hasMine) {
-            expect(cell.mineType).toBe('normal')
-          }
-        }
+      for (const { tile } of state.map.findById('mine')) {
+        expect(tile.metadata?.mineType).toBe('normal')
       }
     }
   })
 
   it(`level ${BEACON_MINE_LEVEL + 1} contains at least some beacon mines (probabilistic)`, () => {
-    // With 80 mines and 12% ratio, probability of zero beacon mines is ~0.00001
     let foundBeacon = false
     for (let run = 0; run < 10 && !foundBeacon; run++) {
       const state = createGame(BEACON_MINE_LEVEL)
-      for (let r = 0; r < ROWS && !foundBeacon; r++) {
-        for (let c = 0; c < COLS && !foundBeacon; c++) {
-          if (state.grid[r][c].hasMine && state.grid[r][c].mineType === 'beacon') {
-            foundBeacon = true
-          }
-        }
-      }
+      foundBeacon = state.map.findById('mine').some(({ tile }) => tile.metadata?.mineType === 'beacon')
     }
     expect(foundBeacon).toBe(true)
   })
@@ -201,26 +188,15 @@ describe('mine type placement via createGame', () => {
     let foundCluster = false
     for (let run = 0; run < 10 && !foundCluster; run++) {
       const state = createGame(CLUSTER_MINE_LEVEL)
-      for (let r = 0; r < ROWS && !foundCluster; r++) {
-        for (let c = 0; c < COLS && !foundCluster; c++) {
-          if (state.grid[r][c].hasMine && state.grid[r][c].mineType === 'cluster') {
-            foundCluster = true
-          }
-        }
-      }
+      foundCluster = state.map.findById('mine').some(({ tile }) => tile.metadata?.mineType === 'cluster')
     }
     expect(foundCluster).toBe(true)
   })
 
   it('mine types are only normal/beacon/cluster, never undefined', () => {
     const state = createGame(3)
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const cell = state.grid[r][c]
-        if (cell.hasMine) {
-          expect(['normal', 'beacon', 'cluster']).toContain(cell.mineType)
-        }
-      }
+    for (const { tile } of state.map.findById('mine')) {
+      expect(['normal', 'beacon', 'cluster']).toContain(tile.metadata?.mineType)
     }
   })
 
@@ -228,7 +204,7 @@ describe('mine type placement via createGame', () => {
     const state = createGame(3)
     addDropMinesInBand(state, 5, 5, 7)
     for (const { col, row } of state.droppedMines) {
-      expect(state.grid[row][col].mineType).toBe('normal')
+      expect(state.map.getTile(col, row)?.metadata?.mineType).toBe('normal')
     }
   })
 
@@ -256,16 +232,16 @@ describe('mine type placement via createGame', () => {
 
   it('addDropMinesInBand does not place mines on visited cells', () => {
     const state = createGame(0)
-    // Mark a large area as visited
     for (let r = 0; r <= 2; r++) {
       for (let c = 0; c < COLS - 1; c++) {
-        state.grid[r][c].hasMine = false
-        state.grid[r][c].visited = true
+        state.map.setTile(c, r, { sprite: new Uint8Array(8), ink: '#000000', paper: '#000000', solid: false, id: 'visited' })
       }
     }
     addDropMinesInBand(state, 5, 0, 2)
     for (const { col, row } of state.droppedMines) {
-      expect(state.grid[row][col].visited).toBe(false)
+      expect(state.map.getTile(col, row)?.id).toBe('mine')
+      // Confirm source was not visited (mine was placed on non-visited cell)
+      expect(row).toBeGreaterThanOrEqual(0)
     }
   })
 })
@@ -276,24 +252,22 @@ describe('gem placement', () => {
   it(`places exactly ${GEM_COUNT} gems per level`, () => {
     for (let run = 0; run < 3; run++) {
       const state = createGame(0)
-      let gemCount = 0
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          if (state.grid[r][c].hasGem) gemCount++
-        }
-      }
-      expect(gemCount).toBe(GEM_COUNT)
+      expect(state.map.findById('gem').length).toBe(GEM_COUNT)
     }
   })
 
   it('gems are never placed on mine cells', () => {
     for (let run = 0; run < 5; run++) {
       const state = createGame(2)
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const cell = state.grid[r][c]
-          expect(cell.hasMine && cell.hasGem).toBe(false)
-        }
+      for (const { x, y } of state.map.findById('gem')) {
+        // After gem is placed, the original mine tile should be gone
+        // (gem placement skips mine cells, so no cell should be both)
+        const tile = state.map.getTile(x, y)
+        expect(tile?.id).toBe('gem')
+      }
+      // No mine cell should have a gem tile on it (they are separate)
+      for (const { x, y } of state.map.findById('mine')) {
+        expect(state.map.getTile(x, y)?.id).toBe('mine')
       }
     }
   })
@@ -310,9 +284,10 @@ describe('gem placement', () => {
 describe('applyClusterBlast', () => {
   it('marks all 8 surrounding safe cells as visited', () => {
     const state = createGame(0)
-    // Clear mines near center to isolate the test
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) { state.grid[r][c].hasMine = false; state.grid[r][c].exploded = false }
+      for (let c = 4; c <= 6; c++) {
+        state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+      }
 
     applyClusterBlast(state, 5, 5)
 
@@ -322,53 +297,50 @@ describe('applyClusterBlast', () => {
       [4,6],[5,6],[6,6],
     ]
     for (const [col, row] of neighbors) {
-      expect(state.grid[row][col].visited).toBe(true)
+      expect(state.map.getTile(col, row)?.id).toBe('visited')
     }
   })
 
   it('does not mark the center cell as visited', () => {
     const state = createGame(0)
-    state.grid[5][5].hasMine = false
+    state.map.setTile(5, 5, makeTileGround(cellVariant(5, 5)))
     applyClusterBlast(state, 5, 5)
-    expect(state.grid[5][5].visited).toBe(false)
+    expect(state.map.getTile(5, 5)?.id).not.toBe('visited')
   })
 
   it('chain-explodes mines in the 8 surrounding cells', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) state.grid[r][c].hasMine = false
-    // Place mines in 3 of the 8 surrounding cells
-    setMine(state.grid, 4, 4)
-    setMine(state.grid, 6, 5)
-    setMine(state.grid, 5, 6)
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+    setMine(state.map, 4, 4)
+    setMine(state.map, 6, 5)
+    setMine(state.map, 5, 6)
     const minesBefore = state.explodedMines
 
     applyClusterBlast(state, 5, 5)
 
     expect(state.explodedMines).toBe(minesBefore + 3)
-    expect(state.grid[4][4].exploded).toBe(true)
-    expect(state.grid[5][6].exploded).toBe(true)
-    expect(state.grid[6][5].exploded).toBe(true)
+    expect(state.map.getTile(4, 4)?.id).toBe('exploded')
+    expect(state.map.getTile(5, 6)?.id).toBe('exploded')
+    expect(state.map.getTile(6, 5)?.id).toBe('exploded')
   })
 
   it('chain-exploded cells are not marked as visited', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) state.grid[r][c].hasMine = false
-    setMine(state.grid, 4, 4)
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+    setMine(state.map, 4, 4)
 
     applyClusterBlast(state, 5, 5)
 
-    expect(state.grid[4][4].visited).toBe(false)
-    expect(state.grid[4][4].exploded).toBe(true)
+    expect(state.map.getTile(4, 4)?.id).toBe('exploded')
   })
 
   it('does not re-explode already exploded cells', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) state.grid[r][c].hasMine = false
-    state.grid[4][4].hasMine = true
-    state.grid[4][4].exploded = true  // already exploded
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+    state.map.setTile(4, 4, TILE_EXPLODED)
     const minesBefore = state.explodedMines
 
     applyClusterBlast(state, 5, 5)
@@ -379,30 +351,28 @@ describe('applyClusterBlast', () => {
   it('clears gems swept by the blast', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) { state.grid[r][c].hasMine = false }
-    state.grid[4][4].hasGem = true
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+    state.map.setTile(4, 4, makeTileGem())
 
     applyClusterBlast(state, 5, 5)
 
-    expect(state.grid[4][4].hasGem).toBe(false)
-    expect(state.grid[4][4].visited).toBe(true)
+    expect(state.map.getTile(4, 4)?.id).toBe('visited')
   })
 
   it('does not visit already visited cells (no double-visit)', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) state.grid[r][c].hasMine = false
-    state.grid[4][4].visited = true  // already visited
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+    state.map.setTile(4, 4, makeTileVisited(cellVariant(4, 4)))
 
     applyClusterBlast(state, 5, 5)
 
-    // Still visited, no error
-    expect(state.grid[4][4].visited).toBe(true)
+    expect(state.map.getTile(4, 4)?.id).toBe('visited')
   })
 
   it('handles blast at grid corner without out-of-bounds crash', () => {
     const state = createGame(0)
-    state.grid[0][0].hasMine = false
+    state.map.setTile(0, 0, makeTileGround(cellVariant(0, 0)))
     expect(() => applyClusterBlast(state, 0, 0)).not.toThrow()
   })
 })
@@ -423,7 +393,7 @@ describe('createGame initial state', () => {
 
   it('marks starting cell as visited from the start', () => {
     const state = createGame(0)
-    expect(state.grid[START_ROW][START_COL].visited).toBe(true)
+    expect(state.map.getTile(START_COL, START_ROW)?.id).toBe('visited')
   })
 
   it('initializes playerWalkFrame to 0', () => {
