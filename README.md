@@ -6,7 +6,7 @@
 ![ZX Spectrum style screenshot placeholder](https://img.shields.io/badge/ZX_Spectrum-256×192-00CD00?style=flat-square&labelColor=000000)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.x-0000FF?style=flat-square&labelColor=000000)
 ![Vite](https://img.shields.io/badge/Vite-8.x-FFFF00?style=flat-square&labelColor=000000)
-![zx-kit](https://img.shields.io/badge/zx--kit-0.2.2-00CDCD?style=flat-square&labelColor=000000)
+![zx-kit](https://img.shields.io/badge/zx--kit-0.5.0-00CDCD?style=flat-square&labelColor=000000)
 
 ---
 
@@ -77,11 +77,11 @@ Po prelete zhodí **3–10 nových mín** na nenavštívené bunky. Status bar b
 Najcharakteristickejší artefakt Spectra: každý **8×8 pixelový blok** môže mať
 len 2 farby (INK a PAPER). Hra toto dodržiava — každá bunka gridu má priradenú
 dvojicu farieb a sprite sa renderuje výhradne v týchto dvoch farbách. Keď hráč
-vstúpi na bunku, celý blok sa prepne na bielu/čiernu — presne ako na reálnom hardware.
+vstúpi na bunku, celý blok sa prepne na žltú/čiernu — presne ako na reálnom hardware.
 
 ### 2. Bitmapový font z ROM
-ZX Spectrum ROM font (256 znakov, 8×8 px každý) je zakódovaný priamo ako `Uint8Array`
-v `zx-kit/font.ts` — 96 znakov × 8 bajtov. Každý bit v bajte = jeden pixel.
+ZX Spectrum ROM font je dodaný cez `zx-kit/font.ts` ako `Uint8Array`
+pre 96 tlačiteľných ASCII znakov × 8 bajtov. Každý bit v bajte = jeden pixel.
 Renderuje sa manuálne cez `fillRect(x, y, 1, 1)` — žiadne CSS fonty, žiadny `fillText`.
 
 ### 3. Web Audio API — square wave
@@ -107,6 +107,12 @@ ZX Spectrum TV border je emulovaný cez `document.body.style.backgroundColor` �
 mení sa so stavom hry (modrá = intro, čierna = hra, flash explózie cez `flashBorder()`
 z `zx-kit`, zelená = level complete, červená = game over).
 
+### 7. TileMap z `zx-kit`
+Herné pole je sa vytvára pomocou `TileMap`
+cez `createTileMap(COLS, ROWS)`, ukladá doň ground/mine/gem/visited/flag tile-y
+a renderer volá `state.map.render(ctx)`. Debug mód používa `findById('mine')`,
+takže míny sa dajú vykresliť bez ručného prechádzania celého poľa v rendereri.
+
 ---
 
 ## Architektúra kódu
@@ -119,20 +125,20 @@ src/
 ├── sprites.ts     ← Všetky sprite-y ako Uint8Array (8×8 px)
 ├── audio.ts       ← Web Audio engine: varovania, explózia, fanfára, lietadlo
 ├── input.ts       ← Wrapper okolo zx-kit input (nastavenie key-repeat z config)
-├── game.ts        ← GameState, Cell grid, mínové pole, createGame()
+├── game.ts        ← GameState, TileMap, mínové pole, createGame()
 ├── player.ts      ← Pohyb, kolízia, flag, respawn, scoring
 ├── airplane.ts    ← Airplane timer, animácia, mine drop
-├── renderer.ts    ← Canvas rendering: grid, sprites, status bar, overlays
+├── renderer.ts    ← Canvas rendering: TileMap, sprites, status bar, overlays
 └── main.ts        ← Game loop (requestAnimationFrame), fázové prepínanie
 ```
 
 **Závislosti:**
-- `zx-kit` — ZX Spectrum primitívy (paleta, font, renderer helpers, audio, input)
+- `zx-kit@0.5.0` — ZX Spectrum primitívy (paleta, font, renderer helpers, audio, input, UI, TileMap)
 - Žiadne iné runtime závislosti — len Web Platform APIs
 
 **Render order** (každý frame):
 1. Clear canvas
-2. Grid cells (32×22) — každá bunka = paper fill + sprite v ink farbe
+2. TileMap cells (32×22) — každá bunka = paper fill + sprite v ink farbe
 3. Airplane (ak aktívne) — na vrchu gridu
 4. Status bar — SCORE / LVL / MINES / LIVES
 5. Flash overlay (pri explózii)
