@@ -1,3 +1,10 @@
+## [0.6.2](https://github.com/zrebec/minefield/compare/v0.6.1...v0.6.2) (2026-05-02)
+
+
+### Bug Fixes
+
+* github actions merged into 1 file ([e300a80](https://github.com/zrebec/minefield/commit/e300a80ab5168752607a34379fbbba1fd2119a05))
+
 ## [0.6.1](https://github.com/zrebec/minefield/compare/v0.6.0...v0.6.1) (2026-05-02)
 
 
