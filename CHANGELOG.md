@@ -1,3 +1,10 @@
+## [0.6.1](https://github.com/zrebec/minefield/compare/v0.6.0...v0.6.1) (2026-05-02)
+
+
+### Bug Fixes
+
+* node-version upgraded ([929ab1f](https://github.com/zrebec/minefield/commit/929ab1f2e1b3f473e3e330533fbb289e03cf6df2))
+
 # Changelog
 
 ## [Unreleased]
