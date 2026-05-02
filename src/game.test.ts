@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, type TileMap } from 'zx-kit'
 import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, type MineType } from './game.ts'
-import { COLS, ROWS } from './constants.ts'
+import { C, COLS, ROWS } from './constants.ts'
 import { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, GEM_COUNT, START_COL, START_ROW } from './config.ts'
 import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED } from './sprites.ts'
 
@@ -234,7 +234,7 @@ describe('mine type placement via createGame', () => {
     const state = createGame(0)
     for (let r = 0; r <= 2; r++) {
       for (let c = 0; c < COLS - 1; c++) {
-        state.map.setTile(c, r, { sprite: new Uint8Array(8), ink: '#000000', paper: '#000000', solid: false, id: 'visited' })
+        state.map.setTile(c, r, { sprite: new Uint8Array(8), ink: C.BLACK, paper: C.BLACK, solid: false, id: 'visited' })
       }
     }
     addDropMinesInBand(state, 5, 0, 2)

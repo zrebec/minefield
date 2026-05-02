@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { setupCanvas, flashBorder, playPattern, getAudioContext } from 'zx-kit'
+import { C, setupCanvas, flashBorder, playPattern, getAudioContext } from 'zx-kit'
 
 // jsdom doesn't implement canvas rendering — mock getContext for every test
 function makeCanvas() {
@@ -83,38 +83,38 @@ describe('flashBorder', () => {
   })
 
   it('sets border to flash color on first tick', () => {
-    flashBorder('#FF0000', 2, 100)
+    flashBorder(C.B_RED, 2, 100)
     vi.advanceTimersByTime(100)
     expect(document.body.style.backgroundColor).toBe('rgb(255, 0, 0)')
   })
 
   it('alternates to reset color on second tick', () => {
-    flashBorder('#FF0000', 1, 100, '#000000')
+    flashBorder(C.B_RED, 1, 100, C.BLACK)
     vi.advanceTimersByTime(100)  // tick 0 → flash color
     vi.advanceTimersByTime(100)  // tick 1 → reset color
     expect(document.body.style.backgroundColor).toBe('rgb(0, 0, 0)')
   })
 
   it('resets to resetColor after all flashes complete', () => {
-    flashBorder('#FF0000', 2, 100, '#000000')
+    flashBorder(C.B_RED, 2, 100, C.BLACK)
     vi.advanceTimersByTime(500)
     expect(document.body.style.backgroundColor).toBe('rgb(0, 0, 0)')
   })
 
   it('defaults reset color to black', () => {
-    flashBorder('#FF0000', 1, 100)
+    flashBorder(C.B_RED, 1, 100)
     vi.advanceTimersByTime(300)
     expect(document.body.style.backgroundColor).toBe('rgb(0, 0, 0)')
   })
 
   it('does not change border before first tick fires', () => {
-    flashBorder('#FF0000', 2, 100)
+    flashBorder(C.B_RED, 2, 100)
     // No time advanced — setInterval hasn't fired yet
     expect(document.body.style.backgroundColor).toBe('')
   })
 
   it('supports custom reset color', () => {
-    flashBorder('#FF0000', 1, 50, '#0000FF')
+    flashBorder(C.B_RED, 1, 50, C.B_BLUE)
     vi.advanceTimersByTime(200)
     expect(document.body.style.backgroundColor).toBe('rgb(0, 0, 255)')
   })

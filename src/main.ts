@@ -7,7 +7,7 @@ import { flashBorder, setupCanvas, drawProgressBar, tickUI, renderUI, resetUI, t
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
-import { isHighScore, saveHighScore } from './highscore.ts'
+import { isHighScore, saveHighScore } from './assets/highscore.ts'
 
 type AppPhase = 'intro' | 'ingame' | 'hiscore'
 

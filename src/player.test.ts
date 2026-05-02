@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { createGame, type GameState } from './game.ts'
-import { COLS, ROWS } from './constants.ts'
+import { C, COLS, ROWS } from './constants.ts'
 import {
   START_COL, START_ROW,
   SCORE_PER_CELL, SCORE_MULTIPLIERS,
@@ -192,7 +192,7 @@ describe('movePlayer — mine hit', () => {
   it('does not step on already-exploded mine (treats as safe cell)', () => {
     const state = makeState(5, 5)
     state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
-    state.map.setTile(6, 5, { sprite: new Uint8Array(8), ink: '#CDCD00', paper: '#000000', solid: false, id: 'exploded' })
+    state.map.setTile(6, 5, { sprite: new Uint8Array(8), ink: C.YELLOW, paper: C.BLACK, solid: false, id: 'exploded' })
     movePlayer(state, 'right')
     expect(state.phase).toBe('playing')
   })

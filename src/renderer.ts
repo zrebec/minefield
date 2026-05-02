@@ -1,7 +1,7 @@
 import { CANVAS_W, CANVAS_H, ROWS, COLS, CELL, C } from './constants.ts'
 import type { GameState, AirplaneState } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, type SpectrumColor } from 'zx-kit'
-import { loadHighScores } from './highscore.ts'
+import { loadHighScores } from './assets/highscore.ts'
 import {
   PLAYER_RIGHT_A, PLAYER_RIGHT_B,
   PLAYER_LEFT_A, PLAYER_LEFT_B,
