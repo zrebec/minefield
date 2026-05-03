@@ -42,6 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main      # HEAD main-u po semantic-release push (nie triggering commit)
           fetch-depth: 0
 
       - uses: actions/setup-node@v4

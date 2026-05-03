@@ -6,7 +6,7 @@
 ![ZX Spectrum style screenshot placeholder](https://img.shields.io/badge/ZX_Spectrum-256×192-00CD00?style=flat-square&labelColor=000000)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.x-0000FF?style=flat-square&labelColor=000000)
 ![Vite](https://img.shields.io/badge/Vite-8.x-FFFF00?style=flat-square&labelColor=000000)
-![zx-kit](https://img.shields.io/badge/zx--kit-0.5.0-00CDCD?style=flat-square&labelColor=000000)
+![zx-kit](https://img.shields.io/badge/zx--kit-0.6.7-00CDCD?style=flat-square&labelColor=000000)
 
 ---
 
@@ -14,8 +14,12 @@
 
 Hráč sa ocitá na minovom poli a musí ho prekonať — prejsť z ľavého okraja na pravý.
 Míny nevidíš, ale *počuješ*: čím viac mín je v tvojom okolí, tým nižší a intenzívnejší
-je zvukový signál. Nájdi bezpečnú cestu, zanechávaj žltú stopu a sleduj oblohu —
+je zvukový signál. Nájdi bezpečnú cestu, zanechávaj farebnú stopu a sleduj oblohu —
 každých pár desiatok sekúnd preletí lietadlo, ktoré zhodí nové míny.
+
+Každý level má náhodný **terén** — tráva (zelená), sneh (biela) alebo prach (žltá).
+Level 1 je vždy tráva, aby si spoznal základný vzhľad. Terén mení farbu pozadia
+aj farbu stochy — na tráve žltá, na snehu azúrová, na prachu biela.
 
 Hra je zámerný hold éře ZX Spectra (1982): pixelová grafika bez anti-aliasingu,
 presná 15-farebná paleta, 8×8 bitmapový font priamo z ROM, štipľavý zvuk zo square
@@ -49,19 +53,19 @@ wave oscilátora. Žiadne moderné efekty — len čistý kód a retro pocit.
 ## Cieľ a herný cyklus
 
 1. Hráč štartuje na **ľavom okraji** (stred výšky)
-2. Pohybom odhaľuje plochu — navštívené bunky sa zafarbujú na žlto (stopa)
+2. Pohybom odhaľuje plochu — navštívené bunky sa zafarbujú kontrastnou farbou (stopa, farba závisí od terénu)
 3. **Výhra levelu**: dostať sa na pravý okraj poľa (stĺpec 31)
 4. Šliapnutie na mínu = explózia, flash, strata života, respawn na štarte
 5. 0 životov = GAME OVER
 
 ### Levely
 
-| Level | Mín | Životy | Prvé lietadlo | Interval lietadiel |
-|-------|-----|--------|---------------|-------------------|
-| 1 | 60 | 3 | 15–30 s | 20–45 s |
-| 2 | 80 | 3 | 12–20 s | 15–30 s |
-| 3 | 100 | 2 | 10–15 s | 10–20 s |
-| 4+ | 110 | 2 | 8–12 s | 8–15 s |
+| Level | Mín | Životy | Terén | Prvé lietadlo | Interval lietadiel |
+|-------|-----|--------|-------|---------------|-------------------|
+| 1 | 60 | 3 | vždy tráva | 15–30 s | 20–45 s |
+| 2 | 80 | 3 | náhodný | 12–20 s | 15–30 s |
+| 3 | 100 | 2 | náhodný | 10–15 s | 10–20 s |
+| 4+ | 110 | 2 | náhodný | 8–12 s | 8–15 s |
 
 ### Lietadlo
 
@@ -133,7 +137,7 @@ src/
 ```
 
 **Závislosti:**
-- `zx-kit@0.5.0` — ZX Spectrum primitívy (paleta, font, renderer helpers, audio, input, UI, TileMap)
+- `zx-kit@0.6.7` — ZX Spectrum primitívy (paleta, font, renderer helpers, audio, input, UI, TileMap)
 - Žiadne iné runtime závislosti — len Web Platform APIs
 
 **Render order** (každý frame):
@@ -158,24 +162,27 @@ npm test       # unit testy (Vitest)
 
 ### Gameplay
 - **Radar**: malá mapa v rohu ukazujúca hustotu mín (bez konkrétnych pozícií)
-- **Power-upy**: lietadlo občas zhodí aj bonus (extra život, časové spomalenie)
-- **Rôzne terény**: voda (spomalenie), cesta (bonus rýchlosť), bunker (ochrana pred 1 explóziou)
+- **Power-upy**: lietadlo občas zhodí aj bonus (extra život, dočasné odhalenie mín)
+- **Denné/nočné cykly**: po niekoľkých leveloch sa prepne noc — tmavší kontrast, slabšie varovanie
+- **Fog of war**: nenavštívené bunky sú čiastočne skryté; postupne sa odkrývajú pri priblížení
+- **Míny s rôznymi polomerom varovania**: niektoré míny signalizujú len z 1 bunky (tiché), iné z 3 (hlučné)
 - **Multiplayer** (lokálny): dvaja hráči na jednej klávesnici, kto skôr prejde
 
 ### Vizuál
 - **Väčší sprite lietadla**: 16×8 px (2 bunky šírky) pre lepšiu viditeľnosť
 - **Loading bar** na intro obrazovke (ZX Spectrum "loading" nostalgia)
-- **Explózia rozmetie susedné bunky**: vizuálny efekt debris
+- **CRT scanline efekt**: polotransparentné vodorovné čiary cez canvas pre väčšiu autenticitu
+- **Blikajúci kurzor** na gem-och: gem-y pomaly blikajú pre lepšiu viditeľnosť
 
 ### Zvuk
-- **AY-3-8910 emulácia**: presnejšia emulácia Spectrum sound chipa (3 kanály)
-- **Melódie medzi levelmi**: krátka fanfára v ZX Spectrum štýle
+- **Melódie medzi levelmi**: krátka fanfára v ZX Spectrum štýle pri prechode levelu
 - **Dopplerov efekt** na lietadle: vyšší tón pri priblížení, nižší pri vzdialení
+- **Terénový zvuk**: jemne odlišný footstep na snehu vs. tráve vs. prachu
 
 ### Technické
 - **Service Worker + PWA**: hrateľné offline, pridateľné na plochu
 - **Touch ovládanie**: swipe gesty pre mobilné zariadenia
-- **Replay systém**: zaznamená vstupy, umožní si prezrieť cestu
+- **Replay systém**: zaznamená vstupy, umožní si prezrieť cestu po dohrání
 
 ---
 
