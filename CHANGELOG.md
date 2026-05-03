@@ -1,3 +1,10 @@
+# [0.9.0](https://github.com/zrebec/minefield/compare/v0.8.0...v0.9.0) (2026-05-03)
+
+
+### Features
+
+* **audio:** terrain-specific footstep sounds for grass/snow/dust ([183ae65](https://github.com/zrebec/minefield/commit/183ae65feac1ed1d867a97099c76bd232eaa9597))
+
 # [0.8.0](https://github.com/zrebec/minefield/compare/v0.7.1...v0.8.0) (2026-05-03)
 
 
