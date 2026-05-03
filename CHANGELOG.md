@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/zrebec/minefield/compare/v0.6.2...v0.7.0) (2026-05-03)
+
+
+### Features
+
+* **terrain:** add per-level terrain system with grass/snow/dust themes ([a92b794](https://github.com/zrebec/minefield/commit/a92b7943a46f866ef3888dd06954522a342cdb13))
+
 ## [0.6.2](https://github.com/zrebec/minefield/compare/v0.6.1...v0.6.2) (2026-05-02)
 
 
