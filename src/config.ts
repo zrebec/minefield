@@ -52,7 +52,7 @@ export interface LevelConfig {
 export const LEVEL_CONFIGS: LevelConfig[] = [
   // Level 1 — úvod, menej mín, pomalšie lietadlá
   {
-    mines: 60,
+    mines: 50,
     lives: 3,
     acFirstMs: 15_000,   // prvé lietadlo najskôr po 15 sekundách
     acFirstMaxMs: 30_000,   // prvé lietadlo najneskôr po 30 sekundách
@@ -133,10 +133,10 @@ export const LEVEL_COMPLETE_DELAY_MS = 2500
 // ── Zbierateľné predmety (Gems) ───────────────────────────────────────────────
 
 // Počet gemov rozmiestených na hracej ploche každý level
-export const GEM_COUNT = 7
+export const GEM_COUNT = 20
 
 // Základný bonus za zozbieranie gemu (pred combo multiplikátorom)
-export const GEM_SCORE = 75
+export const GEM_SCORE = 750
 
 // ── Combo systém ──────────────────────────────────────────────────────────────
 
@@ -164,3 +164,11 @@ export const BEACON_MINE_RATIO = 0.12
 
 // Koľko ms pred spawnom lietadla sa spustí vzdialený zvuk motora
 export const AIRPLANE_APPROACH_MS = 5000
+
+// ── Denný/nočný cyklus ────────────────────────────────────────────────────────
+
+// Počet krokov NA NOVÝCH BUNKÁCH do zmeny fázy.
+// Chodiť po vychodených chodníčkoch counter NERESETUJE — zámerné.
+// Respawn reštartuje deň (nový DAY_STEPS counter, isNight=false).
+export const DAY_STEPS  = 40  // kroky vo dne kým nastane noc
+export const NIGHT_STEPS = 20 // kroky v noci kým nastane deň

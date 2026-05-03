@@ -1,5 +1,5 @@
 import { COLS, ROWS } from './constants.ts'
-import { START_COL, START_ROW, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER } from './config.ts'
+import { START_COL, START_ROW, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS } from './config.ts'
 import { type GameState, countWarningMines, applyClusterBlast, type MineType } from './game.ts'
 import type { Direction } from './input.ts'
 import { playWarning, playExplosion, playGemCollect, playFootstep, isAmbientSoundActive } from './audio.ts'
@@ -59,6 +59,12 @@ export function movePlayer(state: GameState, dir: Direction): void {
     const levelMult = SCORE_MULTIPLIERS[Math.min(state.level, SCORE_MULTIPLIERS.length - 1)]
     const cMult = comboMultiplier(state.comboCount)
     state.score += Math.round(SCORE_PER_CELL * levelMult * cMult)
+
+    state.cycleSteps--
+    if (state.cycleSteps <= 0) {
+      state.isNight = !state.isNight
+      state.cycleSteps = state.isNight ? NIGHT_STEPS : DAY_STEPS
+    }
   }
 
   if (hadGem) {
@@ -82,6 +88,8 @@ export function respawnPlayer(state: GameState): void {
   state.playerRow = START_ROW
   state.playerDir = 'right'
   state.phase = state.lives <= 0 ? 'gameover' : 'playing'
+  state.isNight = false
+  state.cycleSteps = DAY_STEPS
 }
 
 // Flag the cell directly in front of the player (in the direction they're facing)

@@ -74,6 +74,10 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
   const minesStr = `MINES:${String(minesRemaining).padStart(3, '0')}`
   drawText(ctx, minesStr, 0, STATUS_Y + CELL, C.B_WHITE, C.BLACK)
 
+  const cycleStr = state.isNight ? `NGT:${String(state.cycleSteps).padStart(2, '0')}` : `DAY:${String(state.cycleSteps).padStart(2, '0')}`
+  const cycleInk = state.isNight ? C.B_CYAN : C.B_YELLOW
+  drawTextCentered(ctx, cycleStr, STATUS_Y + CELL, cycleInk, C.BLACK)
+
   const livesLabel = 'LIVES:'
   const livesX = (COLS - livesLabel.length - state.lives) * CELL
   drawText(ctx, livesLabel, livesX, STATUS_Y + CELL, C.B_WHITE, C.BLACK)
@@ -229,6 +233,21 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState): vo
   // Game world — TileMap renders all cells in one call
   state.map.render(ctx)
 
+  // Night overlay — paint unvisited terrain black (ground, mine, gem invisible)
+  // Visited path, flags, and exploded tiles remain visible
+  if (state.isNight) {
+    ctx.fillStyle = C.BLACK
+    for (const { x, y } of state.map.findById('ground')) {
+      ctx.fillRect(x * CELL, y * CELL, CELL, CELL)
+    }
+    for (const { x, y } of state.map.findById('mine')) {
+      ctx.fillRect(x * CELL, y * CELL, CELL, CELL)
+    }
+    for (const { x, y } of state.map.findById('gem')) {
+      ctx.fillRect(x * CELL, y * CELL, CELL, CELL)
+    }
+  }
+
   // Debug overlay: draw mine sprites on top of ground-looking mine tiles
   if (state.debugMode) {
     for (const { x, y, tile } of state.map.findById('mine')) {
@@ -271,5 +290,5 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState): vo
   if (state.phase === 'levelcomplete') renderLevelComplete(ctx, state)
 
   // CRT scanline overlay — always last so it covers everything
-  drawScanlines(ctx)
+  drawScanlines(ctx, 0.7)
 }

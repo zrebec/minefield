@@ -1,6 +1,6 @@
 import { createTileMap, type TileMap } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
-import { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, GEM_COUNT, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO } from './config.ts'
+import { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, GEM_COUNT, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED,
   type CellVariant, type TerrainType,
@@ -50,6 +50,8 @@ export interface GameState {
   droppedMines: Array<{ col: number; row: number }>
   dropFlashTimer: number
   runState: RunState
+  isNight: boolean
+  cycleSteps: number
 }
 
 function cellVariant(col: number, row: number): CellVariant {
@@ -178,6 +180,8 @@ export function createGame(level = 0, initialScore = 0): GameState {
     droppedMines: [],
     dropFlashTimer: 0,
     runState: 'idle',
+    isNight: false,
+    cycleSteps: DAY_STEPS,
   }
 }
 

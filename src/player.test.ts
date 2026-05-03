@@ -7,6 +7,7 @@ import {
   SCORE_PER_CELL, SCORE_MULTIPLIERS,
   EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS,
   COMBO_DURATION_MS, GEM_SCORE,
+  DAY_STEPS, NIGHT_STEPS,
 } from './config.ts'
 import { makeTileGround, makeTileMine, makeTileVisited, makeTileGem, type TerrainType } from './sprites.ts'
 
@@ -394,6 +395,93 @@ describe('respawnPlayer', () => {
     respawnPlayer(state)
     expect(state.phase).toBe('gameover')
     expect(state.lives).toBe(0)
+  })
+
+  it('resets night to day on respawn', () => {
+    const state = makeState()
+    state.lives = 2
+    state.isNight = true
+    state.cycleSteps = 5
+    respawnPlayer(state)
+    expect(state.isNight).toBe(false)
+    expect(state.cycleSteps).toBe(DAY_STEPS)
+  })
+})
+
+// ── day/night cycle ───────────────────────────────────────────────────────────
+
+describe('day/night cycle — counter ticks only on new cells', () => {
+  it('cycleSteps decrements when moving to unvisited cell', () => {
+    const state = makeState(5, 5)
+    const before = state.cycleSteps
+    movePlayer(state, 'right')
+    expect(state.cycleSteps).toBe(before - 1)
+  })
+
+  it('cycleSteps does NOT decrement on visited cell', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5), 'grass'))
+    const before = state.cycleSteps
+    movePlayer(state, 'right')
+    expect(state.cycleSteps).toBe(before)
+  })
+
+  it('cycleSteps does NOT decrement on mine hit', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
+    const before = state.cycleSteps
+    movePlayer(state, 'right')
+    expect(state.cycleSteps).toBe(before)
+  })
+
+  it('transitions to night when cycleSteps reaches zero', () => {
+    const state = makeState(5, 5)
+    state.cycleSteps = 1
+    state.isNight = false
+    movePlayer(state, 'right')   // last unvisited step
+    expect(state.isNight).toBe(true)
+    expect(state.cycleSteps).toBe(NIGHT_STEPS)
+  })
+
+  it('transitions back to day when night counter reaches zero', () => {
+    const state = makeState(5, 5)
+    state.cycleSteps = 1
+    state.isNight = true
+    movePlayer(state, 'right')
+    expect(state.isNight).toBe(false)
+    expect(state.cycleSteps).toBe(DAY_STEPS)
+  })
+
+  it('does NOT transition on visited path — player can roam path without triggering night', () => {
+    const state = makeState(5, 5)
+    state.cycleSteps = 1
+    state.isNight = false
+    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5), 'grass'))
+    movePlayer(state, 'right')
+    expect(state.isNight).toBe(false)   // still day
+    expect(state.cycleSteps).toBe(1)    // counter unchanged
+  })
+
+  it('night starts fresh with NIGHT_STEPS after transition', () => {
+    const state = makeState(5, 5)
+    state.cycleSteps = 1
+    movePlayer(state, 'right')
+    expect(state.cycleSteps).toBe(NIGHT_STEPS)
+  })
+
+  it('multiple day→night→day cycles work correctly', () => {
+    const state = makeState(1, 5)
+    // Use up all day steps
+    state.cycleSteps = 1
+    movePlayer(state, 'right')    // → night, NIGHT_STEPS
+    expect(state.isNight).toBe(true)
+    // Use up night steps
+    state.cycleSteps = 1
+    state.playerCol = 1; state.playerRow = 5
+    state.map.setTile(2, 5, makeTileGround(cellVariant(2, 5), 'grass'))
+    movePlayer(state, 'right')    // → day, DAY_STEPS
+    expect(state.isNight).toBe(false)
+    expect(state.cycleSteps).toBe(DAY_STEPS)
   })
 })
 
