@@ -1,3 +1,10 @@
+## [0.7.1](https://github.com/zrebec/minefield/compare/v0.7.0...v0.7.1) (2026-05-03)
+
+
+### Bug Fixes
+
+* **ci:** checkout main HEAD after semantic-release so build tag is correct ([0233128](https://github.com/zrebec/minefield/commit/0233128465fd518860e0084af9296885e041a78f))
+
 # [0.7.0](https://github.com/zrebec/minefield/compare/v0.6.2...v0.7.0) (2026-05-03)
 
 
