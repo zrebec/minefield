@@ -244,9 +244,6 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState): vo
     for (const { x, y } of state.map.findById('mine')) {
       ctx.fillRect(x * CELL, y * CELL, CELL, CELL)
     }
-    for (const { x, y } of state.map.findById('gem')) {
-      ctx.fillRect(x * CELL, y * CELL, CELL, CELL)
-    }
   }
 
   // Debug overlay: draw mine sprites on top of ground-looking mine tiles
