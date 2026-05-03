@@ -8,7 +8,7 @@ import {
   EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS,
   COMBO_DURATION_MS, GEM_SCORE,
 } from './config.ts'
-import { makeTileGround, makeTileMine, makeTileVisited, makeTileGem } from './sprites.ts'
+import { makeTileGround, makeTileMine, makeTileVisited, makeTileGem, type TerrainType } from './sprites.ts'
 
 vi.mock('./audio.ts', () => ({
   playWarning: vi.fn(),
@@ -27,7 +27,7 @@ function makeState(col = 5, row = 5): GameState {
   const state = createGame(0)
   for (let r = 0; r < ROWS; r++)
     for (let c = 0; c < COLS; c++) {
-      state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+      state.map.setTile(c, r, makeTileGround(cellVariant(c, r), 'grass'))
     }
   state.playerCol = col
   state.playerRow = row
@@ -140,28 +140,28 @@ describe('movePlayer — level complete', () => {
 describe('movePlayer — mine hit', () => {
   it('sets phase to exploding', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
     movePlayer(state, 'right')
     expect(state.phase).toBe('exploding')
   })
 
   it('marks mine cell as exploded', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
     movePlayer(state, 'right')
     expect(state.map.getTile(6, 5)?.id).toBe('exploded')
   })
 
   it('increments explodedMines counter', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
     movePlayer(state, 'right')
     expect(state.explodedMines).toBe(1)
   })
 
   it('moves player onto the mine cell', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
     movePlayer(state, 'right')
     expect(state.playerCol).toBe(6)
     expect(state.playerRow).toBe(5)
@@ -169,7 +169,7 @@ describe('movePlayer — mine hit', () => {
 
   it('sets flashTimer and flashOn', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
     movePlayer(state, 'right')
     expect(state.flashTimer).toBe(EXPLOSION_FLASH_MS)
     expect(state.flashOn).toBe(true)
@@ -177,21 +177,21 @@ describe('movePlayer — mine hit', () => {
 
   it('does not add score for stepping on mine', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
     movePlayer(state, 'right')
     expect(state.score).toBe(0)
   })
 
   it('does not toggle playerWalkFrame on mine hit', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
     movePlayer(state, 'right')
     expect(state.playerWalkFrame).toBe(0)
   })
 
   it('does not step on already-exploded mine (treats as safe cell)', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
     state.map.setTile(6, 5, { sprite: new Uint8Array(8), ink: C.YELLOW, paper: C.BLACK, solid: false, id: 'exploded' })
     movePlayer(state, 'right')
     expect(state.phase).toBe('playing')
@@ -222,7 +222,7 @@ describe('movePlayer — normal move', () => {
 
   it('does not re-score already visited cell', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5), 'grass'))
     movePlayer(state, 'right')
     expect(state.score).toBe(0)
     expect(state.comboCount).toBe(0)
@@ -278,7 +278,7 @@ describe('movePlayer — score and combo', () => {
 
   it('does not increment combo when revisiting cell', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5), 'grass'))
     movePlayer(state, 'right')
     expect(state.comboCount).toBe(0)
     expect(state.comboTimer).toBe(0)
@@ -345,7 +345,7 @@ describe('movePlayer — walk animation', () => {
 
   it('does not toggle playerWalkFrame on mine hit', () => {
     const state = makeState(5, 5)
-    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
     movePlayer(state, 'right')
     expect(state.playerWalkFrame).toBe(0)
   })
@@ -439,7 +439,7 @@ describe('toggleFlag', () => {
   it('does not flag a visited cell', () => {
     const state = makeState(5, 5)
     state.playerDir = 'right'
-    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5)))
+    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5), 'grass'))
     toggleFlag(state)
     expect(state.map.getTile(6, 5)?.id).toBe('visited')
   })
@@ -456,5 +456,128 @@ describe('toggleFlag', () => {
     const state = makeState(COLS - 1, 5)
     state.playerDir = 'right'
     expect(() => toggleFlag(state)).not.toThrow()
+  })
+})
+
+// ── terrain — movePlayer visited tile path color ───────────────────────────────
+
+describe('terrain — movePlayer visited tile path color', () => {
+  // Player at (5,5) moves right to (6,5). destination variant = (6+5)%2=1 → 'b'
+  // grass visited: B_YELLOW, snow: B_CYAN, dust: B_WHITE
+
+  const cases: Array<[TerrainType, string]> = [
+    ['grass', 'B_YELLOW'],
+    ['snow',  'B_CYAN'  ],
+    ['dust',  'B_WHITE' ],
+  ]
+
+  for (const [terrain, inkName] of cases) {
+    it(`creates visited tile with ${inkName} ink on ${terrain} terrain`, () => {
+      const state = makeState(5, 5)
+      state.terrain = terrain
+      movePlayer(state, 'right')
+      const tile = state.map.getTile(6, 5)
+      expect(tile?.id).toBe('visited')
+      expect(tile?.ink).toBe(C[inkName as keyof typeof C])
+    })
+  }
+
+  it('visited tile id is always "visited" regardless of terrain', () => {
+    for (const terrain of ['grass', 'snow', 'dust'] as TerrainType[]) {
+      const state = makeState(5, 5)
+      state.terrain = terrain
+      movePlayer(state, 'right')
+      expect(state.map.getTile(6, 5)?.id).toBe('visited')
+    }
+  })
+
+  it('grass visited ink differs from snow visited ink', () => {
+    const grassState = makeState(5, 5)
+    grassState.terrain = 'grass'
+    movePlayer(grassState, 'right')
+
+    const snowState = makeState(5, 5)
+    snowState.terrain = 'snow'
+    movePlayer(snowState, 'right')
+
+    expect(grassState.map.getTile(6, 5)?.ink).not.toBe(snowState.map.getTile(6, 5)?.ink)
+  })
+
+  it('stores terrain in visited tile metadata', () => {
+    for (const terrain of ['grass', 'snow', 'dust'] as TerrainType[]) {
+      const state = makeState(5, 5)
+      state.terrain = terrain
+      movePlayer(state, 'right')
+      expect(state.map.getTile(6, 5)?.metadata?.terrain).toBe(terrain)
+    }
+  })
+})
+
+// ── terrain — toggleFlag unflag restores correct terrain ink ──────────────────
+
+describe('terrain — toggleFlag unflag restores correct terrain ink', () => {
+  // Position (6,5): variant 'b' → ink[1] of terrain pair
+  // grass 'b' → C.GREEN, snow 'b' → C.WHITE, dust 'b' → C.YELLOW
+
+  const groundCases: Array<[TerrainType, string]> = [
+    ['grass', 'GREEN' ],
+    ['snow',  'WHITE' ],
+    ['dust',  'YELLOW'],
+  ]
+
+  for (const [terrain, inkName] of groundCases) {
+    it(`unflagging a ground tile on ${terrain} restores ${inkName} ink`, () => {
+      const state = makeState(5, 5)
+      state.terrain = terrain
+      state.playerDir = 'right'
+      // Set destination tile with correct terrain so flag metadata is valid
+      state.map.setTile(6, 5, makeTileGround(cellVariant(6, 5), terrain))
+      toggleFlag(state)  // flag it
+      expect(state.map.getTile(6, 5)?.id).toBe('flag')
+      toggleFlag(state)  // unflag it
+      const restored = state.map.getTile(6, 5)
+      expect(restored?.id).toBe('ground')
+      expect(restored?.ink).toBe(C[inkName as keyof typeof C])
+    })
+  }
+
+  // Mine tile unflag — uses state.terrain for restoration
+  const mineCases: Array<[TerrainType, string]> = [
+    ['grass', 'GREEN' ],
+    ['snow',  'WHITE' ],
+    ['dust',  'YELLOW'],
+  ]
+
+  for (const [terrain, inkName] of mineCases) {
+    it(`unflagging a mine tile on ${terrain} restores ${inkName} ink`, () => {
+      const state = makeState(5, 5)
+      state.terrain = terrain
+      state.playerDir = 'right'
+      state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), terrain))
+      toggleFlag(state)  // flag the mine
+      expect(state.map.getTile(6, 5)?.id).toBe('flag')
+      toggleFlag(state)  // unflag — restores mine
+      const restored = state.map.getTile(6, 5)
+      expect(restored?.id).toBe('mine')
+      expect(restored?.ink).toBe(C[inkName as keyof typeof C])
+    })
+  }
+
+  it('unflagged ground tile on grass has different ink than on snow', () => {
+    const grassState = makeState(5, 5)
+    grassState.terrain = 'grass'
+    grassState.playerDir = 'right'
+    grassState.map.setTile(6, 5, makeTileGround(cellVariant(6, 5), 'grass'))
+    toggleFlag(grassState)
+    toggleFlag(grassState)
+
+    const snowState = makeState(5, 5)
+    snowState.terrain = 'snow'
+    snowState.playerDir = 'right'
+    snowState.map.setTile(6, 5, makeTileGround(cellVariant(6, 5), 'snow'))
+    toggleFlag(snowState)
+    toggleFlag(snowState)
+
+    expect(grassState.map.getTile(6, 5)?.ink).not.toBe(snowState.map.getTile(6, 5)?.ink)
   })
 })

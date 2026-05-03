@@ -1,8 +1,24 @@
 import { mirrorSprite } from 'zx-kit'
-import type { Tile } from 'zx-kit'
+import type { Tile, SpectrumColor } from 'zx-kit'
 import { C } from './constants.ts'
 export { mirrorSprite }
 export type { Tile }
+
+export type TerrainType = 'grass' | 'snow' | 'dust'
+
+// Ink colours for checkerboard variants a/b per terrain
+const TERRAIN_INK: Record<TerrainType, [SpectrumColor, SpectrumColor]> = {
+  grass: [C.B_GREEN,  C.GREEN ],
+  snow:  [C.B_WHITE,  C.WHITE ],
+  dust:  [C.B_YELLOW, C.YELLOW],
+}
+
+// Visited-path ink per terrain — chosen for maximum contrast on that background
+const TERRAIN_VISITED_INK: Record<TerrainType, SpectrumColor> = {
+  grass: C.B_YELLOW,
+  snow:  C.B_CYAN,
+  dust:  C.B_WHITE,
+}
 
 // All sprites: 8×8 pixels, each byte = one row, bit7 = leftmost pixel
 
@@ -167,26 +183,28 @@ export const GEM = new Uint8Array([
 
 export type CellVariant = 'a' | 'b'
 
-export function makeTileGround(variant: CellVariant): Tile {
+export function makeTileGround(variant: CellVariant, terrain: TerrainType): Tile {
+  const [inkA, inkB] = TERRAIN_INK[terrain]
   return {
     sprite: variant === 'a' ? GROUND_A : GROUND_B,
-    ink: variant === 'a' ? C.B_GREEN : C.GREEN,
+    ink: variant === 'a' ? inkA : inkB,
     paper: C.BLACK,
     solid: false,
     id: 'ground',
-    metadata: { variant },
+    metadata: { variant, terrain },
   }
 }
 
 // Hidden mine — visually identical to ground, logical state encoded in id/metadata
-export function makeTileMine(mineType: string, variant: CellVariant): Tile {
+export function makeTileMine(mineType: string, variant: CellVariant, terrain: TerrainType): Tile {
+  const [inkA, inkB] = TERRAIN_INK[terrain]
   return {
     sprite: variant === 'a' ? GROUND_A : GROUND_B,
-    ink: variant === 'a' ? C.B_GREEN : C.GREEN,
+    ink: variant === 'a' ? inkA : inkB,
     paper: C.BLACK,
     solid: false,
     id: 'mine',
-    metadata: { mineType, variant },
+    metadata: { mineType, variant, terrain },
   }
 }
 
@@ -200,14 +218,14 @@ export function makeTileGem(): Tile {
   }
 }
 
-export function makeTileVisited(variant: CellVariant): Tile {
+export function makeTileVisited(variant: CellVariant, terrain: TerrainType): Tile {
   return {
     sprite: variant === 'a' ? GROUND_A : GROUND_B,
-    ink: C.B_YELLOW,
+    ink: TERRAIN_VISITED_INK[terrain],
     paper: C.BLACK,
     solid: false,
     id: 'visited',
-    metadata: { variant },
+    metadata: { variant, terrain },
   }
 }
 

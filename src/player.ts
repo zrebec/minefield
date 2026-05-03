@@ -53,7 +53,7 @@ export function movePlayer(state: GameState, dir: Direction): void {
   const hadGem = tile.id === 'gem'
 
   if (wasUnvisited) {
-    state.map.setTile(newCol, newRow, makeTileVisited(cellVariant(newCol, newRow)))
+    state.map.setTile(newCol, newRow, makeTileVisited(cellVariant(newCol, newRow), state.terrain))
     state.comboCount++
     state.comboTimer = COMBO_DURATION_MS
     const levelMult = SCORE_MULTIPLIERS[Math.min(state.level, SCORE_MULTIPLIERS.length - 1)]
@@ -100,11 +100,11 @@ export function toggleFlag(state: GameState): void {
     const mineType = tile.metadata?.mineType as string | undefined
     const variant = (tile.metadata?.variant as 'a' | 'b') ?? cellVariant(fc, fr)
     if (underneath === 'mine') {
-      state.map.setTile(fc, fr, makeTileMine(mineType ?? 'normal', variant))
+      state.map.setTile(fc, fr, makeTileMine(mineType ?? 'normal', variant, state.terrain))
     } else if (underneath === 'gem') {
       state.map.setTile(fc, fr, makeTileGem())
     } else {
-      state.map.setTile(fc, fr, makeTileGround(variant))
+      state.map.setTile(fc, fr, makeTileGround(variant, state.terrain))
     }
   } else if (tile.id === 'ground' || tile.id === 'mine' || tile.id === 'gem') {
     const underneath = tile.id

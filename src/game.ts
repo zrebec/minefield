@@ -3,8 +3,10 @@ import { COLS, ROWS } from './constants.ts'
 import { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, GEM_COUNT, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED,
-  type CellVariant,
+  type CellVariant, type TerrainType,
 } from './sprites.ts'
+
+const TERRAIN_TYPES: TerrainType[] = ['grass', 'snow', 'dust']
 
 export type GamePhase = 'intro' | 'playing' | 'exploding' | 'levelcomplete' | 'gameover'
 export type RunState = 'idle' | 'running' | 'paused'
@@ -23,6 +25,7 @@ export interface AirplaneState {
 export interface GameState {
   phase: GamePhase
   map: TileMap
+  terrain: TerrainType
   level: number
   lives: number
   score: number
@@ -53,11 +56,11 @@ function cellVariant(col: number, row: number): CellVariant {
   return (col + row) % 2 === 0 ? 'a' : 'b'
 }
 
-function buildMap(): TileMap {
+function buildMap(terrain: TerrainType): TileMap {
   const map = createTileMap(COLS, ROWS)
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      map.setTile(col, row, makeTileGround(cellVariant(col, row)))
+      map.setTile(col, row, makeTileGround(cellVariant(col, row), terrain))
     }
   }
   return map
@@ -67,7 +70,7 @@ function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
-function placeMines(map: TileMap, count: number, safeCol: number, safeRow: number, level: number): void {
+function placeMines(map: TileMap, count: number, safeCol: number, safeRow: number, level: number, terrain: TerrainType): void {
   const clusterRatio = level >= CLUSTER_MINE_LEVEL ? CLUSTER_MINE_RATIO : 0
   const beaconRatio = level >= BEACON_MINE_LEVEL ? BEACON_MINE_RATIO : 0
   let placed = 0
@@ -83,7 +86,7 @@ function placeMines(map: TileMap, count: number, safeCol: number, safeRow: numbe
     const mineType: MineType = r < clusterRatio ? 'cluster'
       : r < clusterRatio + beaconRatio ? 'beacon'
       : 'normal'
-    map.setTile(col, row, makeTileMine(mineType, cellVariant(col, row)))
+    map.setTile(col, row, makeTileMine(mineType, cellVariant(col, row), terrain))
     placed++
   }
 }
@@ -128,7 +131,7 @@ export function applyClusterBlast(state: GameState, centerCol: number, centerRow
         state.map.setTile(cc, cr, TILE_EXPLODED)
         state.explodedMines++
       } else if (tile.id === 'ground' || tile.id === 'gem') {
-        state.map.setTile(cc, cr, makeTileVisited(cellVariant(cc, cr)))
+        state.map.setTile(cc, cr, makeTileVisited(cellVariant(cc, cr), state.terrain))
       }
     }
   }
@@ -136,16 +139,21 @@ export function applyClusterBlast(state: GameState, centerCol: number, centerRow
 
 export function createGame(level = 0, initialScore = 0): GameState {
   const cfg = LEVEL_CONFIGS[Math.min(level, LEVEL_CONFIGS.length - 1)]
-  const map = buildMap()
-  placeMines(map, cfg.mines, START_COL, START_ROW, level)
+  // Level 0 is always grass so the player learns the default look first
+  const terrain: TerrainType = level === 0
+    ? 'grass'
+    : TERRAIN_TYPES[Math.floor(Math.random() * TERRAIN_TYPES.length)]
+  const map = buildMap(terrain)
+  placeMines(map, cfg.mines, START_COL, START_ROW, level, terrain)
   placeGems(map, GEM_COUNT, START_COL, START_ROW)
-  map.setTile(START_COL, START_ROW, makeTileVisited(cellVariant(START_COL, START_ROW)))
+  map.setTile(START_COL, START_ROW, makeTileVisited(cellVariant(START_COL, START_ROW), terrain))
 
   const firstAcMs = cfg.acFirstMs + Math.random() * (cfg.acFirstMaxMs - cfg.acFirstMs)
 
   return {
     phase: 'playing',
     map,
+    terrain,
     level,
     lives: cfg.lives,
     score: initialScore,
@@ -183,7 +191,7 @@ export function addDropMinesInBand(state: GameState, count: number, minRow: numb
     const tile = state.map.getTile(col, row)
     if (tile?.id === 'mine') continue
     if (tile?.id === 'visited') continue
-    state.map.setTile(col, row, makeTileMine('normal', cellVariant(col, row)))
+    state.map.setTile(col, row, makeTileMine('normal', cellVariant(col, row), state.terrain))
     state.totalMines++
     dropped.push({ col, row })
   }

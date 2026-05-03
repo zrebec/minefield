@@ -3,7 +3,7 @@ import { createTileMap, type TileMap } from 'zx-kit'
 import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, type MineType } from './game.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, GEM_COUNT, START_COL, START_ROW } from './config.ts'
-import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED } from './sprites.ts'
+import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
 
@@ -15,14 +15,14 @@ function emptyMap(): TileMap {
   const map = createTileMap(COLS, ROWS)
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      map.setTile(col, row, makeTileGround(cellVariant(col, row)))
+      map.setTile(col, row, makeTileGround(cellVariant(col, row), 'grass'))
     }
   }
   return map
 }
 
 function setMine(map: TileMap, col: number, row: number, type: MineType = 'normal'): void {
-  map.setTile(col, row, makeTileMine(type, cellVariant(col, row)))
+  map.setTile(col, row, makeTileMine(type, cellVariant(col, row), 'grass'))
 }
 
 // ── countWarningMines ─────────────────────────────────────────────────────────
@@ -286,7 +286,7 @@ describe('applyClusterBlast', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
       for (let c = 4; c <= 6; c++) {
-        state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+        state.map.setTile(c, r, makeTileGround(cellVariant(c, r), 'grass'))
       }
 
     applyClusterBlast(state, 5, 5)
@@ -303,7 +303,7 @@ describe('applyClusterBlast', () => {
 
   it('does not mark the center cell as visited', () => {
     const state = createGame(0)
-    state.map.setTile(5, 5, makeTileGround(cellVariant(5, 5)))
+    state.map.setTile(5, 5, makeTileGround(cellVariant(5, 5), 'grass'))
     applyClusterBlast(state, 5, 5)
     expect(state.map.getTile(5, 5)?.id).not.toBe('visited')
   })
@@ -311,7 +311,7 @@ describe('applyClusterBlast', () => {
   it('chain-explodes mines in the 8 surrounding cells', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r), 'grass'))
     setMine(state.map, 4, 4)
     setMine(state.map, 6, 5)
     setMine(state.map, 5, 6)
@@ -328,7 +328,7 @@ describe('applyClusterBlast', () => {
   it('chain-exploded cells are not marked as visited', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r), 'grass'))
     setMine(state.map, 4, 4)
 
     applyClusterBlast(state, 5, 5)
@@ -339,7 +339,7 @@ describe('applyClusterBlast', () => {
   it('does not re-explode already exploded cells', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r), 'grass'))
     state.map.setTile(4, 4, TILE_EXPLODED)
     const minesBefore = state.explodedMines
 
@@ -351,7 +351,7 @@ describe('applyClusterBlast', () => {
   it('clears gems swept by the blast', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r), 'grass'))
     state.map.setTile(4, 4, makeTileGem())
 
     applyClusterBlast(state, 5, 5)
@@ -362,8 +362,8 @@ describe('applyClusterBlast', () => {
   it('does not visit already visited cells (no double-visit)', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
-      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r)))
-    state.map.setTile(4, 4, makeTileVisited(cellVariant(4, 4)))
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r), 'grass'))
+    state.map.setTile(4, 4, makeTileVisited(cellVariant(4, 4), 'grass'))
 
     applyClusterBlast(state, 5, 5)
 
@@ -372,7 +372,7 @@ describe('applyClusterBlast', () => {
 
   it('handles blast at grid corner without out-of-bounds crash', () => {
     const state = createGame(0)
-    state.map.setTile(0, 0, makeTileGround(cellVariant(0, 0)))
+    state.map.setTile(0, 0, makeTileGround(cellVariant(0, 0), 'grass'))
     expect(() => applyClusterBlast(state, 0, 0)).not.toThrow()
   })
 })
@@ -399,5 +399,221 @@ describe('createGame initial state', () => {
   it('initializes playerWalkFrame to 0', () => {
     const state = createGame(0)
     expect(state.playerWalkFrame).toBe(0)
+  })
+})
+
+// ── Terrain — tile factory colors ──────────────────────────────────────────��──
+
+describe('terrain — makeTileGround colors per terrain', () => {
+  it('grass variant a → C.B_GREEN', () => {
+    expect(makeTileGround('a', 'grass').ink).toBe(C.B_GREEN)
+  })
+  it('grass variant b → C.GREEN', () => {
+    expect(makeTileGround('b', 'grass').ink).toBe(C.GREEN)
+  })
+  it('snow variant a → C.B_WHITE', () => {
+    expect(makeTileGround('a', 'snow').ink).toBe(C.B_WHITE)
+  })
+  it('snow variant b → C.WHITE', () => {
+    expect(makeTileGround('b', 'snow').ink).toBe(C.WHITE)
+  })
+  it('dust variant a → C.B_YELLOW', () => {
+    expect(makeTileGround('a', 'dust').ink).toBe(C.B_YELLOW)
+  })
+  it('dust variant b → C.YELLOW', () => {
+    expect(makeTileGround('b', 'dust').ink).toBe(C.YELLOW)
+  })
+  it('paper is always C.BLACK across all terrains', () => {
+    const terrains: TerrainType[] = ['grass', 'snow', 'dust']
+    for (const terrain of terrains) {
+      expect(makeTileGround('a', terrain).paper).toBe(C.BLACK)
+      expect(makeTileGround('b', terrain).paper).toBe(C.BLACK)
+    }
+  })
+  it('id is always "ground"', () => {
+    const terrains: TerrainType[] = ['grass', 'snow', 'dust']
+    for (const terrain of terrains) {
+      expect(makeTileGround('a', terrain).id).toBe('ground')
+    }
+  })
+  it('terrain is stored in tile metadata', () => {
+    expect(makeTileGround('a', 'snow').metadata?.terrain).toBe('snow')
+    expect(makeTileGround('b', 'dust').metadata?.terrain).toBe('dust')
+  })
+})
+
+describe('terrain — makeTileMine visually matches ground', () => {
+  it('grass: mine ink matches ground ink for both variants', () => {
+    expect(makeTileMine('normal', 'a', 'grass').ink).toBe(makeTileGround('a', 'grass').ink)
+    expect(makeTileMine('normal', 'b', 'grass').ink).toBe(makeTileGround('b', 'grass').ink)
+  })
+  it('snow: mine ink matches ground ink for both variants', () => {
+    expect(makeTileMine('normal', 'a', 'snow').ink).toBe(makeTileGround('a', 'snow').ink)
+    expect(makeTileMine('normal', 'b', 'snow').ink).toBe(makeTileGround('b', 'snow').ink)
+  })
+  it('dust: mine ink matches ground ink for both variants', () => {
+    expect(makeTileMine('normal', 'a', 'dust').ink).toBe(makeTileGround('a', 'dust').ink)
+    expect(makeTileMine('normal', 'b', 'dust').ink).toBe(makeTileGround('b', 'dust').ink)
+  })
+  it('mine paper is always C.BLACK — same as ground', () => {
+    const terrains: TerrainType[] = ['grass', 'snow', 'dust']
+    for (const terrain of terrains) {
+      expect(makeTileMine('cluster', 'a', terrain).paper).toBe(C.BLACK)
+    }
+  })
+  it('mine id is still "mine" not "ground" — only appearance is shared', () => {
+    expect(makeTileMine('normal', 'a', 'snow').id).toBe('mine')
+  })
+})
+
+describe('terrain — makeTileVisited path color', () => {
+  it('grass → C.B_YELLOW (yellow footprint on green)', () => {
+    expect(makeTileVisited('a', 'grass').ink).toBe(C.B_YELLOW)
+    expect(makeTileVisited('b', 'grass').ink).toBe(C.B_YELLOW)
+  })
+  it('snow → C.B_CYAN (cyan footprint on white snow)', () => {
+    expect(makeTileVisited('a', 'snow').ink).toBe(C.B_CYAN)
+    expect(makeTileVisited('b', 'snow').ink).toBe(C.B_CYAN)
+  })
+  it('dust → C.B_WHITE (white trail on yellow dust)', () => {
+    expect(makeTileVisited('a', 'dust').ink).toBe(C.B_WHITE)
+    expect(makeTileVisited('b', 'dust').ink).toBe(C.B_WHITE)
+  })
+  it('visited ink differs from ground ink on each terrain — ensures visible contrast', () => {
+    const terrains: TerrainType[] = ['grass', 'snow', 'dust']
+    for (const terrain of terrains) {
+      expect(makeTileVisited('a', terrain).ink).not.toBe(makeTileGround('a', terrain).ink)
+    }
+  })
+  it('id is always "visited"', () => {
+    const terrains: TerrainType[] = ['grass', 'snow', 'dust']
+    for (const terrain of terrains) {
+      expect(makeTileVisited('a', terrain).id).toBe('visited')
+    }
+  })
+  it('terrain is stored in tile metadata', () => {
+    expect(makeTileVisited('a', 'dust').metadata?.terrain).toBe('dust')
+  })
+})
+
+// ── Terrain — createGame integration ──────────────────────────────────────────
+
+describe('terrain — createGame selection and map consistency', () => {
+  it('level 0 always uses grass (5 runs)', () => {
+    for (let run = 0; run < 5; run++) {
+      expect(createGame(0).terrain).toBe('grass')
+    }
+  })
+
+  it('level 1+ always has a valid TerrainType (10 runs)', () => {
+    const valid: TerrainType[] = ['grass', 'snow', 'dust']
+    for (let run = 0; run < 10; run++) {
+      expect(valid).toContain(createGame(1).terrain)
+    }
+  })
+
+  it('level 1+ can produce non-grass terrain (probabilistic — 30 runs)', () => {
+    let seenNonGrass = false
+    for (let run = 0; run < 30 && !seenNonGrass; run++) {
+      if (createGame(1).terrain !== 'grass') seenNonGrass = true
+    }
+    expect(seenNonGrass).toBe(true)
+  })
+
+  it('all ground tiles in map use the terrain ink (grass = green)', () => {
+    const state = createGame(0)  // grass — deterministic
+    for (const { x, y, tile } of state.map.findById('ground')) {
+      const variant: 'a' | 'b' = (x + y) % 2 === 0 ? 'a' : 'b'
+      expect(tile.ink).toBe(makeTileGround(variant, 'grass').ink)
+    }
+  })
+
+  it('all mine tiles are visually identical to ground tiles (same ink)', () => {
+    const state = createGame(0)  // grass
+    for (const { x, y, tile } of state.map.findById('mine')) {
+      const variant: 'a' | 'b' = (x + y) % 2 === 0 ? 'a' : 'b'
+      expect(tile.ink).toBe(makeTileGround(variant, 'grass').ink)
+    }
+  })
+
+  it('starting visited cell has terrain path color (grass → yellow)', () => {
+    const state = createGame(0)
+    expect(state.map.getTile(START_COL, START_ROW)?.ink).toBe(C.B_YELLOW)
+  })
+})
+
+// ── Terrain — airplane drop ────────────────────────────────────────────────────
+
+describe('terrain — addDropMinesInBand uses state terrain', () => {
+  it('dropped mines on grass terrain have green ink', () => {
+    const state = createGame(0)  // terrain = grass
+    addDropMinesInBand(state, 5, 0, ROWS - 1)
+    for (const { col, row } of state.droppedMines) {
+      const tile = state.map.getTile(col, row)
+      expect(tile?.id).toBe('mine')
+      expect([C.B_GREEN, C.GREEN]).toContain(tile?.ink)
+    }
+  })
+
+  it('dropped mines on snow terrain have white ink', () => {
+    const state = createGame(0)
+    state.terrain = 'snow'
+    addDropMinesInBand(state, 5, 0, ROWS - 1)
+    for (const { col, row } of state.droppedMines) {
+      expect([C.B_WHITE, C.WHITE]).toContain(state.map.getTile(col, row)?.ink)
+    }
+  })
+
+  it('dropped mines on dust terrain have yellow ink', () => {
+    const state = createGame(0)
+    state.terrain = 'dust'
+    addDropMinesInBand(state, 5, 0, ROWS - 1)
+    for (const { col, row } of state.droppedMines) {
+      expect([C.B_YELLOW, C.YELLOW]).toContain(state.map.getTile(col, row)?.ink)
+    }
+  })
+})
+
+// ── Terrain — cluster blast ────────────────────────────────────────────────────
+
+describe('terrain — applyClusterBlast visited tiles use terrain path color', () => {
+  function setupBlastArea(state: ReturnType<typeof createGame>, terrain: TerrainType): void {
+    for (let r = 4; r <= 6; r++)
+      for (let c = 4; c <= 6; c++)
+        state.map.setTile(c, r, makeTileGround(cellVariant(c, r), terrain))
+  }
+
+  const NEIGHBORS: [number, number][] = [[4,4],[5,4],[6,4],[4,5],[6,5],[4,6],[5,6],[6,6]]
+
+  it('blast on grass creates yellow visited tiles', () => {
+    const state = createGame(0)  // terrain = grass
+    setupBlastArea(state, 'grass')
+    applyClusterBlast(state, 5, 5)
+    for (const [col, row] of NEIGHBORS) {
+      const tile = state.map.getTile(col, row)
+      if (tile?.id === 'visited') expect(tile.ink).toBe(C.B_YELLOW)
+    }
+  })
+
+  it('blast on snow creates cyan visited tiles', () => {
+    const state = createGame(0)
+    state.terrain = 'snow'
+    setupBlastArea(state, 'snow')
+    applyClusterBlast(state, 5, 5)
+    for (const [col, row] of NEIGHBORS) {
+      const tile = state.map.getTile(col, row)
+      if (tile?.id === 'visited') expect(tile.ink).toBe(C.B_CYAN)
+    }
+  })
+
+  it('blast on dust creates white visited tiles', () => {
+    const state = createGame(0)
+    state.terrain = 'dust'
+    setupBlastArea(state, 'dust')
+    applyClusterBlast(state, 5, 5)
+    for (const [col, row] of NEIGHBORS) {
+      const tile = state.map.getTile(col, row)
+      if (tile?.id === 'visited') expect(tile.ink).toBe(C.B_WHITE)
+    }
   })
 })
