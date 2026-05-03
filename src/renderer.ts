@@ -9,6 +9,7 @@ import {
   PLAYER_DOWN_A, PLAYER_DOWN_B,
   MINE, EXPLOSION_1, EXPLOSION_2,
   AIRPLANE_RIGHT, AIRPLANE_LEFT,
+  HEART,
 } from './sprites.ts'
 
 const STATUS_Y = ROWS * CELL  // 176
@@ -82,7 +83,7 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
   const livesX = (COLS - livesLabel.length - state.lives) * CELL
   drawText(ctx, livesLabel, livesX, STATUS_Y + CELL, C.B_WHITE, C.BLACK)
   for (let i = 0; i < state.lives; i++) {
-    drawChar(ctx, 127, livesX + (livesLabel.length + i) * CELL, STATUS_Y + CELL, C.B_GREEN, C.BLACK)
+    drawSprite(ctx, HEART, livesX + (livesLabel.length + i) * CELL, STATUS_Y + CELL, C.B_RED, C.BLACK)
   }
 
   if (state.airplane && state.airplane.warningBlink) {

@@ -170,5 +170,5 @@ export const AIRPLANE_APPROACH_MS = 5000
 // Počet krokov NA NOVÝCH BUNKÁCH do zmeny fázy.
 // Chodiť po vychodených chodníčkoch counter NERESETUJE — zámerné.
 // Respawn reštartuje deň (nový DAY_STEPS counter, isNight=false).
-export const DAY_STEPS  = 40  // kroky vo dne kým nastane noc
-export const NIGHT_STEPS = 20 // kroky v noci kým nastane deň
+export const DAY_STEPS  = 15  // kroky vo dne kým nastane noc
+export const NIGHT_STEPS = 10 // kroky v noci kým nastane deň

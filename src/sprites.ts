@@ -130,6 +130,18 @@ export const AIRPLANE_RIGHT = new Uint8Array([
 ])
 export const AIRPLANE_LEFT = mirrorSprite(AIRPLANE_RIGHT)
 
+// Heart — life indicator
+export const HEART = new Uint8Array([
+  0x00, // ........
+  0x66, // .##..##.  two bumps
+  0xFE, // #######.
+  0xFE, // #######.
+  0x7C, // .#####..
+  0x38, // ..###...
+  0x10, // ...#....  tip
+  0x00, // ........
+])
+
 // Flag — pole with flag on top
 export const FLAG = new Uint8Array([
   0x40, // .#......  pole top
