@@ -1,3 +1,10 @@
+# [0.10.0](https://github.com/zrebec/minefield/compare/v0.9.0...v0.10.0) (2026-05-03)
+
+
+### Features
+
+* **gameplay:** add day/night cycle with black-out night visibility ([4c5a53f](https://github.com/zrebec/minefield/commit/4c5a53fb786354ef438b3c2216b6b8d71662854a))
+
 # [0.9.0](https://github.com/zrebec/minefield/compare/v0.8.0...v0.9.0) (2026-05-03)
 
 
