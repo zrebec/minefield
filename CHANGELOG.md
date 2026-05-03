@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/zrebec/minefield/compare/v0.7.1...v0.8.0) (2026-05-03)
+
+
+### Features
+
+* **renderer:** add CRT scanline overlay via zx-kit drawScanlines ([d9a2816](https://github.com/zrebec/minefield/commit/d9a2816d9dd5b040e12781cff953d6bf66c83fff))
+
 ## [0.7.1](https://github.com/zrebec/minefield/compare/v0.7.0...v0.7.1) (2026-05-03)
 
 
