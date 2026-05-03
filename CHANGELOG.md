@@ -1,3 +1,10 @@
+## [0.11.1](https://github.com/zrebec/minefield/compare/v0.11.0...v0.11.1) (2026-05-03)
+
+
+### Bug Fixes
+
+* **renderer:** gems remain visible at night — only ground and mine tiles blacked out ([730841e](https://github.com/zrebec/minefield/commit/730841ee0fa1387549e3934a723bf81a41c5720d))
+
 # [0.11.0](https://github.com/zrebec/minefield/compare/v0.10.0...v0.11.0) (2026-05-03)
 
 
