@@ -1,3 +1,10 @@
+# [0.11.0](https://github.com/zrebec/minefield/compare/v0.10.0...v0.11.0) (2026-05-03)
+
+
+### Features
+
+* **ui:** replace lives blocks with heart sprites, tighten cycle timing ([14a637c](https://github.com/zrebec/minefield/commit/14a637cdbb225ce9e6c95858d8e2e299df949830))
+
 # [0.10.0](https://github.com/zrebec/minefield/compare/v0.9.0...v0.10.0) (2026-05-03)
 
 
