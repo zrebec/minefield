@@ -72,7 +72,7 @@ export function movePlayer(state: GameState, dir: Direction): void {
   if (nearby > 0) {
     playWarning(nearby)
   } else if (!hadGem && !isAmbientSoundActive()) {
-    playFootstep()
+    playFootstep(state.terrain)
   }
 }
 

@@ -1,4 +1,5 @@
 import { MASTER_VOLUME, WARN_DEBOUNCE_MS } from './config.ts'
+import type { TerrainType } from './sprites.ts'
 import {
   initAudio as _initAudio,
   resumeAudio,
@@ -159,8 +160,15 @@ export function isAmbientSoundActive(): boolean {
   return approachOsc !== null || airplaneOsc !== null
 }
 
-export function playFootstep(): void {
-  playPattern([{ freq: 85, dur: 28 }])
+export function playFootstep(terrain: TerrainType = 'grass'): void {
+  const patterns: Record<TerrainType, Note[]> = {
+    grass: [{ freq: 85,  dur: 28 }],
+    // double-crunch — two short low pulses, muffled by snow
+    snow:  [{ freq: 60,  dur: 20 }, { freq: 0, dur: 10 }, { freq: 55, dur: 14 }],
+    // single sharp tap — dry, higher pitch
+    dust:  [{ freq: 140, dur: 16 }],
+  }
+  playPattern(patterns[terrain])
 }
 
 export function playGemCollect(comboCount: number): void {
