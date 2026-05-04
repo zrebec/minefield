@@ -3,7 +3,7 @@ import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
 import { createGame, type GameState, type GamePhase } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
-import { flashBorder, setupCanvas, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor } from 'zx-kit'
+import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
@@ -219,6 +219,7 @@ function gameLoop(timestamp: number): void {
 function main(): void {
   const canvas = document.getElementById('game') as HTMLCanvasElement
   setupCanvas(canvas, 4)
+  curveDisplay(canvas)
   // CSS handles responsive display — clear inline size set by setupCanvas
   canvas.style.width = ''
   canvas.style.height = ''
