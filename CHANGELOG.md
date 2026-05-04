@@ -1,3 +1,10 @@
+# [0.12.0](https://github.com/zrebec/minefield/compare/v0.11.1...v0.12.0) (2026-05-04)
+
+
+### Features
+
+* **display:** apply CRT curvature effect via zx-kit curveDisplay() ([217b6ae](https://github.com/zrebec/minefield/commit/217b6ae0301f21d94b10be35c3e3c35388e06abe))
+
 ## [0.11.1](https://github.com/zrebec/minefield/compare/v0.11.0...v0.11.1) (2026-05-03)
 
 
