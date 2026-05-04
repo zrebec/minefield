@@ -1,3 +1,10 @@
+## [0.12.1](https://github.com/zrebec/minefield/compare/v0.12.0...v0.12.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* **main:** slighthly less display curvating ([94aa51a](https://github.com/zrebec/minefield/commit/94aa51a52349c46c13a511b8c88c4f2ed388e157))
+
 # [0.12.0](https://github.com/zrebec/minefield/compare/v0.11.1...v0.12.0) (2026-05-04)
 
 
