@@ -219,7 +219,7 @@ function gameLoop(timestamp: number): void {
 function main(): void {
   const canvas = document.getElementById('game') as HTMLCanvasElement
   setupCanvas(canvas, 4)
-  curveDisplay(canvas)
+  curveDisplay(canvas, 0.6)
   // CSS handles responsive display — clear inline size set by setupCanvas
   canvas.style.width = ''
   canvas.style.height = ''
