@@ -4,12 +4,21 @@ import { readFileSync } from 'fs'
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8')) as { dependencies: Record<string, string> }
 const zxKitVersion = pkg.dependencies['zx-kit'].replace(/^[\^~>=]/, '')
 
-export default defineConfig({
+const CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'"
+
+export default defineConfig(({ command }) => ({
   base: '/minefield/',
   define: {
     'import.meta.env.VITE_ZX_KIT_VERSION': JSON.stringify(zxKitVersion),
   },
+  plugins: command === 'build' ? [{
+    name: 'inject-csp',
+    transformIndexHtml: (html) => html.replace(
+      '<meta charset="UTF-8" />',
+      `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CSP}">`,
+    ),
+  }] : [],
   test: {
     environment: 'node',
   },
-})
+}))

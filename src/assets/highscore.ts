@@ -10,7 +10,20 @@ export interface HighScoreEntry {
 export function loadHighScores(): HighScoreEntry[] {
   try {
     const raw = localStorage.getItem(HS_KEY)
-    return raw ? (JSON.parse(raw) as HighScoreEntry[]) : []
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((e): e is HighScoreEntry =>
+      e !== null &&
+      typeof e === 'object' &&
+      typeof (e as HighScoreEntry).name === 'string' &&
+      (e as HighScoreEntry).name.length > 0 &&
+      (e as HighScoreEntry).name.length <= 10 &&
+      typeof (e as HighScoreEntry).score === 'number' &&
+      Number.isFinite((e as HighScoreEntry).score) &&
+      typeof (e as HighScoreEntry).level === 'number' &&
+      Number.isFinite((e as HighScoreEntry).level),
+    )
   } catch {
     return []
   }
