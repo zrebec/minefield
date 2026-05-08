@@ -1,3 +1,10 @@
+## [0.12.2](https://github.com/zrebec/minefield/compare/v0.12.1...v0.12.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* **security:** defensive highscore parsing, remove dead code, fix CSP, sync version ([2cb8728](https://github.com/zrebec/minefield/commit/2cb8728f9018288514c783b3ba17494925a65bfd))
+
 ## [0.12.1](https://github.com/zrebec/minefield/compare/v0.12.0...v0.12.1) (2026-05-04)
 
 
