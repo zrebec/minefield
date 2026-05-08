@@ -1,8 +1,7 @@
 import { defineConfig } from 'vite'
 import { readFileSync } from 'fs'
 
-const pkg = JSON.parse(readFileSync('./package.json', 'utf-8')) as { dependencies: Record<string, string> }
-const zxKitVersion = pkg.dependencies['zx-kit'].replace(/^[\^~>=]/, '')
+const zxKitVersion = (JSON.parse(readFileSync('./node_modules/zx-kit/package.json', 'utf-8')) as { version: string }).version
 
 const CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'"
 
