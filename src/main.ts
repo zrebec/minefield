@@ -3,7 +3,7 @@ import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
 import { createGame, type GameState, type GamePhase } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
-import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor } from 'zx-kit'
+import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor, createBlinker, tickBlinker } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
@@ -14,8 +14,7 @@ type AppPhase = 'intro' | 'ingame' | 'hiscore'
 let appPhase: AppPhase = 'intro'
 let state: GameState = createGame(0)
 let lastTime = 0
-let blink = true
-let blinkTimer = BLINK_INTERVAL_MS
+const blinker = createBlinker(BLINK_INTERVAL_MS)
 let audioReady = false
 let prevGamePhase: GamePhase = 'playing'
 
@@ -80,11 +79,7 @@ function gameLoop(timestamp: number): void {
   if (consumeVolUp()) { increaseVolume(); drawProgressBar(ctx, volBar()) }
   if (consumeVolDown()) { decreaseVolume(); drawProgressBar(ctx, volBar()) }
 
-  blinkTimer -= dt
-  if (blinkTimer <= 0) {
-    blink = !blink
-    blinkTimer = BLINK_INTERVAL_MS
-  }
+  const blink = tickBlinker(blinker, dt)
 
   if (appPhase === 'intro') {
     setBorderColor(C.B_BLUE)
