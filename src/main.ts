@@ -4,7 +4,7 @@ import { createGame, type GameState, type GamePhase } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor } from 'zx-kit'
-import { movePlayer, respawnPlayer, toggleFlag } from './player.ts'
+import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
 import { isHighScore, saveHighScore } from './assets/highscore.ts'
@@ -160,6 +160,7 @@ function gameLoop(timestamp: number): void {
         state.dropFlashTimer -= dt
         if (state.dropFlashTimer <= 0) { state.dropFlashTimer = 0; state.droppedMines = [] }
       }
+      tickPlayer(state, dt)
       const dir = tickMovement(dt)
       if (dir) movePlayer(state, dir)
       if (consumeFlag()) toggleFlag(state)

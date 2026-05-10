@@ -1,6 +1,6 @@
 import { CANVAS_W, CANVAS_H, ROWS, COLS, CELL, C } from './constants.ts'
 import type { GameState, AirplaneState } from './game.ts'
-import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, type SpectrumColor } from 'zx-kit'
+import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor } from 'zx-kit'
 import { loadHighScores } from './assets/highscore.ts'
 import {
   PLAYER_RIGHT_A, PLAYER_RIGHT_B,
@@ -26,8 +26,8 @@ function drawTextCentered(
 // ─── Player rendering ─────────────────────────────────────────────────────────
 
 function renderPlayer(ctx: CanvasRenderingContext2D, state: GameState): void {
-  const x = state.playerCol * CELL
-  const y = state.playerRow * CELL
+  const x = state.walkTween ? Math.round(state.walkTween.x) : state.playerCol * CELL
+  const y = state.walkTween ? Math.round(state.walkTween.y) : state.playerRow * CELL
 
   if (state.phase === 'exploding') {
     const frame = state.flashTimer > 300 ? EXPLOSION_1 : EXPLOSION_2
@@ -35,7 +35,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, state: GameState): void {
     return
   }
 
-  const f = state.playerWalkFrame === 1
+  const f = getAnimationFrame(state.walkAnim) === 1
   const sprite = state.playerDir === 'left' ? (f ? PLAYER_LEFT_B : PLAYER_LEFT_A)
     : state.playerDir === 'up' ? (f ? PLAYER_UP_B : PLAYER_UP_A)
       : state.playerDir === 'down' ? (f ? PLAYER_DOWN_B : PLAYER_DOWN_A)

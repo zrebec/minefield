@@ -1,6 +1,6 @@
-import { createTileMap, type TileMap } from 'zx-kit'
+import { createTileMap, createAnimation, type TileMap, type Tween, type Animation } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
-import { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, GEM_COUNT, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS } from './config.ts'
+import { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, GEM_COUNT, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED,
   type CellVariant, type TerrainType,
@@ -32,7 +32,9 @@ export interface GameState {
   playerCol: number
   playerRow: number
   playerDir: Dir
-  playerWalkFrame: number
+  walkTween: Tween | null
+  walkAnim: Animation
+  bufferedDir: Dir | null
   flashTimer: number
   flashOn: boolean
   debugMode: boolean
@@ -162,7 +164,9 @@ export function createGame(level = 0, initialScore = 0): GameState {
     playerCol: START_COL,
     playerRow: START_ROW,
     playerDir: 'right',
-    playerWalkFrame: 0,
+    walkTween: null,
+    walkAnim: createAnimation(2, WALK_FRAME_MS, { loop: true }),
+    bufferedDir: null,
     flashTimer: 0,
     flashOn: false,
     debugMode: false,

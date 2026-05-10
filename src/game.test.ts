@@ -396,9 +396,20 @@ describe('createGame initial state', () => {
     expect(state.map.getTile(START_COL, START_ROW)?.id).toBe('visited')
   })
 
-  it('initializes playerWalkFrame to 0', () => {
+  it('initializes walkTween to null (player not walking)', () => {
     const state = createGame(0)
-    expect(state.playerWalkFrame).toBe(0)
+    expect(state.walkTween).toBeNull()
+  })
+
+  it('initializes walkAnim with two looping frames', () => {
+    const state = createGame(0)
+    expect(state.walkAnim.frameCount).toBe(2)
+    expect(state.walkAnim.loop).toBe(true)
+  })
+
+  it('initializes bufferedDir to null', () => {
+    const state = createGame(0)
+    expect(state.bufferedDir).toBeNull()
   })
 })
 

@@ -1,9 +1,10 @@
-import { COLS, ROWS } from './constants.ts'
-import { START_COL, START_ROW, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS } from './config.ts'
+import { CELL, COLS, ROWS } from './constants.ts'
+import { START_COL, START_ROW, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS } from './config.ts'
 import { type GameState, countWarningMines, applyClusterBlast, type MineType } from './game.ts'
 import type { Direction } from './input.ts'
 import { playWarning, playExplosion, playGemCollect, playFootstep, isAmbientSoundActive } from './audio.ts'
 import { makeTileVisited, makeTileGround, makeTileMine, makeTileGem, makeTileFlag, TILE_EXPLODED } from './sprites.ts'
+import { createTween, tickTween, tickAnimation, resetAnimation } from 'zx-kit'
 
 function cellVariant(col: number, row: number): 'a' | 'b' {
   return (col + row) % 2 === 0 ? 'a' : 'b'
@@ -13,21 +14,71 @@ function comboMultiplier(comboCount: number): number {
   return Math.min(1 + (comboCount - 1) * 0.1, COMBO_MAX_MULTIPLIER)
 }
 
+// Per-frame walk progression: ticks the active tween + animation, then drains
+// any buffered direction so continuous key-hold flows step-to-step without gap.
+export function tickPlayer(state: GameState, dt: number): void {
+  if (state.walkTween) {
+    tickAnimation(state.walkAnim, dt)
+    tickTween(state.walkTween, dt)
+    // tickTween's onComplete clears walkTween (commitMove / completeLevel)
+  }
+  if (!state.walkTween && state.bufferedDir && state.phase === 'playing') {
+    const dir = state.bufferedDir
+    state.bufferedDir = null
+    movePlayer(state, dir)
+  }
+}
+
 export function movePlayer(state: GameState, dir: Direction): void {
   if (state.phase !== 'playing') return
+
+  // Already walking → buffer this press for when the current step lands
+  if (state.walkTween) {
+    state.bufferedDir = dir
+    return
+  }
 
   state.playerDir = dir
   const newCol = state.playerCol + (dir === 'right' ? 1 : dir === 'left' ? -1 : 0)
   const newRow = state.playerRow + (dir === 'down' ? 1 : dir === 'up' ? -1 : 0)
 
+  // Walking off the right edge — animated exit, level-complete on tween end
   if (newCol >= COLS) {
-    state.phase = 'levelcomplete'
-    state.levelCompleteTimer = LEVEL_COMPLETE_DELAY_MS
+    resetAnimation(state.walkAnim)
+    state.walkTween = createTween(
+      state.playerCol * CELL, state.playerRow * CELL,
+      newCol * CELL, newRow * CELL,
+      WALK_DURATION_MS,
+      { onComplete: () => completeLevel(state) },
+    )
     return
   }
 
   if (newCol < 0 || newRow < 0 || newRow >= ROWS) return
 
+  const tile = state.map.getTile(newCol, newRow)
+  if (tile === null) return
+
+  resetAnimation(state.walkAnim)
+  state.walkTween = createTween(
+    state.playerCol * CELL, state.playerRow * CELL,
+    newCol * CELL, newRow * CELL,
+    WALK_DURATION_MS,
+    { onComplete: () => commitMove(state, newCol, newRow) },
+  )
+}
+
+function completeLevel(state: GameState): void {
+  state.walkTween = null
+  state.bufferedDir = null
+  state.phase = 'levelcomplete'
+  state.levelCompleteTimer = LEVEL_COMPLETE_DELAY_MS
+}
+
+function commitMove(state: GameState, newCol: number, newRow: number): void {
+  state.walkTween = null
+
+  // Re-query: airplane could have dropped a mine on this cell during the walk
   const tile = state.map.getTile(newCol, newRow)
   if (tile === null) return
 
@@ -38,6 +89,7 @@ export function movePlayer(state: GameState, dir: Direction): void {
     state.explodedMines++
     state.playerCol = newCol
     state.playerRow = newRow
+    state.bufferedDir = null
     state.phase = 'exploding'
     state.flashTimer = EXPLOSION_FLASH_MS
     state.flashOn = true
@@ -47,7 +99,6 @@ export function movePlayer(state: GameState, dir: Direction): void {
 
   state.playerCol = newCol
   state.playerRow = newRow
-  state.playerWalkFrame = state.playerWalkFrame === 0 ? 1 : 0
 
   const wasUnvisited = tile.id !== 'visited'
   const hadGem = tile.id === 'gem'
@@ -87,6 +138,9 @@ export function respawnPlayer(state: GameState): void {
   state.playerCol = START_COL
   state.playerRow = START_ROW
   state.playerDir = 'right'
+  state.walkTween = null
+  state.bufferedDir = null
+  resetAnimation(state.walkAnim)
   state.phase = state.lives <= 0 ? 'gameover' : 'playing'
   state.isNight = false
   state.cycleSteps = DAY_STEPS
@@ -95,6 +149,7 @@ export function respawnPlayer(state: GameState): void {
 // Flag the cell directly in front of the player (in the direction they're facing)
 export function toggleFlag(state: GameState): void {
   if (state.phase !== 'playing') return
+  if (state.walkTween) return  // can't flag mid-step
   const dc = state.playerDir === 'right' ? 1 : state.playerDir === 'left' ? -1 : 0
   const dr = state.playerDir === 'down' ? 1 : state.playerDir === 'up' ? -1 : 0
   const fc = state.playerCol + dc

@@ -10,8 +10,10 @@
 // Oneskorenie pred začatím key-repeat (ms) — kolko cakáš po prvom stlačení
 export const KEY_REPEAT_DELAY = 150
 
-// Interval key-repeat (ms) — ako rýchlo sa pohybuje hráč pri dlhom držaní
-export const KEY_REPEAT_INTERVAL = 80
+// Interval key-repeat (ms) — ako rýchlo sa pohybuje hráč pri dlhom držaní.
+// Mal by zodpovedať WALK_DURATION_MS, aby pri držanej šípke ďalší krok začínal
+// presne keď predošlý dochodí (žiadna pauza, žiaden buffer-overrun).
+export const KEY_REPEAT_INTERVAL = 120
 
 // ── Hráč a štart ──────────────────────────────────────────────────────────────
 
@@ -110,6 +112,17 @@ export const MASTER_VOLUME = 0.3
 // Debounce pre zvukové varovanie (ms) — predchádza chaosu pri rýchlom pohybe
 // Kratšie = viac zvuku pri každom kroku, dlhšie = menej prerekovania
 export const WARN_DEBOUNCE_MS = 180
+
+// ── Animácia chôdze ───────────────────────────────────────────────────────────
+
+// Dĺžka jedného kroku medzi políčkami (ms) — postavička sa plynule presúva,
+// odhalenie tile (mína / gem / ground) prebehne až po skončení tweenu.
+// 120 = svižné, čitateľné; 80 = rýchle (matchuje key-repeat); 160 = pomalé
+export const WALK_DURATION_MS = 120
+
+// Dĺžka jedného frame walk-cyklu (ms). 2 frames × 60ms = 120ms = WALK_DURATION_MS,
+// teda jeden krok = jeden plný cyklus A → B.
+export const WALK_FRAME_MS = 60
 
 // ── Explózia ──────────────────────────────────────────────────────────────────
 
