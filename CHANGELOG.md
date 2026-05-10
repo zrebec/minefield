@@ -1,3 +1,10 @@
+# [0.13.0](https://github.com/zrebec/minefield/compare/v0.12.3...v0.13.0) (2026-05-10)
+
+
+### Features
+
+* **player:** animate walk between cells, defer mine reveal until step lands ([7ba1696](https://github.com/zrebec/minefield/commit/7ba16961e8c7337846e78beae4b08d0b89893e1b))
+
 ## [0.12.3](https://github.com/zrebec/minefield/compare/v0.12.2...v0.12.3) (2026-05-08)
 
 
