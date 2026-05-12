@@ -9,7 +9,7 @@ import {
   PLAYER_DOWN_A, PLAYER_DOWN_B,
   MINE, EXPLOSION_1, EXPLOSION_2,
   AIRPLANE_RIGHT, AIRPLANE_LEFT,
-  HEART,
+  HEART, GROUND_A, GROUND_B,
 } from './sprites.ts'
 
 const STATUS_Y = ROWS * CELL  // 176
@@ -175,53 +175,179 @@ export function renderHiScoreEntry(
   }
 }
 
+// ─── Intro screen scene sprites ───────────────────────────────────────────────
+
+const INTRO_TREE_TOP = new Uint8Array([
+  0x18, // ...##...  narrow crown tip
+  0x3C, // ..####..
+  0x7E, // .######.
+  0xFF, // ########  widest point
+  0x7E, // .######.
+  0x3C, // ..####..
+  0x18, // ...##...  meets trunk
+  0x18, // ...##...
+])
+
+const INTRO_TREE_TRUNK = new Uint8Array([
+  0x18, // ...##...
+  0x18, // ...##...
+  0x18, // ...##...
+  0x3C, // ..####..  roots start spreading
+  0x3C, // ..####..
+  0x18, // ...##...
+  0x18, // ...##...
+  0x18, // ...##...
+])
+
+const INTRO_FENCE_POST_TOP = new Uint8Array([
+  0x18, // ...##...  post
+  0x18, // ...##...
+  0x18, // ...##...
+  0x7E, // .######.  upper wire arm
+  0x18, // ...##...
+  0x18, // ...##...
+  0x7E, // .######.  lower wire arm
+  0x18, // ...##...
+])
+
+const INTRO_FENCE_POST_BOT = new Uint8Array([
+  0x18, // ...##...
+  0x18, // ...##...
+  0x7E, // .######.  wire arm
+  0x18, // ...##...
+  0x18, // ...##...
+  0x18, // ...##...
+  0x18, // ...##...
+  0x18, // ...##...
+])
+
+const INTRO_FENCE_WIRE = new Uint8Array([
+  0x00, // ........
+  0x55, // .#.#.#.#  upper strand
+  0xAA, // #.#.#.#.  lower strand (interlocked = barbs)
+  0x00, // ........
+  0x55, // .#.#.#.#
+  0xAA, // #.#.#.#.
+  0x00, // ........
+  0x00, // ........
+])
+
+const INTRO_FENCE_SKULL_TOP = new Uint8Array([
+  0x7E, // .######.  skull dome
+  0xDB, // ##.##.##  eye sockets
+  0xFF, // ########
+  0x7E, // .######.  jaw
+  0x5A, // .#.##.#.  teeth
+  0x7E, // .######.  chin
+  0x00, // ........
+  0x00, // ........
+])
+
+const INTRO_FENCE_SKULL_BOT = new Uint8Array([
+  0x00, // ........
+  0xC3, // ##....##  bone ends
+  0x66, // .##..##.
+  0x3C, // ..####..  crossing bones
+  0x3C, // ..####..
+  0x66, // .##..##.
+  0xC3, // ##....##  bone ends
+  0x00, // ........
+])
+
 // ─── Intro screen ─────────────────────────────────────────────────────────────
 
 export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page: number): void {
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
 
-  const ink = C.B_CYAN
-  const paper = C.BLACK
+  // === SKY + TITLE (rows 0-3) ===
+  drawTextCentered(ctx, 'M I N E F I E L D', 1 * CELL, C.B_CYAN, C.BLACK)
+  drawTextCentered(ctx, 'ZX  SPECTRUM  EDITION', 3 * CELL, C.CYAN, C.BLACK)
+
+  // === TREE SILHOUETTES ON HORIZON (rows 4-5) ===
+  const treeCols = [0, 1, 6, 7, 13, 14, 24, 25, 30, 31]
+  for (const col of treeCols) {
+    drawSprite(ctx, INTRO_TREE_TOP,   col * CELL, 4 * CELL, C.GREEN,  C.BLACK)
+    drawSprite(ctx, INTRO_TREE_TRUNK, col * CELL, 5 * CELL, C.YELLOW, C.BLACK)
+  }
+
+  // === BARBED WIRE FENCE (rows 6-7, full width) ===
+  for (let col = 0; col < COLS; col++) {
+    const x = col * CELL
+    if (col % 8 === 0) {
+      drawSprite(ctx, INTRO_FENCE_POST_TOP, x, 6 * CELL, C.YELLOW, C.BLACK)
+      drawSprite(ctx, INTRO_FENCE_POST_BOT, x, 7 * CELL, C.YELLOW, C.BLACK)
+    } else if (col % 8 === 4) {
+      drawSprite(ctx, INTRO_FENCE_SKULL_TOP, x, 6 * CELL, C.B_RED, C.BLACK)
+      drawSprite(ctx, INTRO_FENCE_SKULL_BOT, x, 7 * CELL, C.B_RED, C.BLACK)
+    } else {
+      drawSprite(ctx, INTRO_FENCE_WIRE, x, 6 * CELL, C.WHITE, C.BLACK)
+      drawSprite(ctx, INTRO_FENCE_WIRE, x, 7 * CELL, C.WHITE, C.BLACK)
+    }
+  }
+
+  // === GREEN MINEFIELD (rows 8-12) ===
+  for (let row = 8; row <= 12; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const isA = (col + row) % 2 === 0
+      drawSprite(ctx, isA ? GROUND_A : GROUND_B, col * CELL, row * CELL,
+        isA ? C.B_GREEN : C.GREEN, C.BLACK)
+    }
+  }
+
+  // Soldier entering from left
+  drawSprite(ctx, PLAYER_RIGHT_A, 2 * CELL, 9 * CELL, C.B_WHITE, C.BLACK)
+
+  // Mines scattered across the field
+  drawSprite(ctx, MINE,  7 * CELL, 10 * CELL, C.B_RED, C.BLACK)
+  drawSprite(ctx, MINE, 14 * CELL, 11 * CELL, C.B_RED, C.BLACK)
+  drawSprite(ctx, MINE, 19 * CELL, 10 * CELL, C.RED,   C.BLACK)
+  drawSprite(ctx, MINE, 26 * CELL, 12 * CELL, C.B_RED, C.BLACK)
+
+  // 2×2 explosion on the right — soldier stepped on a mine
+  drawSprite(ctx, EXPLOSION_1, 22 * CELL,  8 * CELL, C.B_YELLOW, C.BLACK)
+  drawSprite(ctx, EXPLOSION_2, 23 * CELL,  8 * CELL, C.B_YELLOW, C.B_RED)
+  drawSprite(ctx, EXPLOSION_2, 22 * CELL,  9 * CELL, C.B_YELLOW, C.B_RED)
+  drawSprite(ctx, EXPLOSION_1, 23 * CELL,  9 * CELL, C.B_YELLOW, C.BLACK)
+
+  // Soldier fleeing right
+  drawSprite(ctx, PLAYER_LEFT_A, 28 * CELL, 9 * CELL, C.B_WHITE, C.BLACK)
+
+  // === TEXT PANEL (rows 13-23) ===
+  ctx.fillStyle = C.BLACK
+  ctx.fillRect(0, 13 * CELL, CANVAS_W, 11 * CELL)
+
   for (let c = 0; c < COLS; c++) {
-    drawChar(ctx, 127, c * CELL, 2 * CELL, ink, paper)
-    drawChar(ctx, 127, c * CELL, 19 * CELL, ink, paper)
-  }
-  for (let r = 3; r <= 18; r++) {
-    drawChar(ctx, 127, 0, r * CELL, ink, paper)
-    drawChar(ctx, 127, 31 * CELL, r * CELL, ink, paper)
-  }
-
-  drawTextCentered(ctx, 'M I N E F I E L D', 5 * CELL, C.B_CYAN, C.BLACK)
-  drawTextCentered(ctx, 'ZX SPECTRUM EDITION', 7 * CELL, C.CYAN, C.BLACK)
-
-  for (let c = 1; c < COLS - 1; c++) {
-    drawChar(ctx, 0x2D, c * CELL, 9 * CELL, C.BLUE, C.BLACK)
+    drawChar(ctx, 0x2D, c * CELL, 13 * CELL, C.BLUE, C.BLACK)
   }
 
   const scores = loadHighScores()
   if (scores.length > 0 && page % 2 === 1) {
-    drawTextCentered(ctx, 'HIGH SCORES', 10 * CELL, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, 'HIGH SCORES', 14 * CELL, C.B_YELLOW, C.BLACK)
     scores.forEach((e, i) => {
       const line = `${i + 1}. ${e.name}  ${String(e.score).padStart(5, '0')}  LVL:${e.level}`
-      drawTextCentered(ctx, line, (11 + i) * CELL, C.WHITE, C.BLACK)
+      drawTextCentered(ctx, line, (15 + i) * CELL, C.WHITE, C.BLACK)
     })
   } else {
-    drawTextCentered(ctx, 'ARROWS = MOVE', 11 * CELL, C.WHITE, C.BLACK)
-    drawTextCentered(ctx, 'F = FLAG MINE', 12 * CELL, C.WHITE, C.BLACK)
-    drawTextCentered(ctx, 'P = PAUSE', 13 * CELL, C.WHITE, C.BLACK)
-    drawTextCentered(ctx, 'CROSS THE FIELD!', 14 * CELL, C.B_GREEN, C.BLACK)
-    drawTextCentered(ctx, 'REQUIRES HARDWARE KEYBOARD', 15 * CELL, C.YELLOW, C.BLACK)
+    drawTextCentered(ctx, 'ARROWS = MOVE',    14 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, 'F = FLAG MINE',    15 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, 'P = PAUSE',        16 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, 'CROSS THE FIELD!', 17 * CELL, C.B_GREEN, C.BLACK)
+    drawTextCentered(ctx, 'KEYBOARD REQUIRED', 18 * CELL, C.YELLOW, C.BLACK)
   }
 
   if (blink) {
-    drawTextCentered(ctx, 'PRESS ANY KEY', 17 * CELL, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, 'PRESS ANY KEY', 19 * CELL, C.B_YELLOW, C.BLACK)
+  }
+
+  for (let c = 0; c < COLS; c++) {
+    drawChar(ctx, 0x2D, c * CELL, 20 * CELL, C.BLUE, C.BLACK)
   }
 
   const build = import.meta.env.VITE_APP_BUILD ?? 'DEV'
   const zxKit = import.meta.env.VITE_ZX_KIT_VERSION ?? '?'
-  drawTextCentered(ctx, `(C) 2026  RELEASE:${build}`, 20 * CELL, C.BLUE, C.BLACK)
-  drawTextCentered(ctx, `ZX-KIT:${zxKit}`, 21 * CELL, C.BLUE, C.BLACK)
+  drawTextCentered(ctx, `(C) 2026  RELEASE:${build}`, 21 * CELL, C.BLUE, C.BLACK)
+  drawTextCentered(ctx, `ZX-KIT:${zxKit}`, 22 * CELL, C.BLUE, C.BLACK)
 }
 
 // ─── Main render entry ────────────────────────────────────────────────────────
