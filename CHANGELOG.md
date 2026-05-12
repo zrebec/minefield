@@ -1,3 +1,10 @@
+# [0.14.0](https://github.com/zrebec/minefield/compare/v0.13.0...v0.14.0) (2026-05-12)
+
+
+### Features
+
+* **intro:** replace text-only intro with pixel-art minefield scene ([e3a939d](https://github.com/zrebec/minefield/commit/e3a939d93399abcf780f191398a16585535e9c7b))
+
 # [0.13.0](https://github.com/zrebec/minefield/compare/v0.12.3...v0.13.0) (2026-05-10)
 
 
