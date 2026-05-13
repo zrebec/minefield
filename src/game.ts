@@ -132,7 +132,7 @@ function placeMines(map: TileMap, count: number, safeCol: number, safeRow: numbe
 
 // After mine placement: prevent the "wall ahead + mine each side" trap by
 // relocating one of the perpendicular mines back to ground.
-function fixWallTraps(map: TileMap, terrain: TerrainType): void {
+export function fixWallTraps(map: TileMap, terrain: TerrainType): void {
   for (const { x, y } of map.findById('wall')) {
     for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const ac = x + dc, ar = y + dr

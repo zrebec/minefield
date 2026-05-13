@@ -17,6 +17,11 @@ Míny nevidíš, ale *počuješ*: čím viac mín je v tvojom okolí, tým niž�
 je zvukový signál. Nájdi bezpečnú cestu, zanechávaj farebnú stopu a sleduj oblohu —
 každých pár desiatok sekúnd preletí lietadlo, ktoré zhodí nové míny.
 
+Pole nie je celkom otvorené: rozhadzujú sa po ňom **tehlové steny** — pevné prekážky,
+cez ktoré sa nedá prejsť. Musíš ich obísť. Stien je s každým levelom viac a sú dlhšie,
+takže z poľa sa postupne stáva nepravidelný labyrint. Pomáhajú aj v noci — steny
+zostávajú viditeľné, keď terén stmavne.
+
 Každý level má náhodný **terén** — tráva (zelená), sneh (biela) alebo prach (žltá).
 Level 1 je vždy tráva, aby si spoznal základný vzhľad. Terén mení farbu pozadia
 aj farbu stochy — na tráve žltá, na snehu azúrová, na prachu biela.
@@ -60,18 +65,26 @@ wave oscilátora. Žiadne moderné efekty — len čistý kód a retro pocit.
 
 ### Levely
 
-| Level | Mín | Životy | Terén | Prvé lietadlo | Interval lietadiel |
-|-------|-----|--------|-------|---------------|-------------------|
-| 1 | 60 | 3 | vždy tráva | 15–30 s | 20–45 s |
-| 2 | 80 | 3 | náhodný | 12–20 s | 15–30 s |
-| 3 | 100 | 2 | náhodný | 10–15 s | 10–20 s |
-| 4+ | 110 | 2 | náhodný | 8–12 s | 8–15 s |
+| Level | Mín | Steny | Životy | Terén | Prvé lietadlo | Interval lietadiel |
+|-------|-----|-------|--------|-------|---------------|-------------------|
+| 1 | 50 | 6–7 | 3 | vždy tráva | 15–30 s | 20–45 s |
+| 2 | 80 | 10–11 | 3 | náhodný | 12–20 s | 15–30 s |
+| 3 | 100 | 12–15 | 2 | náhodný | 10–15 s | 10–20 s |
+| 4+ | 110 | 16–18 | 2 | náhodný | 8–12 s | 8–15 s |
+
+Každá stena má náhodnú dĺžku **4–9 buniek** a náhodnú orientáciu (horizontálnu alebo
+vertikálnu). Stena sa môže dotknúť hornej či dolnej hrany ihriska, ale dve steny sa
+navzájom dotknúť nesmú a žiadna stena nepokrýva výstupný stĺpec. Generátor garantuje,
+že ku každej stene vedie aspoň jedna *bezpečná* prístupová strana — nikdy nenarazíš
+na konfiguráciu *stena vpredu + míny na oboch stranách* (vždy ti zostáva aspoň jeden
+úhybný smer okrem cúvania).
 
 ### Lietadlo
 
 Každých niekoľko desiatok sekúnd preletí lietadlo naprieč obrazovkou (3 sekundy).
-Po prelete zhodí **3–10 nových mín** na nenavštívené bunky. Status bar bliká varovaním
-`** AIRCRAFT **`. Zvuk lietadla je modulovaný LFO pre autentický "motor" efekt.
+Po prelete zhodí **3–10 nových mín** na nenavštívené bunky (steny preskakuje).
+Status bar bliká varovaním `** AIRCRAFT **`. Zvuk lietadla je modulovaný LFO pre
+autentický "motor" efekt.
 
 ---
 
@@ -113,9 +126,28 @@ z `zx-kit`, zelená = level complete, červená = game over).
 
 ### 7. TileMap z `zx-kit`
 Herné pole je sa vytvára pomocou `TileMap`
-cez `createTileMap(COLS, ROWS)`, ukladá doň ground/mine/gem/visited/flag tile-y
+cez `createTileMap(COLS, ROWS)`, ukladá doň ground/mine/gem/visited/flag/wall tile-y
 a renderer volá `state.map.render(ctx)`. Debug mód používa `findById('mine')`,
 takže míny sa dajú vykresliť bez ručného prechádzania celého poľa v rendereri.
+
+### 8. Tehlové steny a fix-trap pravidlo
+Steny sú obyčajné `Tile` objekty s `solid: true` — kolíziu rieši priamo
+`movePlayer()` jedným riadkom `if (tile.solid) return`. Žiadna druhá vrstva,
+žiadna mapa "obstacles" — tile sám vie či sa cezeň dá. Sprite je 8×8 bricks
+v `B_RED` ink na čiernom paperi, takže zostáva čitateľný na všetkých
+troch terénoch aj v nočnom móde (night overlay zatemňuje len `ground` a `mine`).
+
+Generátor je `placeWalls()` v `game.ts`: pre každý level vyberie z `WALL_COUNTS`
+náhodný počet, postupne hľadá voľné segmenty (4–9 buniek, h/v, mimo SAFE zóny,
+mimo posledného stĺpca, žiadne 4-adjacent dotyky s inou stenou). Mína sa nikdy
+neumiestni na stenu — `placeMines` / `placeGems` / `addDropMinesInBand` testujú
+`tile.id === 'ground'` ako *jedinú* validnú predlohu.
+
+Po umiestnení mín bežia ešte cez `fixWallTraps()` — pre každú stenu skontroluje
+4 prístupové bunky, a ak má niektorá BOTH kolmé bunky míny, jednu z nich nahradí
+ground tile. Garantuje, že hráč nikdy nestratí všetky úhybné smery (cúvnutie
+vždy ostáva, ale aspoň jeden bok je vždy bezpečný). Toto pravidlo má 8 unit testov
+plus property test, ktorý invariant overuje cez 20 náhodne vygenerovaných levelov.
 
 ---
 

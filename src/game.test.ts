@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, type TileMap } from 'zx-kit'
-import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, type MineType } from './game.ts'
+import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, fixWallTraps, type MineType } from './game.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, GEM_COUNT, START_COL, START_ROW } from './config.ts'
-import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED, type TerrainType } from './sprites.ts'
+import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileWall, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
 
@@ -625,6 +625,133 @@ describe('terrain — applyClusterBlast visited tiles use terrain path color', (
     for (const [col, row] of NEIGHBORS) {
       const tile = state.map.getTile(col, row)
       if (tile?.id === 'visited') expect(tile.ink).toBe(C.B_WHITE)
+    }
+  })
+})
+
+// ── fixWallTraps ──────────────────────────────────────────────────────────────
+
+function setWall(map: TileMap, col: number, row: number): void {
+  map.setTile(col, row, makeTileWall())
+}
+
+describe('fixWallTraps — vertical wall', () => {
+  it('removes one of the two perpendicular mines flanking a wall', () => {
+    const map = emptyMap()
+    // Vertical wall at column 5; approach cell is (4,5); perp = (4,4) and (4,6)
+    setWall(map, 5, 5)
+    setMine(map, 4, 4)
+    setMine(map, 4, 6)
+
+    fixWallTraps(map, 'grass')
+
+    const mineCount = map.findById('mine').length
+    expect(mineCount).toBe(1)
+  })
+
+  it('also resolves the trap on the opposite side of the wall', () => {
+    const map = emptyMap()
+    // Approach from the right at (6,5); perp = (6,4) and (6,6)
+    setWall(map, 5, 5)
+    setMine(map, 6, 4)
+    setMine(map, 6, 6)
+
+    fixWallTraps(map, 'grass')
+
+    expect(map.findById('mine').length).toBe(1)
+  })
+})
+
+describe('fixWallTraps — horizontal wall', () => {
+  it('removes one of the two perpendicular mines above/below a horizontal wall', () => {
+    const map = emptyMap()
+    // Horizontal wall at (5,5); approach cell above is (5,4); perp = (4,4) and (6,4)
+    setWall(map, 5, 5)
+    setMine(map, 4, 4)
+    setMine(map, 6, 4)
+
+    fixWallTraps(map, 'grass')
+
+    expect(map.findById('mine').length).toBe(1)
+  })
+})
+
+describe('fixWallTraps — no-op cases', () => {
+  it('does nothing when only one perpendicular neighbor is a mine', () => {
+    const map = emptyMap()
+    setWall(map, 5, 5)
+    setMine(map, 4, 4)
+    // (4,6) stays as ground
+
+    fixWallTraps(map, 'grass')
+
+    expect(map.findById('mine').length).toBe(1)
+    expect(map.getTile(4, 4)?.id).toBe('mine')
+  })
+
+  it('does nothing when there are no walls', () => {
+    const map = emptyMap()
+    setMine(map, 4, 4)
+    setMine(map, 4, 6)
+    setMine(map, 6, 4)
+    setMine(map, 6, 6)
+
+    fixWallTraps(map, 'grass')
+
+    expect(map.findById('mine').length).toBe(4)
+  })
+
+  it('does not touch mines beyond the immediate perpendicular pair', () => {
+    const map = emptyMap()
+    setWall(map, 5, 5)
+    setMine(map, 4, 4)
+    setMine(map, 4, 6)
+    // Bystander far away — must survive
+    setMine(map, 10, 10)
+
+    fixWallTraps(map, 'grass')
+
+    expect(map.findById('mine').length).toBe(2)
+    expect(map.getTile(10, 10)?.id).toBe('mine')
+  })
+
+  it('replaces the relocated mine with a ground tile (not visited or other)', () => {
+    const map = emptyMap()
+    setWall(map, 5, 5)
+    setMine(map, 4, 4)
+    setMine(map, 4, 6)
+
+    fixWallTraps(map, 'grass')
+
+    // One of (4,4) / (4,6) is now ground
+    const ids = [map.getTile(4, 4)?.id, map.getTile(4, 6)?.id]
+    expect(ids).toContain('ground')
+    expect(ids).toContain('mine')
+  })
+})
+
+describe('fixWallTraps — invariant via createGame', () => {
+  // Property test: across many random levels, no wall is ever flanked by
+  // mines on both perpendicular sides of any of its approach cells.
+  it('createGame never leaves a mine|wall|mine perpendicular pattern', () => {
+    for (let run = 0; run < 20; run++) {
+      const level = run % 4
+      const state = createGame(level)
+      const walls = state.map.findById('wall')
+      for (const { x, y } of walls) {
+        for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const ac = x + dc, ar = y + dr
+          const approach = state.map.getTile(ac, ar)
+          // Only walkable approach cells matter — a mine approach kills the
+          // player before they ever face the wall, so it isn't a "trap".
+          if (!approach || approach.id === 'wall' || approach.id === 'mine') continue
+          const perpDirs = dc === 0 ? [[1, 0], [-1, 0]] : [[0, 1], [0, -1]]
+          const bothMines = perpDirs.every(([pdc, pdr]) =>
+            state.map.getTile(ac + pdc, ar + pdr)?.id === 'mine'
+          )
+          expect(bothMines).toBe(false)
+        }
+      }
     }
   })
 })
