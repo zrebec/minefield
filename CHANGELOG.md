@@ -1,3 +1,10 @@
+# [0.15.0](https://github.com/zrebec/minefield/compare/v0.14.0...v0.15.0) (2026-05-13)
+
+
+### Features
+
+* **walls:** add brick walls as solid obstacles per level ([9166a42](https://github.com/zrebec/minefield/commit/9166a42d7d2b16f12879b4ffc11229571d6efe25))
+
 # [0.14.0](https://github.com/zrebec/minefield/compare/v0.13.0...v0.14.0) (2026-05-12)
 
 
