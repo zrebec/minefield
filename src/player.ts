@@ -58,6 +58,7 @@ export function movePlayer(state: GameState, dir: Direction): void {
 
   const tile = state.map.getTile(newCol, newRow)
   if (tile === null) return
+  if (tile.solid) return
 
   resetAnimation(state.walkAnim)
   state.walkTween = createTween(

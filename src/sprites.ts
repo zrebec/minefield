@@ -178,6 +178,18 @@ export const GROUND_B = new Uint8Array([
   0x00, // ........
 ])
 
+// Wall — brick pattern (8×8), solid obstacle
+export const WALL = new Uint8Array([
+  0xFF, // ########
+  0xA5, // #.#..#.#
+  0xA5, // #.#..#.#
+  0xFF, // ########
+  0x49, // .#..#..#
+  0x49, // .#..#..#
+  0xFF, // ########
+  0x00, // ........
+])
+
 // Gem — diamond collectible
 export const GEM = new Uint8Array([
   0x18, // ...##...
@@ -254,6 +266,16 @@ export function makeTileFlag(
     solid: false,
     id: 'flag',
     metadata: { underneath, mineType, variant },
+  }
+}
+
+export function makeTileWall(): Tile {
+  return {
+    sprite: WALL,
+    ink: C.B_RED,
+    paper: C.BLACK,
+    solid: true,
+    id: 'wall',
   }
 }
 

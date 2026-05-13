@@ -98,6 +98,21 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
   },
 ]
 
+// ── Steny ─────────────────────────────────────────────────────────────────────
+
+// Počet stien na level — random v rozsahu [min, max] vrátane.
+// Index = level (0-based); levely nad rozsah opakujú poslednú hodnotu.
+export const WALL_COUNTS: Array<[number, number]> = [
+  [6, 7],     // Level 1
+  [10, 11],     // Level 2
+  [12, 15],   // Level 3
+  [16, 18],   // Level 4+
+]
+
+// Dĺžka steny (počet 8×8 buniek) — random v rozsahu [min, max] vrátane
+export const WALL_LENGTH_MIN = 4
+export const WALL_LENGTH_MAX = 9
+
 // ── Lietadlo — pohyb ──────────────────────────────────────────────────────────
 
 // Čas prechodu lietadla naprieč obrazovkou (ms)
@@ -118,7 +133,7 @@ export const WARN_DEBOUNCE_MS = 180
 // Dĺžka jedného kroku medzi políčkami (ms) — postavička sa plynule presúva,
 // odhalenie tile (mína / gem / ground) prebehne až po skončení tweenu.
 // 120 = svižné, čitateľné; 80 = rýchle (matchuje key-repeat); 160 = pomalé
-export const WALK_DURATION_MS = 120
+export const WALK_DURATION_MS = 220
 
 // Dĺžka jedného frame walk-cyklu (ms). 2 frames × 60ms = 120ms = WALK_DURATION_MS,
 // teda jeden krok = jeden plný cyklus A → B.
@@ -146,10 +161,10 @@ export const LEVEL_COMPLETE_DELAY_MS = 2500
 // ── Zbierateľné predmety (Gems) ───────────────────────────────────────────────
 
 // Počet gemov rozmiestených na hracej ploche každý level
-export const GEM_COUNT = 20
+export const GEM_COUNT = 12
 
 // Základný bonus za zozbieranie gemu (pred combo multiplikátorom)
-export const GEM_SCORE = 750
+export const GEM_SCORE = 100
 
 // ── Combo systém ──────────────────────────────────────────────────────────────
 
@@ -183,5 +198,5 @@ export const AIRPLANE_APPROACH_MS = 5000
 // Počet krokov NA NOVÝCH BUNKÁCH do zmeny fázy.
 // Chodiť po vychodených chodníčkoch counter NERESETUJE — zámerné.
 // Respawn reštartuje deň (nový DAY_STEPS counter, isNight=false).
-export const DAY_STEPS  = 15  // kroky vo dne kým nastane noc
+export const DAY_STEPS = 15  // kroky vo dne kým nastane noc
 export const NIGHT_STEPS = 10 // kroky v noci kým nastane deň
