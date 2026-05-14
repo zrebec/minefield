@@ -13,17 +13,19 @@ export function loadHighScores(): HighScoreEntry[] {
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    return parsed.filter((e): e is HighScoreEntry =>
-      e !== null &&
-      typeof e === 'object' &&
-      typeof (e as HighScoreEntry).name === 'string' &&
-      (e as HighScoreEntry).name.length > 0 &&
-      (e as HighScoreEntry).name.length <= 10 &&
-      typeof (e as HighScoreEntry).score === 'number' &&
-      Number.isFinite((e as HighScoreEntry).score) &&
-      typeof (e as HighScoreEntry).level === 'number' &&
-      Number.isFinite((e as HighScoreEntry).level),
-    )
+    return parsed
+      .filter((e): e is HighScoreEntry =>
+        e !== null &&
+        typeof e === 'object' &&
+        typeof (e as HighScoreEntry).name === 'string' &&
+        (e as HighScoreEntry).name.trim().length > 0 &&
+        (e as HighScoreEntry).name.length <= 10 &&
+        typeof (e as HighScoreEntry).score === 'number' &&
+        Number.isFinite((e as HighScoreEntry).score) &&
+        typeof (e as HighScoreEntry).level === 'number' &&
+        Number.isFinite((e as HighScoreEntry).level),
+      )
+      .map(e => ({ ...e, name: e.name.padEnd(3, ' ') }))
   } catch {
     return []
   }

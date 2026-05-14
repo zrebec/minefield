@@ -168,10 +168,10 @@ export function renderHiScoreEntry(
     }
   }
 
-  if (cursor >= 3) {
-    if (blink) drawTextCentered(ctx, 'PRESS ENTER', (cy + 6) * CELL, C.B_GREEN, C.BLACK)
+  if (cursor >= 1) {
+    if (blink) drawTextCentered(ctx, 'ENTER=SAVE   ESC=SKIP', (cy + 6) * CELL, C.B_GREEN, C.BLACK)
   } else {
-    drawTextCentered(ctx, `TYPE ${3 - cursor} MORE LETTER${cursor < 2 ? 'S' : ''}`, (cy + 6) * CELL, C.CYAN, C.BLACK)
+    drawTextCentered(ctx, 'TYPE 1-3 LETTERS', (cy + 6) * CELL, C.CYAN, C.BLACK)
   }
 }
 
@@ -337,7 +337,7 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
   }
 
   if (blink) {
-    drawTextCentered(ctx, 'PRESS ANY KEY', 19 * CELL, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, 'SPACE / ENTER / S = START', 19 * CELL, C.B_YELLOW, C.BLACK)
   }
 
   for (let c = 0; c < COLS; c++) {

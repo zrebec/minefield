@@ -23,6 +23,9 @@ let hiName: string[] = []
 let hiCursor = 0
 const letterQueue: string[] = []
 
+// Intro: only Space / Enter / S start the game
+let startKeyPending = false
+
 const VOL_BAR_W = 10 * CELL  // 10 chars × 8 px
 const VOL_BAR_X = (CANVAS_W - VOL_BAR_W) / 2
 const VOL_BAR_Y = Math.floor(ROWS / 2) * CELL
@@ -88,7 +91,9 @@ function gameLoop(timestamp: number): void {
       introPage++
       introPageTimer = INTRO_PAGE_MS
     }
-    if (consumeAnyKey()) {
+    if (startKeyPending) {
+      startKeyPending = false
+      consumeAnyKey()   // drain so no stale key reaches ingame
       initAudioOnce()
       stopAmbientSounds()
       state = createGame(0)
@@ -110,12 +115,16 @@ function gameLoop(timestamp: number): void {
       if (key === 'BS') {
         if (hiCursor > 0) { hiName.pop(); hiCursor-- }
       } else if (key === 'ENTER') {
-        if (hiCursor >= 3) {
-          saveHighScore({ name: hiName.join(''), score: state.score, level: state.level + 1 })
+        if (hiCursor >= 1) {
+          saveHighScore({ name: hiName.join('').padEnd(3, ' '), score: state.score, level: state.level + 1 })
           resetInput(); resetUI()
           appPhase = 'intro'
           setBorderColor(C.B_BLUE)
         }
+      } else if (key === 'ESC') {
+        resetInput(); resetUI()
+        appPhase = 'intro'
+        setBorderColor(C.B_BLUE)
       } else if (hiCursor < 3) {
         hiName.push(key)
         hiCursor++
@@ -227,13 +236,20 @@ function main(): void {
   window.addEventListener('click', () => initAudioOnce(), { once: true })
 
   window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (appPhase !== 'hiscore') return
-    if (e.key.length === 1 && /[A-Za-z]/.test(e.key)) {
-      letterQueue.push(e.key.toUpperCase())
-    } else if (e.key === 'Backspace') {
-      letterQueue.push('BS')
-    } else if (e.key === 'Enter') {
-      letterQueue.push('ENTER')
+    if (appPhase === 'intro') {
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 's' || e.key === 'S') {
+        startKeyPending = true
+      }
+    } else if (appPhase === 'hiscore') {
+      if (e.key.length === 1 && /[A-Za-z]/.test(e.key)) {
+        letterQueue.push(e.key.toUpperCase())
+      } else if (e.key === 'Backspace') {
+        letterQueue.push('BS')
+      } else if (e.key === 'Enter') {
+        letterQueue.push('ENTER')
+      } else if (e.key === 'Escape') {
+        letterQueue.push('ESC')
+      }
     }
   })
 
