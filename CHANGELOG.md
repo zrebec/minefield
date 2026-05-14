@@ -1,3 +1,10 @@
+## [0.15.1](https://github.com/zrebec/minefield/compare/v0.15.0...v0.15.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* **ux:** restrict intro start keys + fix hiscore name alignment ([3ec9ea9](https://github.com/zrebec/minefield/commit/3ec9ea9d751daa0d2492e95fc8f2a5620f86552d))
+
 # [0.15.0](https://github.com/zrebec/minefield/compare/v0.14.0...v0.15.0) (2026-05-13)
 
 
