@@ -286,8 +286,8 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
     }
   }
 
-  // === GREEN MINEFIELD (rows 8-12) ===
-  for (let row = 8; row <= 12; row++) {
+  // === GREEN MINEFIELD (rows 8-11) ===
+  for (let row = 8; row <= 11; row++) {
     for (let col = 0; col < COLS; col++) {
       const isA = (col + row) % 2 === 0
       drawSprite(ctx, isA ? GROUND_A : GROUND_B, col * CELL, row * CELL,
@@ -302,7 +302,7 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
   drawSprite(ctx, MINE,  7 * CELL, 10 * CELL, C.B_RED, C.BLACK)
   drawSprite(ctx, MINE, 14 * CELL, 11 * CELL, C.B_RED, C.BLACK)
   drawSprite(ctx, MINE, 19 * CELL, 10 * CELL, C.RED,   C.BLACK)
-  drawSprite(ctx, MINE, 26 * CELL, 12 * CELL, C.B_RED, C.BLACK)
+  drawSprite(ctx, MINE, 26 * CELL, 11 * CELL, C.B_RED, C.BLACK)
 
   // 2×2 explosion on the right — soldier stepped on a mine
   drawSprite(ctx, EXPLOSION_1, 22 * CELL,  8 * CELL, C.B_YELLOW, C.BLACK)
@@ -313,27 +313,27 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
   // Soldier fleeing right
   drawSprite(ctx, PLAYER_LEFT_A, 28 * CELL, 9 * CELL, C.B_WHITE, C.BLACK)
 
-  // === TEXT PANEL (rows 13-23) ===
+  // === TEXT PANEL (rows 12-23) ===
   ctx.fillStyle = C.BLACK
-  ctx.fillRect(0, 13 * CELL, CANVAS_W, 11 * CELL)
+  ctx.fillRect(0, 12 * CELL, CANVAS_W, 12 * CELL)
 
   for (let c = 0; c < COLS; c++) {
-    drawChar(ctx, 0x2D, c * CELL, 13 * CELL, C.BLUE, C.BLACK)
+    drawChar(ctx, 0x2D, c * CELL, 12 * CELL, C.BLUE, C.BLACK)
   }
 
   const scores = loadHighScores()
   if (scores.length > 0 && page % 2 === 1) {
-    drawTextCentered(ctx, 'HIGH SCORES', 14 * CELL, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, 'HIGH SCORES', 13 * CELL, C.B_YELLOW, C.BLACK)
     scores.forEach((e, i) => {
       const line = `${i + 1}. ${e.name}  ${String(e.score).padStart(5, '0')}  LVL:${e.level}`
-      drawTextCentered(ctx, line, (15 + i) * CELL, C.WHITE, C.BLACK)
+      drawTextCentered(ctx, line, (14 + i) * CELL, C.WHITE, C.BLACK)
     })
   } else {
-    drawTextCentered(ctx, 'ARROWS = MOVE',    14 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, 'F = FLAG MINE',    15 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, 'P = PAUSE',        16 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, 'CROSS THE FIELD!', 17 * CELL, C.B_GREEN, C.BLACK)
-    drawTextCentered(ctx, 'KEYBOARD REQUIRED', 18 * CELL, C.YELLOW, C.BLACK)
+    drawTextCentered(ctx, 'ARROWS = MOVE',    13 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, 'F = FLAG MINE',    14 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, 'P = PAUSE',        15 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, 'CROSS THE FIELD!', 16 * CELL, C.B_GREEN, C.BLACK)
+    drawTextCentered(ctx, 'KEYBOARD REQUIRED', 17 * CELL, C.YELLOW, C.BLACK)
   }
 
   if (blink) {
