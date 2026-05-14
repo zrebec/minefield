@@ -1,3 +1,10 @@
+## [0.15.2](https://github.com/zrebec/minefield/compare/v0.15.1...v0.15.2) (2026-05-14)
+
+
+### Bug Fixes
+
+* **intro:** shrink scene by 1 row to prevent blink text overlap ([41de266](https://github.com/zrebec/minefield/commit/41de2666bfb7f9b295ad2b42c2cb87171007915a))
+
 ## [0.15.1](https://github.com/zrebec/minefield/compare/v0.15.0...v0.15.1) (2026-05-14)
 
 
