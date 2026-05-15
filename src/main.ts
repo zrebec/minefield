@@ -91,6 +91,8 @@ function gameLoop(timestamp: number): void {
       introPage++
       introPageTimer = INTRO_PAGE_MS
     }
+    tickMovement(dt)  // keep gamepad polled so consumeAnyKey fires on button press
+    if (consumeAnyKey()) startKeyPending = true
     if (startKeyPending) {
       startKeyPending = false
       consumeAnyKey()   // drain so no stale key reaches ingame
@@ -202,6 +204,7 @@ function gameLoop(timestamp: number): void {
 
   } else if (state.phase === 'gameover') {
     setBorderColor(C.B_RED)
+    tickMovement(dt)  // keep gamepad polled
     if (consumeAnyKey()) {
       resetInput(); resetUI()
       initAudioOnce()
