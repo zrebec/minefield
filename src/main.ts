@@ -144,7 +144,10 @@ function gameLoop(timestamp: number): void {
     if (padDir === 'down') padLetterIdx = (padLetterIdx + PAD_LETTERS.length - 1) % PAD_LETTERS.length
     if (padDir === 'right' && hiCursor < 3) letterQueue.push(PAD_LETTERS[padLetterIdx])
     if (padDir === 'left')                  letterQueue.push('BS')
-    if (consumePause())                     letterQueue.push('ENTER')
+    if (consumePause()) {
+      if (hiCursor < 3) letterQueue.push(PAD_LETTERS[padLetterIdx])
+      letterQueue.push('ENTER')
+    }
     consumeFlag(); consumeDebug()  // drain unused gamepad buttons
 
     renderHiScoreEntry(ctx, hiName, hiCursor, blink, PAD_LETTERS[padLetterIdx])

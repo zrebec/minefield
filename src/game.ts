@@ -1,6 +1,6 @@
 import { createTileMap, createAnimation, type TileMap, type Tween, type Animation } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
-import { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, GEM_COUNT, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, WALL_COUNTS, WALL_LENGTH_MIN, WALL_LENGTH_MAX } from './config.ts'
+import GEM_COUNT, { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, WALL_COUNTS, WALL_LENGTH_MIN, WALL_LENGTH_MAX } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileWall, TILE_EXPLODED,
   type CellVariant, type TerrainType,
@@ -98,7 +98,7 @@ function placeWalls(map: TileMap, level: number): void {
       if (Math.abs(c - START_COL) <= SAFE_RADIUS && Math.abs(r - START_ROW) <= SAFE_RADIUS) { ok = false; break }
       if (c === COLS - 1) { ok = false; break }
       if (map.getTile(c, r)?.id !== 'ground') { ok = false; break }
-      for (const [dc, dr] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      for (const [dc, dr] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
         if (map.getTile(c + dc, r + dr)?.id === 'wall') { ok = false; break }
       }
       if (!ok) break
@@ -124,7 +124,7 @@ function placeMines(map: TileMap, count: number, safeCol: number, safeRow: numbe
     const r = Math.random()
     const mineType: MineType = r < clusterRatio ? 'cluster'
       : r < clusterRatio + beaconRatio ? 'beacon'
-      : 'normal'
+        : 'normal'
     map.setTile(col, row, makeTileMine(mineType, cellVariant(col, row), terrain))
     placed++
   }

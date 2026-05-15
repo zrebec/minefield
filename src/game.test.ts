@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { createTileMap, type TileMap } from 'zx-kit'
 import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, fixWallTraps, type MineType } from './game.ts'
 import { C, COLS, ROWS } from './constants.ts'
-import { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, GEM_COUNT, START_COL, START_ROW } from './config.ts'
+import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW } from './config.ts'
 import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileWall, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
@@ -292,9 +292,9 @@ describe('applyClusterBlast', () => {
     applyClusterBlast(state, 5, 5)
 
     const neighbors = [
-      [4,4],[5,4],[6,4],
-      [4,5],      [6,5],
-      [4,6],[5,6],[6,6],
+      [4, 4], [5, 4], [6, 4],
+      [4, 5], [6, 5],
+      [4, 6], [5, 6], [6, 6],
     ]
     for (const [col, row] of neighbors) {
       expect(state.map.getTile(col, row)?.id).toBe('visited')
@@ -594,7 +594,7 @@ describe('terrain — applyClusterBlast visited tiles use terrain path color', (
         state.map.setTile(c, r, makeTileGround(cellVariant(c, r), terrain))
   }
 
-  const NEIGHBORS: [number, number][] = [[4,4],[5,4],[6,4],[4,5],[6,5],[4,6],[5,6],[6,6]]
+  const NEIGHBORS: [number, number][] = [[4, 4], [5, 4], [6, 4], [4, 5], [6, 5], [4, 6], [5, 6], [6, 6]]
 
   it('blast on grass creates yellow visited tiles', () => {
     const state = createGame(0)  // terrain = grass

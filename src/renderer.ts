@@ -178,7 +178,7 @@ export function renderHiScoreEntry(
   } else {
     drawTextCentered(ctx, 'TYPE  OR  USE D-PAD', (cy + 6) * CELL, C.CYAN, C.BLACK)
   }
-  drawTextCentered(ctx, padLetter ? 'UP/DN=LETTER  RT=NEXT  LT=DEL' : 'KEYBOARD: TYPE LETTERS', (cy + 7) * CELL, C.BLUE, C.BLACK)
+  drawTextCentered(ctx, padLetter ? 'UP/DN=LETTER  RGHT=NEXT  LEFT=DEL' : 'KEYBOARD: TYPE LETTERS', (cy + 7) * CELL, C.BLUE, C.BLACK)
 }
 
 // ─── Intro screen scene sprites ───────────────────────────────────────────────
