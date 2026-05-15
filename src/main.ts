@@ -1,18 +1,20 @@
 import { C, CANVAS_W, CELL, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
 import { createGame, type GameState, type GamePhase } from './game.ts'
-import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown } from './input.ts'
+import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown, consumeManualSave } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
-import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor, createBlinker, tickBlinker } from 'zx-kit'
+import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
 import { isHighScore, saveHighScore } from './assets/highscore.ts'
+import { saveProfile, setStateGetter } from './save.ts'
 
 type AppPhase = 'intro' | 'ingame' | 'hiscore'
 
 let appPhase: AppPhase = 'intro'
 let state: GameState = createGame(0)
+setStateGetter(() => state)
 let lastTime = 0
 const blinker = createBlinker(BLINK_INTERVAL_MS)
 let audioReady = false
@@ -102,6 +104,7 @@ function gameLoop(timestamp: number): void {
       initAudioOnce()
       stopAmbientSounds()
       state = createGame(0)
+      readSaveLatest(saveProfile)   // mutates state in-place if a save exists
       introPage = 0
       introPageTimer = INTRO_PAGE_MS
       resetInput(); resetUI()
@@ -199,6 +202,12 @@ function gameLoop(timestamp: number): void {
       consumeFlag()
     }
 
+    // Manual save (SHIFT+S) — works in any runState of 'playing'
+    if (consumeManualSave()) {
+      const result = writeSave(saveProfile, 'manual')
+      if (result.ok) flashBorder(C.B_CYAN, 1, 100)
+    }
+
   } else if (state.phase === 'exploding') {
     if (prevGamePhase !== 'exploding') flashBorder(C.B_WHITE, 3, 100)
     state.flashTimer -= dt
@@ -218,6 +227,7 @@ function gameLoop(timestamp: number): void {
       const prevScore = state.score
       stopAmbientSounds()
       state = createGame(state.level + 1, prevScore)
+      writeSave(saveProfile, 'auto')   // checkpoint at the start of every level
     }
 
   } else if (state.phase === 'gameover') {
@@ -227,6 +237,9 @@ function gameLoop(timestamp: number): void {
       resetInput(); resetUI()
       initAudioOnce()
       stopAmbientSounds()
+      // No save scumming — saves are cleared on game over (Spectrum philosophy)
+      deleteSave(saveProfile, 'auto')
+      deleteSave(saveProfile, 'manual')
       if (isHighScore(state.score)) {
         enterHiScore()
       } else {

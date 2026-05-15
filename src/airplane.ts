@@ -2,6 +2,8 @@ import { CANVAS_W, CELL, ROWS } from './constants.ts'
 import { LEVEL_CONFIGS, AIRPLANE_CROSS_MS, AIRPLANE_APPROACH_MS } from './config.ts'
 import { type GameState, addDropMinesInBand } from './game.ts'
 import { startAirplane, stopAmbientSounds, startApproachSound, isApproachSoundActive } from './audio.ts'
+import { writeSaveThrottled } from 'zx-kit'
+import { saveProfile } from './save.ts'
 
 const DROP_DELAY_MS = 1000
 
@@ -54,6 +56,8 @@ export function updateAirplane(state: GameState, dtMs: number): void {
     stopAmbientSounds()
     state.airplane = null
     scheduleNext(state)
+    // Autosave after each flyover — mine count just changed.
+    writeSaveThrottled(saveProfile, 'auto', 5000)
   }
 }
 
