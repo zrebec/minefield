@@ -1,3 +1,10 @@
+# [0.18.0](https://github.com/zrebec/minefield/compare/v0.17.1...v0.18.0) (2026-05-15)
+
+
+### Features
+
+* **save:** persistent save/load via zx-kit save module ([18ed737](https://github.com/zrebec/minefield/commit/18ed7376acb81338b85509d838f4512091a09214))
+
 ## [0.17.1](https://github.com/zrebec/minefield/compare/v0.17.0...v0.17.1) (2026-05-15)
 
 
