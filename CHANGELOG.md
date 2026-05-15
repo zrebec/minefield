@@ -1,3 +1,10 @@
+# [0.16.0](https://github.com/zrebec/minefield/compare/v0.15.2...v0.16.0) (2026-05-15)
+
+
+### Features
+
+* **input:** enable gamepad support on intro and gameover screens ([1f8d9f3](https://github.com/zrebec/minefield/commit/1f8d9f3826710f1806d0b6dead2b56757e97b8a6))
+
 ## [0.15.2](https://github.com/zrebec/minefield/compare/v0.15.1...v0.15.2) (2026-05-14)
 
 
