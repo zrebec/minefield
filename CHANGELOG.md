@@ -1,3 +1,10 @@
+## [0.17.1](https://github.com/zrebec/minefield/compare/v0.17.0...v0.17.1) (2026-05-15)
+
+
+### Bug Fixes
+
+* **hiscore:** auto-confirm gamepad letter on Start and fix D-pad hint text ([1309072](https://github.com/zrebec/minefield/commit/1309072984b48380ccad0bb1e26131ec42157d49))
+
 # [0.17.0](https://github.com/zrebec/minefield/compare/v0.16.0...v0.17.0) (2026-05-15)
 
 
