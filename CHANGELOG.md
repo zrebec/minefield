@@ -1,3 +1,10 @@
+# [0.17.0](https://github.com/zrebec/minefield/compare/v0.16.0...v0.17.0) (2026-05-15)
+
+
+### Features
+
+* **input:** full gamepad support — audio prompt, speed fix, hiscore D-pad ([0ddebea](https://github.com/zrebec/minefield/commit/0ddebeac8837ac8232cf5f4c16ba99cc66be16f2))
+
 # [0.16.0](https://github.com/zrebec/minefield/compare/v0.15.2...v0.16.0) (2026-05-15)
 
 
