@@ -146,6 +146,7 @@ export function renderHiScoreEntry(
   name: string[],
   cursor: number,
   blink: boolean,
+  padLetter = '',
 ): void {
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
@@ -162,17 +163,22 @@ export function renderHiScoreEntry(
       const ink = i === cursor - 1 ? C.B_YELLOW : C.B_WHITE
       drawChar(ctx, name[i].charCodeAt(0), x, y, ink, C.BLACK)
     } else if (i === cursor) {
-      drawChar(ctx, 127, x, y, blink ? C.B_WHITE : C.BLACK, blink ? C.BLACK : C.B_WHITE)
+      if (padLetter) {
+        drawChar(ctx, padLetter.charCodeAt(0), x, y, C.B_CYAN, C.BLACK)
+      } else {
+        drawChar(ctx, 127, x, y, blink ? C.B_WHITE : C.BLACK, blink ? C.BLACK : C.B_WHITE)
+      }
     } else {
       drawChar(ctx, 127, x, y, C.BLACK, C.WHITE)
     }
   }
 
   if (cursor >= 1) {
-    if (blink) drawTextCentered(ctx, 'ENTER=SAVE   ESC=SKIP', (cy + 6) * CELL, C.B_GREEN, C.BLACK)
+    if (blink) drawTextCentered(ctx, 'START=SAVE   ESC=SKIP', (cy + 6) * CELL, C.B_GREEN, C.BLACK)
   } else {
-    drawTextCentered(ctx, 'TYPE 1-3 LETTERS', (cy + 6) * CELL, C.CYAN, C.BLACK)
+    drawTextCentered(ctx, 'TYPE  OR  USE D-PAD', (cy + 6) * CELL, C.CYAN, C.BLACK)
   }
+  drawTextCentered(ctx, padLetter ? 'UP/DN=LETTER  RT=NEXT  LT=DEL' : 'KEYBOARD: TYPE LETTERS', (cy + 7) * CELL, C.BLUE, C.BLACK)
 }
 
 // ─── Intro screen scene sprites ───────────────────────────────────────────────
@@ -329,15 +335,15 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
       drawTextCentered(ctx, line, (14 + i) * CELL, C.WHITE, C.BLACK)
     })
   } else {
-    drawTextCentered(ctx, 'ARROWS = MOVE',    13 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, 'F = FLAG MINE',    14 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, 'P = PAUSE',        15 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, 'CROSS THE FIELD!', 16 * CELL, C.B_GREEN, C.BLACK)
-    drawTextCentered(ctx, 'KEYBOARD REQUIRED', 17 * CELL, C.YELLOW, C.BLACK)
+    drawTextCentered(ctx, 'ARROWS / D-PAD = MOVE', 13 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, 'F / BTN-A = FLAG MINE', 14 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, 'P / START = PAUSE',     15 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, 'CROSS THE FIELD!',      16 * CELL, C.B_GREEN, C.BLACK)
+    drawTextCentered(ctx, 'CLICK/TAP TO ENABLE SOUND', 17 * CELL, C.YELLOW, C.BLACK)
   }
 
   if (blink) {
-    drawTextCentered(ctx, 'SPACE / ENTER / S = START', 19 * CELL, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, 'SPACE / ENTER / START = BEGIN', 19 * CELL, C.B_YELLOW, C.BLACK)
   }
 
   for (let c = 0; c < COLS; c++) {

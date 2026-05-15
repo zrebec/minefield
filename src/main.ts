@@ -1,5 +1,5 @@
 import { C, CANVAS_W, CELL, ROWS } from './constants.ts'
-import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS } from './config.ts'
+import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
 import { createGame, type GameState, type GamePhase } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
@@ -22,6 +22,8 @@ let prevGamePhase: GamePhase = 'playing'
 let hiName: string[] = []
 let hiCursor = 0
 const letterQueue: string[] = []
+const PAD_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ '
+let padLetterIdx = 0
 
 // Intro: only Space / Enter / S start the game
 let startKeyPending = false
@@ -68,6 +70,7 @@ function initAudioOnce(): void {
 function enterHiScore(): void {
   hiName = []
   hiCursor = 0
+  padLetterIdx = 0
   resetInput(); resetUI()
   appPhase = 'hiscore'
   flashBorder(C.B_WHITE, 2, 80, C.B_CYAN)
@@ -91,8 +94,8 @@ function gameLoop(timestamp: number): void {
       introPage++
       introPageTimer = INTRO_PAGE_MS
     }
-    tickMovement(dt)  // keep gamepad polled so consumeAnyKey fires on button press
-    if (consumeAnyKey()) startKeyPending = true
+    tickMovement(dt)  // keep gamepad polled
+    if (consumePause()) startKeyPending = true  // gamepad Start button starts game
     if (startKeyPending) {
       startKeyPending = false
       consumeAnyKey()   // drain so no stale key reaches ingame
@@ -116,6 +119,7 @@ function gameLoop(timestamp: number): void {
       const key = letterQueue.shift()!
       if (key === 'BS') {
         if (hiCursor > 0) { hiName.pop(); hiCursor-- }
+        padLetterIdx = 0
       } else if (key === 'ENTER') {
         if (hiCursor >= 1) {
           saveHighScore({ name: hiName.join('').padEnd(3, ' '), score: state.score, level: state.level + 1 })
@@ -130,9 +134,20 @@ function gameLoop(timestamp: number): void {
       } else if (hiCursor < 3) {
         hiName.push(key)
         hiCursor++
+        padLetterIdx = 0
       }
     }
-    renderHiScoreEntry(ctx, hiName, hiCursor, blink)
+
+    // Gamepad D-pad letter cycling
+    const padDir = tickMovement(dt)
+    if (padDir === 'up')   padLetterIdx = (padLetterIdx + 1) % PAD_LETTERS.length
+    if (padDir === 'down') padLetterIdx = (padLetterIdx + PAD_LETTERS.length - 1) % PAD_LETTERS.length
+    if (padDir === 'right' && hiCursor < 3) letterQueue.push(PAD_LETTERS[padLetterIdx])
+    if (padDir === 'left')                  letterQueue.push('BS')
+    if (consumePause())                     letterQueue.push('ENTER')
+    consumeFlag(); consumeDebug()  // drain unused gamepad buttons
+
+    renderHiScoreEntry(ctx, hiName, hiCursor, blink, PAD_LETTERS[padLetterIdx])
     tickUI(dt); renderUI(ctx)
     requestAnimationFrame(gameLoop)
     return
@@ -145,7 +160,7 @@ function gameLoop(timestamp: number): void {
       // Debug available only in idle — scout before starting
       if (consumeDebug()) state.debugMode = !state.debugMode
       consumePause()  // drain P — can't pause before starting
-      const dir = tickMovement(dt)
+      const dir = tickMovement(dt, WALK_DURATION_MS)
       if (dir) {
         state.runState = 'running'
         state.debugMode = false   // debug off permanently for this level
@@ -167,7 +182,7 @@ function gameLoop(timestamp: number): void {
         if (state.dropFlashTimer <= 0) { state.dropFlashTimer = 0; state.droppedMines = [] }
       }
       tickPlayer(state, dt)
-      const dir = tickMovement(dt)
+      const dir = tickMovement(dt, WALK_DURATION_MS)
       if (dir) movePlayer(state, dir)
       if (consumeFlag()) toggleFlag(state)
       updateAirplane(state, dt)
@@ -177,7 +192,7 @@ function gameLoop(timestamp: number): void {
       // paused — drain all inputs except P
       consumeDebug()
       if (consumePause()) state.runState = 'running'
-      tickMovement(dt)   // drain direction queue
+      tickMovement(dt, WALK_DURATION_MS)   // drain direction queue
       consumeFlag()
     }
 

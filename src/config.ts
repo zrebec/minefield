@@ -1,69 +1,68 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // MINEFIELD — GAME CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
-// Všetky herné parametre sú na jednom mieste. Každá hodnota je okomentovaná.
-// Po zmene stačí uložiť — Vite automaticky obnoví hru (hot reload).
+// All game parameters in one place. Change and save — Vite hot-reloads instantly.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ── Ovládanie ─────────────────────────────────────────────────────────────────
+// ── Input ─────────────────────────────────────────────────────────────────────
 
-// Oneskorenie pred začatím key-repeat (ms) — kolko cakáš po prvom stlačení
-export const KEY_REPEAT_DELAY = 150
+// Initial delay before key-repeat starts (ms) — how long after first press
+// before auto-repeat begins. 280ms prevents accidental double-steps on D-pad taps.
+export const KEY_REPEAT_DELAY = 280
 
-// Interval key-repeat (ms) — ako rýchlo sa pohybuje hráč pri dlhom držaní.
-// Mal by zodpovedať WALK_DURATION_MS, aby pri držanej šípke ďalší krok začínal
-// presne keď predošlý dochodí (žiadna pauza, žiaden buffer-overrun).
+// Key-repeat interval (ms) — movement rate while key is held.
+// Should match WALK_DURATION_MS so held key queues one step per animation.
 export const KEY_REPEAT_INTERVAL = 120
 
-// ── Hráč a štart ──────────────────────────────────────────────────────────────
+// ── Player & Start ────────────────────────────────────────────────────────────
 
-// Stĺpec a riadok štartovej pozície (0-indexed)
-// START_COL=0 = ľavý okraj, START_ROW=11 = stred výšky (ROWS/2)
+// Starting column and row (0-indexed).
+// START_COL=0 = left edge, START_ROW=11 = vertical centre (ROWS/2)
 export const START_COL = 0
 export const START_ROW = 11
 
-// Polomer bezpečnej zóny okolo štartu (bez mín)
-// 1 = 3×3 okolo hráča, 2 = 5×5 okolo hráča
+// Safe-zone radius around start position (no mines).
+// 1 = 3×3 around player, 2 = 5×5 around player
 export const SAFE_RADIUS = 1
 
-// ── Skóre ─────────────────────────────────────────────────────────────────────
+// ── Scoring ───────────────────────────────────────────────────────────────────
 
-// Body za každú novú navštívenú bunku (pred level multiplikátorom)
+// Points awarded per newly visited cell (before level multiplier)
 export const SCORE_PER_CELL = 10
 
-// Level multiplikátory — každý ďalší level zvyšuje skóre
-// Level 1 = 1.0×, Level 2 = 1.2×, Level 3 = 1.4×, atď.
-// Nové levely nad index pokračujú poslednou hodnotou
+// Level multipliers — each subsequent level increases scoring rate.
+// Level 1 = 1.0×, Level 2 = 1.2×, Level 3 = 1.4×, etc.
+// Levels beyond the last index use the final value.
 export const SCORE_MULTIPLIERS = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
 
-// ── Level konfigurácia ────────────────────────────────────────────────────────
-// Každý level môže mať vlastné nastavenia.
-// Levely nad posledný index opakujú poslednú konfiguráciu.
+// ── Level configuration ───────────────────────────────────────────────────────
+// Each level can have its own settings.
+// Levels beyond the last index repeat the last configuration.
 
 export interface LevelConfig {
-  mines: number         // počet mín na hracej ploche
-  lives: number         // počet životov na začiatku levelu
-  acFirstMs: number     // čas do prvého lietadla v ms (minimum)
-  acFirstMaxMs: number  // čas do prvého lietadla v ms (maximum)
-  acMinMs: number       // min interval medzi lietadlami po prvom (ms)
-  acMaxMs: number       // max interval medzi lietadlami po prvom (ms)
-  acMineDropMin: number // min počet mín, ktoré lietadlo zhodí
-  acMineDropMax: number // max počet mín, ktoré lietadlo zhodí
+  mines: number         // number of mines on the field
+  lives: number         // starting lives for this level
+  acFirstMs: number     // minimum time before first airplane (ms)
+  acFirstMaxMs: number  // maximum time before first airplane (ms)
+  acMinMs: number       // minimum interval between airplanes after first (ms)
+  acMaxMs: number       // maximum interval between airplanes after first (ms)
+  acMineDropMin: number // minimum mines dropped per airplane
+  acMineDropMax: number // maximum mines dropped per airplane
 }
 
 export const LEVEL_CONFIGS: LevelConfig[] = [
-  // Level 1 — úvod, menej mín, pomalšie lietadlá
+  // Level 1 — intro, fewer mines, slower airplanes
   {
     mines: 50,
     lives: 3,
-    acFirstMs: 15_000,   // prvé lietadlo najskôr po 15 sekundách
-    acFirstMaxMs: 30_000,   // prvé lietadlo najneskôr po 30 sekundách
-    acMinMs: 20_000,   // ďalšie lietadlo najskôr po 20 sekundách
-    acMaxMs: 45_000,   // ďalšie lietadlo najneskôr po 45 sekundách
+    acFirstMs: 15_000,
+    acFirstMaxMs: 30_000,
+    acMinMs: 20_000,
+    acMaxMs: 45_000,
     acMineDropMin: 3,
     acMineDropMax: 6,
   },
-  // Level 2 — viac mín, lietadlá o niečo častejšie
+  // Level 2 — more mines, slightly more frequent airplanes
   {
     mines: 80,
     lives: 3,
@@ -74,7 +73,7 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     acMineDropMin: 4,
     acMineDropMax: 7,
   },
-  // Level 3 — výzva, viac mín, lietadlá každých ~15–30 sekúnd
+  // Level 3 — challenge, many mines, airplane every ~15–30 s
   {
     mines: 100,
     lives: 2,
@@ -85,7 +84,7 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     acMineDropMin: 5,
     acMineDropMax: 8,
   },
-  // Level 4+ — hardcore, časté lietadlá, veľa mín
+  // Level 4+ — hardcore, frequent airplanes, dense minefield
   {
     mines: 110,
     lives: 2,
@@ -98,105 +97,100 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
   },
 ]
 
-// ── Steny ─────────────────────────────────────────────────────────────────────
+// ── Walls ─────────────────────────────────────────────────────────────────────
 
-// Počet stien na level — random v rozsahu [min, max] vrátane.
-// Index = level (0-based); levely nad rozsah opakujú poslednú hodnotu.
+// Wall count per level — random in range [min, max] inclusive.
+// Index = level (0-based); levels beyond range repeat the last value.
 export const WALL_COUNTS: Array<[number, number]> = [
   [6, 7],     // Level 1
-  [10, 11],     // Level 2
+  [10, 11],   // Level 2
   [12, 15],   // Level 3
   [16, 18],   // Level 4+
 ]
 
-// Dĺžka steny (počet 8×8 buniek) — random v rozsahu [min, max] vrátane
+// Wall segment length (8×8 cells) — random in range [min, max] inclusive
 export const WALL_LENGTH_MIN = 4
 export const WALL_LENGTH_MAX = 9
 
-// ── Lietadlo — pohyb ──────────────────────────────────────────────────────────
+// ── Airplane — movement ───────────────────────────────────────────────────────
 
-// Čas prechodu lietadla naprieč obrazovkou (ms)
-// 3000 = 3 sekundy, 2000 = rýchle, 4000 = pomalé
+// Time for an airplane to cross the screen (ms)
 export const AIRPLANE_CROSS_MS = 3000
 
-// ── Zvuk ──────────────────────────────────────────────────────────────────────
+// ── Audio ─────────────────────────────────────────────────────────────────────
 
-// Hlavná hlasitosť (0.0 – 1.0)
-export const MASTER_VOLUME = 0.3
+// Master volume (0.0 – 1.0)
+export const MASTER_VOLUME = 0.2
 
-// Debounce pre zvukové varovanie (ms) — predchádza chaosu pri rýchlom pohybe
-// Kratšie = viac zvuku pri každom kroku, dlhšie = menej prerekovania
+// Debounce for proximity warning sound (ms) — prevents chattering during fast movement
 export const WARN_DEBOUNCE_MS = 180
 
-// ── Animácia chôdze ───────────────────────────────────────────────────────────
+// ── Walk animation ────────────────────────────────────────────────────────────
 
-// Dĺžka jedného kroku medzi políčkami (ms) — postavička sa plynule presúva,
-// odhalenie tile (mína / gem / ground) prebehne až po skončení tweenu.
-// 120 = svižné, čitateľné; 80 = rýchle (matchuje key-repeat); 160 = pomalé
+// Duration of one step between cells (ms) — smooth position tween.
+// Tile reveal (mine / gem / ground) happens after the tween completes.
 export const WALK_DURATION_MS = 220
 
-// Dĺžka jedného frame walk-cyklu (ms). 2 frames × 60ms = 120ms = WALK_DURATION_MS,
-// teda jeden krok = jeden plný cyklus A → B.
+// Duration of one walk-cycle frame (ms). 2 frames × 60ms = 120ms per full cycle.
 export const WALK_FRAME_MS = 60
 
-// ── Explózia ──────────────────────────────────────────────────────────────────
+// ── Explosion ─────────────────────────────────────────────────────────────────
 
-// Celková dĺžka flash efektu pri explózii (ms)
-// 600 = 3 záblesky po 200ms, 400 = 2 záblesky
+// Total flash effect duration on explosion (ms)
 export const EXPLOSION_FLASH_MS = 600
 
-// ── Blikanie textu ────────────────────────────────────────────────────────────
+// ── Text blinking ─────────────────────────────────────────────────────────────
 
-// Interval blikania (ms) — PRESS ANY KEY, AIRCRAFT!, atď.
+// Blink interval (ms) — PRESS ANY KEY, AIRCRAFT!, etc.
 export const BLINK_INTERVAL_MS = 500
 
-// Interval blikania aircraft WARNING v status bare (ms)
+// Aircraft WARNING blink interval in the status bar (ms)
 export const AIRCRAFT_WARN_BLINK_MS = 250
 
 // ── Level complete ────────────────────────────────────────────────────────────
 
-// Čas zobrazenia "LEVEL COMPLETE" overlay pred prechodom na ďalší level (ms)
+// Time to display "LEVEL COMPLETE" overlay before transitioning (ms)
 export const LEVEL_COMPLETE_DELAY_MS = 2500
 
-// ── Zbierateľné predmety (Gems) ───────────────────────────────────────────────
+// ── Collectibles (Gems) ───────────────────────────────────────────────────────
 
-// Počet gemov rozmiestených na hracej ploche každý level
-export const GEM_COUNT = 12
+// Number of gems placed on the field each level
+export default 12
 
-// Základný bonus za zozbieranie gemu (pred combo multiplikátorom)
-export const GEM_SCORE = 100
+// Base gem collection bonus (before combo multiplier)
+export const GEM_SCORE = 1000
 
-// ── Combo systém ──────────────────────────────────────────────────────────────
+// ── Combo system ──────────────────────────────────────────────────────────────
 
-// Ako dlho (ms) zostáva combo aktívne bez nového kroku na novú bunku
+// How long (ms) a combo remains active without stepping on a new cell
 export const COMBO_DURATION_MS = 2500
 
-// Maximálny combo multiplikátor (2.0 = dvojnásobné skóre)
+// Maximum combo multiplier (2.0 = double score)
 export const COMBO_MAX_MULTIPLIER = 2.0
 
-// ── Typy mín ──────────────────────────────────────────────────────────────────
+// ── Mine types ────────────────────────────────────────────────────────────────
 
-// Od ktorého levelu (0-indexed) sa objavujú cluster míny (žlté, odokryjú okolie)
-export const CLUSTER_MINE_LEVEL = 1  // od levelu 2
+// From which level (0-indexed) cluster mines appear (yellow, reveal surroundings)
+export const CLUSTER_MINE_LEVEL = 1  // from level 2
 
-// Podiel cluster mín zo všetkých mín (0.15 = 15%)
+// Fraction of mines that are cluster mines (0.15 = 15%)
 export const CLUSTER_MINE_RATIO = 0.15
 
-// Od ktorého levelu (0-indexed) sa objavujú beacon míny (cyan, varujú z 2 políčok)
-export const BEACON_MINE_LEVEL = 2   // od levelu 3
+// From which level (0-indexed) beacon mines appear (cyan, warn from 2 cells away)
+export const BEACON_MINE_LEVEL = 2   // from level 3
 
-// Podiel beacon mín zo všetkých mín (0.12 = 12%)
+// Fraction of mines that are beacon mines (0.12 = 12%)
 export const BEACON_MINE_RATIO = 0.12
 
-// ── Lietadlo — priblíženie ────────────────────────────────────────────────────
+// ── Airplane — approach ───────────────────────────────────────────────────────
 
-// Koľko ms pred spawnom lietadla sa spustí vzdialený zvuk motora
+// How many ms before airplane spawn the distant engine sound starts
 export const AIRPLANE_APPROACH_MS = 5000
 
-// ── Denný/nočný cyklus ────────────────────────────────────────────────────────
+// ── Day/night cycle ───────────────────────────────────────────────────────────
 
-// Počet krokov NA NOVÝCH BUNKÁCH do zmeny fázy.
-// Chodiť po vychodených chodníčkoch counter NERESETUJE — zámerné.
-// Respawn reštartuje deň (nový DAY_STEPS counter, isNight=false).
-export const DAY_STEPS = 15  // kroky vo dne kým nastane noc
-export const NIGHT_STEPS = 10 // kroky v noci kým nastane deň
+// Steps ON NEW CELLS until phase change.
+// Walking revisited paths does NOT reset the counter — intentional.
+// Respawn restarts the day (new DAY_STEPS counter, isNight=false).
+export const DAY_STEPS = 15   // steps in daylight before night falls
+export const NIGHT_STEPS = 10 // steps at night before dawn
