@@ -4,6 +4,22 @@
 // All game parameters in one place. Change and save — Vite hot-reloads instantly.
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// ── Localisation ──────────────────────────────────────────────────────────────
+
+/**
+ * Active language code. Picked up by lang.ts via zx-kit's `pickLocale`.
+ *
+ * - `null` / `'en'` / unknown code → loads default `strings.ts` (English)
+ * - `'sk'` → loads `strings.sk.ts` (Slovak)
+ *
+ * Case-insensitive: `'SK'` works the same as `'sk'`.
+ *
+ * To add a new translation: create `strings.<code>.ts`, register it
+ * in `lang.ts`, widen this type, then set the code here to test.
+ * HMR swaps the text live — useful for checking layout overflow.
+ */
+export const LANGUAGE_CODE: 'sk' | null = null
+
 // ── Input ─────────────────────────────────────────────────────────────────────
 
 // Initial delay before key-repeat starts (ms) — how long after first press

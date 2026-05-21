@@ -1,0 +1,138 @@
+/**
+ * strings.ts — all visible text in Minefield, in one place.
+ *
+ * HOW TO LOCALISE
+ * ───────────────
+ * Change any string below and Vite hot-reloads the game instantly —
+ * you immediately see whether the new text fits the fixed 256×192 layout.
+ *
+ * To ship a full locale: duplicate this file (e.g. strings.sk.ts),
+ * translate every value, then register it in lang.ts.
+ *
+ * PIXEL BUDGET GUIDE (ZX Spectrum 8×8 font, 256 px wide canvas)
+ * ──────────────────────────────────────────────────────────────
+ * Full row (32 chars × 8 px):    256 px
+ * Status bar:                     2 rows (16 px) at bottom
+ * Intro text panel:               rows 12–22 (88 px)
+ * Centered overlays:              use drawTextCentered — auto-fits any width
+ *                                  up to 32 chars before clipping
+ *
+ * SPECIFIC BUDGETS
+ * ────────────────
+ * Status bar row 1 (top):
+ *   SCORE prefix on left + LVL/COMBO/SCOUT on right.
+ *   Combined max ~28 chars before they overlap.
+ *
+ * Status bar row 2 (bottom):
+ *   MINES on left, DAY/NGT cycle centred, LIVES on right.
+ *   Each ≤ 8 chars to keep clear of neighbours.
+ *
+ * Hi-score entry hints (centered, single row):
+ *   Max ~32 chars. Currently 'UP/DN=LETTER  RGHT=NEXT  LEFT=DEL' = 33 chars
+ *   and slightly overflows — keep new translations under 32.
+ */
+
+// ── Status bar — top row ──────────────────────────────────────────────────
+
+// Player score, zero-padded to 5 digits.
+// 'SCORE:99999' = 11 chars. Left-aligned at x=0.
+export const STR_SCORE = (score: number) =>
+  `SCORE:${String(score).padStart(5, '0')}`
+
+// "Scout" / idle / not-yet-moved state, right-aligned. 5 chars.
+export const STR_IDLE = 'SCOUT'
+
+// Active combo display when comboCount ≥ 2. 'COMBO:x9' = 8 chars.
+export const STR_COMBO = (count: number) => `COMBO:x${count}`
+
+// Level display, right-aligned. 'LVL:99' = 6 chars.
+export const STR_LEVEL = (levelOneBased: number) => `LVL:${levelOneBased}`
+
+// ── Status bar — bottom row ──────────────────────────────────────────────
+
+// Remaining undisarmed mines counter. 'MINES:999' = 9 chars.
+export const STR_MINES = (remaining: number) =>
+  `MINES:${String(remaining).padStart(3, '0')}`
+
+// Day/night cycle counter, centred. 'DAY:99' / 'NGT:99' = 6 chars.
+export const STR_DAY   = (steps: number) => `DAY:${String(steps).padStart(2, '0')}`
+export const STR_NIGHT = (steps: number) => `NGT:${String(steps).padStart(2, '0')}`
+
+// Lives label, followed by heart sprites. Length affects sprite x-position
+// — keep this short or hearts shift left.
+export const STR_LIVES_LABEL = 'LIVES:'
+
+// Airplane warning banner, centred. Blinks. Max ~22 chars.
+export const STR_AIRCRAFT = '** AIRCRAFT **'
+
+// ── Game-over overlay ─────────────────────────────────────────────────────
+
+export const STR_GAME_OVER     = 'GAME  OVER'         // double-space styling
+export const STR_PRESS_ANY_KEY = 'PRESS ANY KEY'
+
+// Used by both game-over and level-complete overlays. Note: prefix has a
+// trailing space (different from STR_SCORE which uses a colon). Pixel budget:
+// 'SCORE: 99999' = 12 chars.
+export const STR_SCORE_OVERLAY = (score: number) =>
+  `SCORE: ${String(score).padStart(5, '0')}`
+
+// ── Pause overlay ─────────────────────────────────────────────────────────
+
+export const STR_PAUSED = '** PAUSED **'
+
+// ── Level-complete overlay ────────────────────────────────────────────────
+
+export const STR_LEVEL_COMPLETE = 'LEVEL  COMPLETE!'
+export const STR_GET_READY      = 'GET READY...'
+
+// ── Hi-score name-entry screen ────────────────────────────────────────────
+
+export const STR_NEW_HIGH_SCORE   = 'NEW HIGH SCORE!'
+export const STR_ENTER_YOUR_NAME  = 'ENTER YOUR NAME:'
+
+// Confirm/cancel hint when the user has typed ≥ 1 letter. 21 chars.
+export const STR_HISCORE_CONFIRM  = 'START=SAVE   ESC=SKIP'
+
+// Prompt shown before any letter is typed. 19 chars.
+export const STR_HISCORE_PROMPT   = 'TYPE  OR  USE D-PAD'
+
+// Bottom hint row — alternates depending on whether a pad letter is active.
+// Pad version is 33 chars (slightly overflows by 1 char). Keep translations
+// ≤ 32 chars to avoid clipping.
+export const STR_HISCORE_HINT_PAD       = 'UP/DN=LETTER  RGHT=NEXT  LEFT=DEL'
+export const STR_HISCORE_HINT_KEYBOARD  = 'KEYBOARD: TYPE LETTERS'
+
+// ── Intro / title screen ──────────────────────────────────────────────────
+
+// Game title — uses single-spaced letters for the retro spread effect.
+// 17 chars including spaces.
+export const STR_TITLE    = 'M I N E F I E L D'
+
+// Subtitle under the title. 21 chars.
+export const STR_SUBTITLE = 'ZX  SPECTRUM  EDITION'
+
+// Hi-scores section header. 11 chars.
+export const STR_HIGH_SCORES_HEADER = 'HIGH SCORES'
+
+// A single high-score line. Format: '1. ZRB  12345  LVL:5'.
+// Keep the format compatible with how the layout reserves space (~22 chars).
+export const STR_HIGH_SCORE_LINE = (rank: number, name: string, score: number, level: number) =>
+  `${rank}. ${name}  ${String(score).padStart(5, '0')}  LVL:${level}`
+
+// Controls hint lines (intro, alternates with high scores).
+export const STR_CTRL_MOVE  = 'ARROWS / D-PAD = MOVE'  // 21 chars
+export const STR_CTRL_FLAG  = 'F / BTN-A = FLAG MINE'  // 21 chars
+export const STR_CTRL_PAUSE = 'P / START = PAUSE'      // 17 chars
+export const STR_GOAL       = 'CROSS THE FIELD!'       // 16 chars
+
+// Audio unlock prompt — appears under the controls list. 25 chars.
+export const STR_AUDIO_HINT = 'CLICK/TAP TO ENABLE SOUND'
+
+// "Press to start" banner — blinks. 29 chars.
+export const STR_START_HINT = 'SPACE / ENTER / START = BEGIN'
+
+// Footer lines — copyright + zx-kit version. `(C) 2026  RELEASE:{x}` is
+// stretched to fit the right-aligned RELEASE tag without overflow at
+// reasonable version-string lengths.
+export const STR_COPYRIGHT      = (build: string)   => `(C) 2026  RELEASE:${build}`
+export const STR_ZXKIT_VERSION  = (version: string) => `ZX-KIT:${version}`

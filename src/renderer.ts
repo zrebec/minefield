@@ -2,6 +2,7 @@ import { CANVAS_W, CANVAS_H, ROWS, COLS, CELL, C } from './constants.ts'
 import type { GameState, AirplaneState } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor } from 'zx-kit'
 import { loadHighScores } from './assets/highscore.ts'
+import { L } from './lang.ts'
 import {
   PLAYER_RIGHT_A, PLAYER_RIGHT_B,
   PLAYER_LEFT_A, PLAYER_LEFT_B,
@@ -58,28 +59,24 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, STATUS_Y, CANVAS_W, 16)
 
-  const scoreStr = `SCORE:${String(state.score).padStart(5, '0')}`
-  drawText(ctx, scoreStr, 0, STATUS_Y, C.B_WHITE, C.BLACK)
+  drawText(ctx, L.STR_SCORE(state.score), 0, STATUS_Y, C.B_WHITE, C.BLACK)
   if (state.runState === 'idle') {
-    const idleStr = 'SCOUT'
-    drawText(ctx, idleStr, (COLS - idleStr.length) * CELL, STATUS_Y, C.B_GREEN, C.BLACK)
+    drawText(ctx, L.STR_IDLE, (COLS - L.STR_IDLE.length) * CELL, STATUS_Y, C.B_GREEN, C.BLACK)
   } else if (state.comboCount >= 2) {
-    const comboStr = `COMBO:x${state.comboCount}`
+    const comboStr = L.STR_COMBO(state.comboCount)
     drawText(ctx, comboStr, (COLS - comboStr.length) * CELL, STATUS_Y, C.B_YELLOW, C.BLACK)
   } else {
-    const lvlStr = `LVL:${state.level + 1}`
+    const lvlStr = L.STR_LEVEL(state.level + 1)
     drawText(ctx, lvlStr, (COLS - lvlStr.length) * CELL, STATUS_Y, C.B_CYAN, C.BLACK)
   }
 
-  const minesRemaining = state.totalMines - state.explodedMines
-  const minesStr = `MINES:${String(minesRemaining).padStart(3, '0')}`
-  drawText(ctx, minesStr, 0, STATUS_Y + CELL, C.B_WHITE, C.BLACK)
+  drawText(ctx, L.STR_MINES(state.totalMines - state.explodedMines), 0, STATUS_Y + CELL, C.B_WHITE, C.BLACK)
 
-  const cycleStr = state.isNight ? `NGT:${String(state.cycleSteps).padStart(2, '0')}` : `DAY:${String(state.cycleSteps).padStart(2, '0')}`
+  const cycleStr = state.isNight ? L.STR_NIGHT(state.cycleSteps) : L.STR_DAY(state.cycleSteps)
   const cycleInk = state.isNight ? C.B_CYAN : C.B_YELLOW
   drawTextCentered(ctx, cycleStr, STATUS_Y + CELL, cycleInk, C.BLACK)
 
-  const livesLabel = 'LIVES:'
+  const livesLabel = L.STR_LIVES_LABEL
   const livesX = (COLS - livesLabel.length - state.lives) * CELL
   drawText(ctx, livesLabel, livesX, STATUS_Y + CELL, C.B_WHITE, C.BLACK)
   for (let i = 0; i < state.lives; i++) {
@@ -87,7 +84,7 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
   }
 
   if (state.airplane && state.airplane.warningBlink) {
-    drawTextCentered(ctx, '** AIRCRAFT **', STATUS_Y, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, L.STR_AIRCRAFT, STATUS_Y, C.B_YELLOW, C.BLACK)
   }
 }
 
@@ -108,10 +105,10 @@ function renderGameOver(ctx: CanvasRenderingContext2D, state: GameState): void {
   ctx.globalAlpha = 1.0
 
   const cy = Math.floor(ROWS / 2) - 3
-  drawTextCentered(ctx, 'GAME  OVER', cy * CELL, C.B_RED, C.BLACK)
-  drawTextCentered(ctx, `SCORE: ${String(state.score).padStart(5, '0')}`, (cy + 2) * CELL, C.B_WHITE, C.BLACK)
+  drawTextCentered(ctx, L.STR_GAME_OVER, cy * CELL, C.B_RED, C.BLACK)
+  drawTextCentered(ctx, L.STR_SCORE_OVERLAY(state.score), (cy + 2) * CELL, C.B_WHITE, C.BLACK)
   if (state.blink) {
-    drawTextCentered(ctx, 'PRESS ANY KEY', (cy + 5) * CELL, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, L.STR_PRESS_ANY_KEY, (cy + 5) * CELL, C.B_YELLOW, C.BLACK)
   }
 }
 
@@ -121,7 +118,7 @@ function renderPaused(ctx: CanvasRenderingContext2D, state: GameState): void {
   ctx.fillRect(0, 0, CANVAS_W, ROWS * CELL)
   ctx.globalAlpha = 1.0
   if (state.blink) {
-    drawTextCentered(ctx, '** PAUSED **', Math.floor(ROWS / 2) * CELL, C.B_WHITE, C.BLACK)
+    drawTextCentered(ctx, L.STR_PAUSED, Math.floor(ROWS / 2) * CELL, C.B_WHITE, C.BLACK)
   }
 }
 
@@ -132,10 +129,10 @@ function renderLevelComplete(ctx: CanvasRenderingContext2D, state: GameState): v
   ctx.globalAlpha = 1.0
 
   const cy = Math.floor(ROWS / 2) - 2
-  drawTextCentered(ctx, 'LEVEL  COMPLETE!', cy * CELL, C.B_GREEN, C.BLACK)
-  drawTextCentered(ctx, `SCORE: ${String(state.score).padStart(5, '0')}`, (cy + 2) * CELL, C.B_WHITE, C.BLACK)
+  drawTextCentered(ctx, L.STR_LEVEL_COMPLETE, cy * CELL, C.B_GREEN, C.BLACK)
+  drawTextCentered(ctx, L.STR_SCORE_OVERLAY(state.score), (cy + 2) * CELL, C.B_WHITE, C.BLACK)
   if (state.blink) {
-    drawTextCentered(ctx, 'GET READY...', (cy + 4) * CELL, C.B_CYAN, C.BLACK)
+    drawTextCentered(ctx, L.STR_GET_READY, (cy + 4) * CELL, C.B_CYAN, C.BLACK)
   }
 }
 
@@ -152,8 +149,8 @@ export function renderHiScoreEntry(
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
 
   const cy = Math.floor(ROWS / 2) - 4
-  drawTextCentered(ctx, 'NEW HIGH SCORE!', cy * CELL, C.B_YELLOW, C.BLACK)
-  drawTextCentered(ctx, 'ENTER YOUR NAME:', (cy + 2) * CELL, C.B_WHITE, C.BLACK)
+  drawTextCentered(ctx, L.STR_NEW_HIGH_SCORE, cy * CELL, C.B_YELLOW, C.BLACK)
+  drawTextCentered(ctx, L.STR_ENTER_YOUR_NAME, (cy + 2) * CELL, C.B_WHITE, C.BLACK)
 
   const startX = Math.floor((COLS - 5) / 2) * CELL
   for (let i = 0; i < 3; i++) {
@@ -174,11 +171,11 @@ export function renderHiScoreEntry(
   }
 
   if (cursor >= 1) {
-    if (blink) drawTextCentered(ctx, 'START=SAVE   ESC=SKIP', (cy + 6) * CELL, C.B_GREEN, C.BLACK)
+    if (blink) drawTextCentered(ctx, L.STR_HISCORE_CONFIRM, (cy + 6) * CELL, C.B_GREEN, C.BLACK)
   } else {
-    drawTextCentered(ctx, 'TYPE  OR  USE D-PAD', (cy + 6) * CELL, C.CYAN, C.BLACK)
+    drawTextCentered(ctx, L.STR_HISCORE_PROMPT, (cy + 6) * CELL, C.CYAN, C.BLACK)
   }
-  drawTextCentered(ctx, padLetter ? 'UP/DN=LETTER  RGHT=NEXT  LEFT=DEL' : 'KEYBOARD: TYPE LETTERS', (cy + 7) * CELL, C.BLUE, C.BLACK)
+  drawTextCentered(ctx, padLetter ? L.STR_HISCORE_HINT_PAD : L.STR_HISCORE_HINT_KEYBOARD, (cy + 7) * CELL, C.BLUE, C.BLACK)
 }
 
 // ─── Intro screen scene sprites ───────────────────────────────────────────────
@@ -267,8 +264,8 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
 
   // === SKY + TITLE (rows 0-3) ===
-  drawTextCentered(ctx, 'M I N E F I E L D', 1 * CELL, C.B_CYAN, C.BLACK)
-  drawTextCentered(ctx, 'ZX  SPECTRUM  EDITION', 3 * CELL, C.CYAN, C.BLACK)
+  drawTextCentered(ctx, L.STR_TITLE,    1 * CELL, C.B_CYAN, C.BLACK)
+  drawTextCentered(ctx, L.STR_SUBTITLE, 3 * CELL, C.CYAN,   C.BLACK)
 
   // === TREE SILHOUETTES ON HORIZON (rows 4-5) ===
   const treeCols = [0, 1, 6, 7, 13, 14, 24, 25, 30, 31]
@@ -329,21 +326,21 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
 
   const scores = loadHighScores()
   if (scores.length > 0 && page % 2 === 1) {
-    drawTextCentered(ctx, 'HIGH SCORES', 13 * CELL, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, L.STR_HIGH_SCORES_HEADER, 13 * CELL, C.B_YELLOW, C.BLACK)
     scores.forEach((e, i) => {
-      const line = `${i + 1}. ${e.name}  ${String(e.score).padStart(5, '0')}  LVL:${e.level}`
-      drawTextCentered(ctx, line, (14 + i) * CELL, C.WHITE, C.BLACK)
+      drawTextCentered(ctx, L.STR_HIGH_SCORE_LINE(i + 1, e.name, e.score, e.level),
+        (14 + i) * CELL, C.WHITE, C.BLACK)
     })
   } else {
-    drawTextCentered(ctx, 'ARROWS / D-PAD = MOVE', 13 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, 'F / BTN-A = FLAG MINE', 14 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, 'P / START = PAUSE',     15 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, 'CROSS THE FIELD!',      16 * CELL, C.B_GREEN, C.BLACK)
-    drawTextCentered(ctx, 'CLICK/TAP TO ENABLE SOUND', 17 * CELL, C.YELLOW, C.BLACK)
+    drawTextCentered(ctx, L.STR_CTRL_MOVE,  13 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, L.STR_CTRL_FLAG,  14 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, L.STR_CTRL_PAUSE, 15 * CELL, C.WHITE,   C.BLACK)
+    drawTextCentered(ctx, L.STR_GOAL,       16 * CELL, C.B_GREEN, C.BLACK)
+    drawTextCentered(ctx, L.STR_AUDIO_HINT, 17 * CELL, C.YELLOW,  C.BLACK)
   }
 
   if (blink) {
-    drawTextCentered(ctx, 'SPACE / ENTER / START = BEGIN', 19 * CELL, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, L.STR_START_HINT, 19 * CELL, C.B_YELLOW, C.BLACK)
   }
 
   for (let c = 0; c < COLS; c++) {
@@ -352,8 +349,8 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
 
   const build = import.meta.env.VITE_APP_BUILD ?? 'DEV'
   const zxKit = import.meta.env.VITE_ZX_KIT_VERSION ?? '?'
-  drawTextCentered(ctx, `(C) 2026  RELEASE:${build}`, 21 * CELL, C.BLUE, C.BLACK)
-  drawTextCentered(ctx, `ZX-KIT:${zxKit}`, 22 * CELL, C.BLUE, C.BLACK)
+  drawTextCentered(ctx, L.STR_COPYRIGHT(build),     21 * CELL, C.BLUE, C.BLACK)
+  drawTextCentered(ctx, L.STR_ZXKIT_VERSION(zxKit), 22 * CELL, C.BLUE, C.BLACK)
 }
 
 // ─── Main render entry ────────────────────────────────────────────────────────
