@@ -1,3 +1,10 @@
+# [0.19.0](https://github.com/zrebec/minefield/compare/v0.18.0...v0.19.0) (2026-05-21)
+
+
+### Features
+
+* **i18n:** extract all UI text into swappable string packs ([8ac94cf](https://github.com/zrebec/minefield/commit/8ac94cfe492d7ce5d893bca446efa6bd18ff2875))
+
 # [0.18.0](https://github.com/zrebec/minefield/compare/v0.17.1...v0.18.0) (2026-05-15)
 
 
