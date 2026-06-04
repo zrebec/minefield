@@ -6,7 +6,7 @@
 ![ZX Spectrum style screenshot placeholder](https://img.shields.io/badge/ZX_Spectrum-256×192-00CD00?style=flat-square&labelColor=000000)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.x-0000FF?style=flat-square&labelColor=000000)
 ![Vite](https://img.shields.io/badge/Vite-8.x-FFFF00?style=flat-square&labelColor=000000)
-![zx-kit](https://img.shields.io/badge/zx--kit-0.6.7-00CDCD?style=flat-square&labelColor=000000)
+![zx-kit](https://img.shields.io/badge/zx--kit-0.28.0-00CDCD?style=flat-square&labelColor=000000)
 
 ---
 
@@ -169,7 +169,7 @@ src/
 ```
 
 **Závislosti:**
-- `zx-kit@0.6.7` — ZX Spectrum primitívy (paleta, font, renderer helpers, audio, input, UI, TileMap)
+- `zx-kit@^0.28.0` — ZX Spectrum primitívy (paleta, font, renderer helpers, audio, input, UI, TileMap, save profile)
 - Žiadne iné runtime závislosti — len Web Platform APIs
 
 **Render order** (každý frame):
