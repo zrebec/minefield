@@ -1,3 +1,10 @@
+## [0.21.1](https://github.com/zrebec/minefield/compare/v0.21.0...v0.21.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* **game:** fully seed airplane behaviour for daily challenge ([11d3f6e](https://github.com/zrebec/minefield/commit/11d3f6ecd668e208cd54a80824682f0b86e296c0))
+
 # [0.21.0](https://github.com/zrebec/minefield/compare/v0.20.0...v0.21.0) (2026-06-09)
 
 
