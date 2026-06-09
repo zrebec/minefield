@@ -1,3 +1,10 @@
+# [0.21.0](https://github.com/zrebec/minefield/compare/v0.20.0...v0.21.0) (2026-06-09)
+
+
+### Features
+
+* **highscore:** add date to highscore entries ([98514d9](https://github.com/zrebec/minefield/commit/98514d9a70147095211fa2c1ac04edf25fd436b2))
+
 # [0.20.0](https://github.com/zrebec/minefield/compare/v0.19.0...v0.20.0) (2026-06-09)
 
 
