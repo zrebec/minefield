@@ -38,6 +38,7 @@ export interface AirplaneState {
   active: boolean
   dropDone: boolean
   warningBlink: boolean
+  scheduledDropCount: number
 }
 
 export interface GameState {
@@ -73,7 +74,7 @@ export interface GameState {
   isNight: boolean
   cycleSteps: number
   dropSeedBase: string | null
-  dropCount: number
+  airplanePassIndex: number
 }
 
 function cellVariant(col: number, row: number): CellVariant {
@@ -265,16 +266,16 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number):
     isNight: false,
     cycleSteps: DAY_STEPS,
     dropSeedBase: seed !== undefined ? String(seed) : null,
-    dropCount: 0,
+    airplanePassIndex: 0,
   }
 }
 
 export function addDropMinesInBand(state: GameState, count: number, minRow: number, maxRow: number): void {
   const dropSeed = state.dropSeedBase !== null
-    ? `${state.dropSeedBase}:drop${state.dropCount}`
+    ? `${state.dropSeedBase}:drop${state.airplanePassIndex}`
     : Math.random()
   const rng = createRng(dropSeed)
-  state.dropCount++
+  // airplanePassIndex incremented in scheduleNext after the full pass is done
   const dropped: Array<{ col: number; row: number }> = []
   let attempts = 0
   while (dropped.length < count && attempts < count * 20) {
