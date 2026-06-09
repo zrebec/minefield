@@ -80,8 +80,10 @@ export const STR_SUBTITLE = 'ZX  SPECTRUM  EDICIA'          // 20 znakov
 
 export const STR_HIGH_SCORES_HEADER = 'NAJLEPSIE SKORE'     // 15 znakov
 
-export const STR_HIGH_SCORE_LINE = (rank: number, name: string, score: number, level: number) =>
-  `${rank}. ${name}  ${String(score).padStart(5, '0')}  LVL:${level}`
+export const STR_HIGH_SCORE_LINE = (rank: number, name: string, score: number, level: number, date?: string) => {
+  const d = date && date.length >= 10 ? date.slice(5) : '-----'
+  return `${rank}. ${name}  ${String(score).padStart(5, '0')}  LVL:${level}  ${d}`
+}
 
 export const STR_CTRL_MOVE  = 'SIPKY / D-PAD = POHYB'       // 21 znakov
 export const STR_CTRL_FLAG  = 'F / BTN-A = OZNAC MINU'      // 22 znakov

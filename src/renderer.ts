@@ -328,7 +328,7 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
   if (scores.length > 0 && page % 2 === 1) {
     drawTextCentered(ctx, L.STR_HIGH_SCORES_HEADER, 13 * CELL, C.B_YELLOW, C.BLACK)
     scores.forEach((e, i) => {
-      drawTextCentered(ctx, L.STR_HIGH_SCORE_LINE(i + 1, e.name, e.score, e.level),
+      drawTextCentered(ctx, L.STR_HIGH_SCORE_LINE(i + 1, e.name, e.score, e.level, e.date),
         (14 + i) * CELL, C.WHITE, C.BLACK)
     })
   } else {

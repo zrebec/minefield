@@ -114,10 +114,13 @@ export const STR_SUBTITLE = 'ZX  SPECTRUM  EDITION'
 // Hi-scores section header. 11 chars.
 export const STR_HIGH_SCORES_HEADER = 'HIGH SCORES'
 
-// A single high-score line. Format: '1. ZRB  12345  LVL:5'.
-// Keep the format compatible with how the layout reserves space (~22 chars).
-export const STR_HIGH_SCORE_LINE = (rank: number, name: string, score: number, level: number) =>
-  `${rank}. ${name}  ${String(score).padStart(5, '0')}  LVL:${level}`
+// A single high-score line. Format: '1. ZRB  12345  LVL:5  06-09'.
+// date is YYYY-MM-DD; only MM-DD is shown to keep the line ≤ 28 chars (224 px in 256 px canvas).
+// Legacy entries without a date show '-----' so all rows stay the same width.
+export const STR_HIGH_SCORE_LINE = (rank: number, name: string, score: number, level: number, date?: string) => {
+  const d = date && date.length >= 10 ? date.slice(5) : '-----'
+  return `${rank}. ${name}  ${String(score).padStart(5, '0')}  LVL:${level}  ${d}`
+}
 
 // Controls hint lines (intro, alternates with high scores).
 export const STR_CTRL_MOVE  = 'ARROWS / D-PAD = MOVE'  // 21 chars
