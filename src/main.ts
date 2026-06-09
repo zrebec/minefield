@@ -1,6 +1,6 @@
 import { C, CANVAS_W, CELL, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
-import { createGame, type GameState, type GamePhase } from './game.ts'
+import { createGame, dailySeed, type GameState, type GamePhase } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown, consumeManualSave } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave } from 'zx-kit'
@@ -103,7 +103,7 @@ function gameLoop(timestamp: number): void {
       consumeAnyKey()   // drain so no stale key reaches ingame
       initAudioOnce()
       stopAmbientSounds()
-      state = createGame(0)
+      state = createGame(0, 0, dailySeed(0))   // daily field — same for everyone today
       readSaveLatest(saveProfile)   // mutates state in-place if a save exists
       introPage = 0
       introPageTimer = INTRO_PAGE_MS
@@ -226,7 +226,7 @@ function gameLoop(timestamp: number): void {
     if (state.levelCompleteTimer <= 0) {
       const prevScore = state.score
       stopAmbientSounds()
-      state = createGame(state.level + 1, prevScore)
+      state = createGame(state.level + 1, prevScore, dailySeed(state.level + 1))   // daily field per level
       writeSave(saveProfile, 'auto')   // checkpoint at the start of every level
     }
 

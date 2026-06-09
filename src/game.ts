@@ -1,4 +1,4 @@
-import { createTileMap, createAnimation, type TileMap, type Tween, type Animation } from 'zx-kit'
+import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
 import GEM_COUNT, { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, WALL_COUNTS, WALL_LENGTH_MIN, WALL_LENGTH_MAX } from './config.ts'
 import {
@@ -7,6 +7,24 @@ import {
 } from './sprites.ts'
 
 const TERRAIN_TYPES: TerrainType[] = ['grass', 'snow', 'dust']
+
+/**
+ * Today's date as `YYYY-MM-DD` (local time). The daily-challenge field is seeded from
+ * this, so every player on the same day gets the **same minefield** → comparable scores
+ * (Wordle-style). We embrace this even though the ZX Spectrum had no such thing — we only
+ * limit ourselves by the era's *visuals*, not its technical constraints.
+ */
+export function todaySeed(): string {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+/** Per-level daily seed: same date + level ⇒ an identical field for every player. */
+export function dailySeed(level: number): string {
+  return `${todaySeed()}:L${level}`
+}
 
 export type GamePhase = 'intro' | 'playing' | 'exploding' | 'levelcomplete' | 'gameover'
 export type RunState = 'idle' | 'running' | 'paused'
@@ -54,6 +72,8 @@ export interface GameState {
   runState: RunState
   isNight: boolean
   cycleSteps: number
+  dropSeedBase: string | null
+  dropCount: number
 }
 
 function cellVariant(col: number, row: number): CellVariant {
@@ -70,25 +90,26 @@ function buildMap(terrain: TerrainType): TileMap {
   return map
 }
 
-function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
+// Inclusive-max integer, drawn from a seeded RNG so the field is reproducible per seed.
+function randomInt(rng: Rng, min: number, max: number): number {
+  return rng.range(min, max + 1)
 }
 
-function placeWalls(map: TileMap, level: number): void {
+function placeWalls(map: TileMap, level: number, rng: Rng): void {
   const [minCount, maxCount] = WALL_COUNTS[Math.min(level, WALL_COUNTS.length - 1)]
-  const count = randomInt(minCount, maxCount)
+  const count = randomInt(rng, minCount, maxCount)
   let placed = 0
   let attempts = 0
   while (placed < count && attempts < count * 30) {
     attempts++
-    const horizontal = Math.random() < 0.5
-    const length = randomInt(WALL_LENGTH_MIN, WALL_LENGTH_MAX)
+    const horizontal = rng.chance(0.5)
+    const length = randomInt(rng, WALL_LENGTH_MIN, WALL_LENGTH_MAX)
     const startCol = horizontal
-      ? randomInt(2, COLS - 2 - length)
-      : randomInt(2, COLS - 2)
+      ? randomInt(rng, 2, COLS - 2 - length)
+      : randomInt(rng, 2, COLS - 2)
     const startRow = horizontal
-      ? randomInt(0, ROWS - 1)
-      : randomInt(0, ROWS - length)
+      ? randomInt(rng, 0, ROWS - 1)
+      : randomInt(rng, 0, ROWS - length)
     const cells: Array<[number, number]> = []
     for (let i = 0; i < length; i++) {
       cells.push(horizontal ? [startCol + i, startRow] : [startCol, startRow + i])
@@ -109,19 +130,19 @@ function placeWalls(map: TileMap, level: number): void {
   }
 }
 
-function placeMines(map: TileMap, count: number, safeCol: number, safeRow: number, level: number, terrain: TerrainType): void {
+function placeMines(map: TileMap, count: number, safeCol: number, safeRow: number, level: number, terrain: TerrainType, rng: Rng): void {
   const clusterRatio = level >= CLUSTER_MINE_LEVEL ? CLUSTER_MINE_RATIO : 0
   const beaconRatio = level >= BEACON_MINE_LEVEL ? BEACON_MINE_RATIO : 0
   let placed = 0
   let attempts = 0
   while (placed < count && attempts < count * 20) {
     attempts++
-    const col = randomInt(0, COLS - 1)
-    const row = randomInt(0, ROWS - 1)
+    const col = randomInt(rng, 0, COLS - 1)
+    const row = randomInt(rng, 0, ROWS - 1)
     if (Math.abs(col - safeCol) <= SAFE_RADIUS && Math.abs(row - safeRow) <= SAFE_RADIUS) continue
     if (col === COLS - 1) continue
     if (map.getTile(col, row)?.id !== 'ground') continue
-    const r = Math.random()
+    const r = rng.next()
     const mineType: MineType = r < clusterRatio ? 'cluster'
       : r < clusterRatio + beaconRatio ? 'beacon'
         : 'normal'
@@ -148,13 +169,13 @@ export function fixWallTraps(map: TileMap, terrain: TerrainType): void {
   }
 }
 
-function placeGems(map: TileMap, count: number, safeCol: number, safeRow: number): void {
+function placeGems(map: TileMap, count: number, safeCol: number, safeRow: number, rng: Rng): void {
   let placed = 0
   let attempts = 0
   while (placed < count && attempts < count * 20) {
     attempts++
-    const col = randomInt(2, COLS - 2)
-    const row = randomInt(0, ROWS - 1)
+    const col = randomInt(rng, 2, COLS - 2)
+    const row = randomInt(rng, 0, ROWS - 1)
     const tile = map.getTile(col, row)
     if (tile?.id !== 'ground') continue
     if (Math.abs(col - safeCol) <= SAFE_RADIUS + 2 && Math.abs(row - safeRow) <= SAFE_RADIUS + 2) continue
@@ -193,20 +214,23 @@ export function applyClusterBlast(state: GameState, centerCol: number, centerRow
   }
 }
 
-export function createGame(level = 0, initialScore = 0): GameState {
+export function createGame(level = 0, initialScore = 0, seed?: string | number): GameState {
   const cfg = LEVEL_CONFIGS[Math.min(level, LEVEL_CONFIGS.length - 1)]
+  // Field generation is seeded: pass a `seed` (e.g. dailySeed(level)) for a reproducible
+  // daily field; omit it (tests / free play) to get a fresh field each call.
+  const rng = createRng(seed ?? Math.random())
   // Level 0 is always grass so the player learns the default look first
   const terrain: TerrainType = level === 0
     ? 'grass'
-    : TERRAIN_TYPES[Math.floor(Math.random() * TERRAIN_TYPES.length)]
+    : rng.pick(TERRAIN_TYPES)
   const map = buildMap(terrain)
-  placeWalls(map, level)
-  placeMines(map, cfg.mines, START_COL, START_ROW, level, terrain)
+  placeWalls(map, level, rng)
+  placeMines(map, cfg.mines, START_COL, START_ROW, level, terrain, rng)
   fixWallTraps(map, terrain)
-  placeGems(map, GEM_COUNT, START_COL, START_ROW)
+  placeGems(map, GEM_COUNT, START_COL, START_ROW, rng)
   map.setTile(START_COL, START_ROW, makeTileVisited(cellVariant(START_COL, START_ROW), terrain))
 
-  const firstAcMs = cfg.acFirstMs + Math.random() * (cfg.acFirstMaxMs - cfg.acFirstMs)
+  const firstAcMs = rng.float(cfg.acFirstMs, cfg.acFirstMaxMs)
 
   return {
     phase: 'playing',
@@ -240,16 +264,23 @@ export function createGame(level = 0, initialScore = 0): GameState {
     runState: 'idle',
     isNight: false,
     cycleSteps: DAY_STEPS,
+    dropSeedBase: seed !== undefined ? String(seed) : null,
+    dropCount: 0,
   }
 }
 
 export function addDropMinesInBand(state: GameState, count: number, minRow: number, maxRow: number): void {
+  const dropSeed = state.dropSeedBase !== null
+    ? `${state.dropSeedBase}:drop${state.dropCount}`
+    : Math.random()
+  const rng = createRng(dropSeed)
+  state.dropCount++
   const dropped: Array<{ col: number; row: number }> = []
   let attempts = 0
   while (dropped.length < count && attempts < count * 20) {
     attempts++
-    const col = randomInt(0, COLS - 2)
-    const row = randomInt(minRow, maxRow)
+    const col = randomInt(rng, 0, COLS - 2)
+    const row = randomInt(rng, minRow, maxRow)
     const tile = state.map.getTile(col, row)
     if (tile?.id !== 'ground') continue
     state.map.setTile(col, row, makeTileMine('normal', cellVariant(col, row), state.terrain))
