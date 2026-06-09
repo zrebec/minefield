@@ -1,3 +1,10 @@
+# [0.20.0](https://github.com/zrebec/minefield/compare/v0.19.0...v0.20.0) (2026-06-09)
+
+
+### Features
+
+* **game:** fully deterministic daily-seed challenge ([08abe7f](https://github.com/zrebec/minefield/commit/08abe7f03bc375c03b0d168b2e933e073babf5a9))
+
 # [0.19.0](https://github.com/zrebec/minefield/compare/v0.18.0...v0.19.0) (2026-05-21)
 
 
