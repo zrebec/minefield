@@ -1,3 +1,10 @@
+## [0.21.2](https://github.com/zrebec/minefield/compare/v0.21.1...v0.21.2) (2026-06-15)
+
+
+### Bug Fixes
+
+* **rng:** seed createRng with a 32-bit int, not a raw float ([d4a87fe](https://github.com/zrebec/minefield/commit/d4a87fe3775098ba54ea70b9c90775ca062fd700))
+
 ## [0.21.1](https://github.com/zrebec/minefield/compare/v0.21.0...v0.21.1) (2026-06-09)
 
 
