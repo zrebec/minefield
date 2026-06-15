@@ -82,16 +82,20 @@ describe('flashBorder', () => {
     vi.useRealTimers()
   })
 
+  // zx-kit's flashBorder is now requestAnimationFrame-driven (performance.now), with a
+  // one-interval pre-flash WAIT (N=0 doesn't touch the border). The colour first appears
+  // after intervalMs, so advance PAST each interval boundary (rAF ticks ~every 16ms).
   it('sets border to flash color on first tick', () => {
     flashBorder(C.B_RED, 2, 100)
-    vi.advanceTimersByTime(100)
+    vi.advanceTimersByTime(150)  // cross into the flash window (N=1) → red
     expect(document.body.style.backgroundColor).toBe('rgb(255, 0, 0)')
   })
 
   it('alternates to reset color on second tick', () => {
     flashBorder(C.B_RED, 1, 100, C.BLACK)
-    vi.advanceTimersByTime(100)  // tick 0 → flash color
-    vi.advanceTimersByTime(100)  // tick 1 → reset color
+    vi.advanceTimersByTime(150)  // flash window (N=1) → red
+    expect(document.body.style.backgroundColor).toBe('rgb(255, 0, 0)')
+    vi.advanceTimersByTime(100)  // past the flash (N≥2 == totalSteps) → reset
     expect(document.body.style.backgroundColor).toBe('rgb(0, 0, 0)')
   })
 

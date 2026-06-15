@@ -215,11 +215,18 @@ export function applyClusterBlast(state: GameState, centerCol: number, centerRow
   }
 }
 
+/** A fresh 32-bit integer seed for `createRng`. `Math.random()` alone (a float in
+ *  [0,1)) is truncated to 0 by createRng's `seed >>> 0`, so every game would share
+ *  one seed (identical terrain/mines/drops). This spreads it across the full uint32. */
+function randomSeed(): number {
+  return (Math.random() * 0x100000000) >>> 0
+}
+
 export function createGame(level = 0, initialScore = 0, seed?: string | number): GameState {
   const cfg = LEVEL_CONFIGS[Math.min(level, LEVEL_CONFIGS.length - 1)]
   // Field generation is seeded: pass a `seed` (e.g. dailySeed(level)) for a reproducible
   // daily field; omit it (tests / free play) to get a fresh field each call.
-  const rng = createRng(seed ?? Math.random())
+  const rng = createRng(seed ?? randomSeed())
   // Level 0 is always grass so the player learns the default look first
   const terrain: TerrainType = level === 0
     ? 'grass'
@@ -273,7 +280,7 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number):
 export function addDropMinesInBand(state: GameState, count: number, minRow: number, maxRow: number): void {
   const dropSeed = state.dropSeedBase !== null
     ? `${state.dropSeedBase}:drop${state.airplanePassIndex}`
-    : Math.random()
+    : randomSeed()
   const rng = createRng(dropSeed)
   // airplanePassIndex incremented in scheduleNext after the full pass is done
   const dropped: Array<{ col: number; row: number }> = []
