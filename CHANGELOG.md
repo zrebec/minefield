@@ -1,3 +1,10 @@
+# [0.22.0](https://github.com/zrebec/minefield/compare/v0.21.2...v0.22.0) (2026-06-16)
+
+
+### Features
+
+* **buildings:** replace linear walls with pseudo-3D buildings ([e2e9c05](https://github.com/zrebec/minefield/commit/e2e9c05c130bc617c5a87a788666c1f2be1f79c8))
+
 ## [0.21.2](https://github.com/zrebec/minefield/compare/v0.21.1...v0.21.2) (2026-06-15)
 
 
