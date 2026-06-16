@@ -9,6 +9,11 @@
 > **Cieľ:** lineárne steny nahradiť **budovami videnými z vysokého uhla** — dominuje **šedá
 > textúrovaná strecha**, pod ňou len tenký 2-riadkový **tehlový predok** (okná, tmavšie okraje) a
 > 1-riadkový **biely betónový základ**. Komín navrchu. Mína nikdy nie je na budove.
+>
+> ⚠️ **OPEN / v pohybe (2026-06-16):** owner zvažuje **object-level oblique** (viditeľná ľavá
+> bočná stena = „kreslená kocka", *nie* plne izometrický svet). Kým to nie je rozhodnuté (A plná
+> kocka / B lacný 1-stĺpcový bočný pás), tento dokument **nefinalizovať** — popisuje *aktuálnu*
+> high-angle verziu, nie nutne finálnu.
 
 ---
 

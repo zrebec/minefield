@@ -1,7 +1,7 @@
 import { C, CANVAS_W, CELL, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
 import { createGame, dailySeed, type GameState, type GamePhase } from './game.ts'
-import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown, consumeManualSave } from './input.ts'
+import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown, consumeManualSave, consumeRandomMap } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
@@ -19,6 +19,10 @@ let lastTime = 0
 const blinker = createBlinker(BLINK_INTERVAL_MS)
 let audioReady = false
 let prevGamePhase: GamePhase = 'playing'
+// Daily seed is the default (fair, comparable scores). The R key flips this on
+// for the rest of the run → random non-daily fields for dev + replayability.
+// A fresh run from the intro always resets back to daily.
+let randomMode = false
 
 // Name entry state for hiscore phase
 let hiName: string[] = []
@@ -103,6 +107,7 @@ function gameLoop(timestamp: number): void {
       consumeAnyKey()   // drain so no stale key reaches ingame
       initAudioOnce()
       stopAmbientSounds()
+      randomMode = false   // fresh run = today's daily field
       state = createGame(0, 0, dailySeed(0))   // daily field — same for everyone today
       readSaveLatest(saveProfile)   // mutates state in-place if a save exists
       introPage = 0
@@ -162,6 +167,16 @@ function gameLoop(timestamp: number): void {
   state.blink = blink
 
   if (state.phase === 'playing') {
+    // R — reroll the current level with a random (non-daily) seed; rest of the
+    // run stays random. Works in any runState; lands back in idle (re-scout).
+    if (consumeRandomMap()) {
+      randomMode = true
+      stopAmbientSounds()
+      state = createGame(state.level, state.score)   // no seed → fresh random field
+      resetInput(); resetUI()
+      flashBorder(C.B_MAGENTA, 2, 80)
+    }
+
     if (state.runState === 'idle') {
       // Debug available only in idle — scout before starting
       if (consumeDebug()) state.debugMode = !state.debugMode
@@ -226,7 +241,8 @@ function gameLoop(timestamp: number): void {
     if (state.levelCompleteTimer <= 0) {
       const prevScore = state.score
       stopAmbientSounds()
-      state = createGame(state.level + 1, prevScore, dailySeed(state.level + 1))   // daily field per level
+      // random run stays random across levels; otherwise the daily field per level
+      state = createGame(state.level + 1, prevScore, randomMode ? undefined : dailySeed(state.level + 1))
       writeSave(saveProfile, 'auto')   // checkpoint at the start of every level
     }
 
