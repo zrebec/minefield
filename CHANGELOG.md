@@ -1,3 +1,10 @@
+# [0.23.0](https://github.com/zrebec/minefield/compare/v0.22.0...v0.23.0) (2026-06-16)
+
+
+### Features
+
+* **buildings:** high-angle buildings with textured roofs, windows, varied shapes ([bf5815b](https://github.com/zrebec/minefield/commit/bf5815b747701b91d7ae663ddb21a35ca1762bb9)), closes [hi#angle](https://github.com/hi/issues/angle)
+
 # [0.22.0](https://github.com/zrebec/minefield/compare/v0.21.2...v0.22.0) (2026-06-16)
 
 
