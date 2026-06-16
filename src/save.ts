@@ -7,10 +7,18 @@ import { COLS, ROWS } from './constants.ts'
 import GEM_COUNT, { WALK_FRAME_MS } from './config.ts'
 import { type GameState, type Dir } from './game.ts'
 import {
-  type TerrainType, type CellVariant,
+  type TerrainType, type CellVariant, type BuildingPart,
   makeTileGround, makeTileVisited, makeTileMine, makeTileGem,
-  makeTileWall, makeTileFlag, TILE_EXPLODED,
+  makeTileBuilding, makeTileFlag, TILE_EXPLODED,
 } from './sprites.ts'
+
+// Building parts ↔ save chars (none collide with the mine/flag/terrain codes below)
+const BUILDING_PART_CHAR: Record<BuildingPart, string> = {
+  roof: 'R', eave: 'E', wall: 'H', side: 'S', door: 'D', base: 'F',
+}
+const CHAR_BUILDING_PART: Record<string, BuildingPart> = {
+  R: 'roof', E: 'eave', H: 'wall', S: 'side', D: 'door', F: 'base',
+}
 
 export interface MinefieldSave {
   terrain: TerrainType
@@ -43,7 +51,7 @@ function encodeCell(state: GameState, col: number, row: number): string {
   switch (tile.id) {
     case 'ground': return '.'
     case 'visited': return 'V'
-    case 'wall': return 'W'
+    case 'building': return BUILDING_PART_CHAR[tile.metadata?.part as BuildingPart] ?? '_'
     case 'gem': return 'G'
     case 'exploded': return 'X'
     case 'mine': {
@@ -71,10 +79,11 @@ function placeFromChar(
 ): void {
   const variant = cellVariant(col, row)
   const t = target.terrain
+  const part = CHAR_BUILDING_PART[ch]
+  if (part) { target.map.setTile(col, row, makeTileBuilding(part)); return }
   switch (ch) {
     case '.': target.map.setTile(col, row, makeTileGround(variant, t)); return
     case 'V': target.map.setTile(col, row, makeTileVisited(variant, t)); return
-    case 'W': target.map.setTile(col, row, makeTileWall()); return
     case 'G': target.map.setTile(col, row, makeTileGem()); return
     case 'X': target.map.setTile(col, row, TILE_EXPLODED); return
     case 'M': target.map.setTile(col, row, makeTileMine('normal', variant, t)); return
@@ -177,7 +186,10 @@ export function setStateGetter(getter: () => GameState): void {
 
 export const saveProfile: SaveProfile<MinefieldSave> = createSaveProfile<MinefieldSave>({
   key: 'minefield',
-  version: 1,
+  // v2: terrain encoding gained pseudo-3D buildings (parts R/E/H/S/D/F) and
+  // dropped the old linear-wall code 'W'. No migrate — pre-building saves are
+  // cleanly rejected (version_unsupported) rather than loaded half-broken.
+  version: 2,
   serialize: () => serializeState(getCurrentState()),
   deserialize: (data) => applyToState(getCurrentState(), data),
   // No migrate needed for v1 — add when the shape changes.

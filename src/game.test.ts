@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { createTileMap, type TileMap } from 'zx-kit'
-import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, fixWallTraps, type MineType } from './game.ts'
+import { createTileMap, createRng, type TileMap } from 'zx-kit'
+import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, fixObstacleTraps, type MineType } from './game.ts'
+import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
-import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW } from './config.ts'
-import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileWall, TILE_EXPLODED, type TerrainType } from './sprites.ts'
+import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT } from './config.ts'
+import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
 
@@ -629,21 +630,23 @@ describe('terrain — applyClusterBlast visited tiles use terrain path color', (
   })
 })
 
-// ── fixWallTraps ──────────────────────────────────────────────────────────────
+// ── fixObstacleTraps ──────────────────────────────────────────────────────────
 
-function setWall(map: TileMap, col: number, row: number): void {
-  map.setTile(col, row, makeTileWall())
+// A single solid obstacle tile (one building cell) — enough to exercise the
+// per-tile trap-relocation logic without stamping a whole building.
+function setObstacle(map: TileMap, col: number, row: number): void {
+  map.setTile(col, row, makeTileBuilding('wall'))
 }
 
-describe('fixWallTraps — vertical wall', () => {
+describe('fixObstacleTraps — vertical wall', () => {
   it('removes one of the two perpendicular mines flanking a wall', () => {
     const map = emptyMap()
     // Vertical wall at column 5; approach cell is (4,5); perp = (4,4) and (4,6)
-    setWall(map, 5, 5)
+    setObstacle(map, 5, 5)
     setMine(map, 4, 4)
     setMine(map, 4, 6)
 
-    fixWallTraps(map, 'grass')
+    fixObstacleTraps(map, 'grass')
 
     const mineCount = map.findById('mine').length
     expect(mineCount).toBe(1)
@@ -652,38 +655,38 @@ describe('fixWallTraps — vertical wall', () => {
   it('also resolves the trap on the opposite side of the wall', () => {
     const map = emptyMap()
     // Approach from the right at (6,5); perp = (6,4) and (6,6)
-    setWall(map, 5, 5)
+    setObstacle(map, 5, 5)
     setMine(map, 6, 4)
     setMine(map, 6, 6)
 
-    fixWallTraps(map, 'grass')
+    fixObstacleTraps(map, 'grass')
 
     expect(map.findById('mine').length).toBe(1)
   })
 })
 
-describe('fixWallTraps — horizontal wall', () => {
+describe('fixObstacleTraps — horizontal wall', () => {
   it('removes one of the two perpendicular mines above/below a horizontal wall', () => {
     const map = emptyMap()
     // Horizontal wall at (5,5); approach cell above is (5,4); perp = (4,4) and (6,4)
-    setWall(map, 5, 5)
+    setObstacle(map, 5, 5)
     setMine(map, 4, 4)
     setMine(map, 6, 4)
 
-    fixWallTraps(map, 'grass')
+    fixObstacleTraps(map, 'grass')
 
     expect(map.findById('mine').length).toBe(1)
   })
 })
 
-describe('fixWallTraps — no-op cases', () => {
+describe('fixObstacleTraps — no-op cases', () => {
   it('does nothing when only one perpendicular neighbor is a mine', () => {
     const map = emptyMap()
-    setWall(map, 5, 5)
+    setObstacle(map, 5, 5)
     setMine(map, 4, 4)
     // (4,6) stays as ground
 
-    fixWallTraps(map, 'grass')
+    fixObstacleTraps(map, 'grass')
 
     expect(map.findById('mine').length).toBe(1)
     expect(map.getTile(4, 4)?.id).toBe('mine')
@@ -696,20 +699,20 @@ describe('fixWallTraps — no-op cases', () => {
     setMine(map, 6, 4)
     setMine(map, 6, 6)
 
-    fixWallTraps(map, 'grass')
+    fixObstacleTraps(map, 'grass')
 
     expect(map.findById('mine').length).toBe(4)
   })
 
   it('does not touch mines beyond the immediate perpendicular pair', () => {
     const map = emptyMap()
-    setWall(map, 5, 5)
+    setObstacle(map, 5, 5)
     setMine(map, 4, 4)
     setMine(map, 4, 6)
     // Bystander far away — must survive
     setMine(map, 10, 10)
 
-    fixWallTraps(map, 'grass')
+    fixObstacleTraps(map, 'grass')
 
     expect(map.findById('mine').length).toBe(2)
     expect(map.getTile(10, 10)?.id).toBe('mine')
@@ -717,11 +720,11 @@ describe('fixWallTraps — no-op cases', () => {
 
   it('replaces the relocated mine with a ground tile (not visited or other)', () => {
     const map = emptyMap()
-    setWall(map, 5, 5)
+    setObstacle(map, 5, 5)
     setMine(map, 4, 4)
     setMine(map, 4, 6)
 
-    fixWallTraps(map, 'grass')
+    fixObstacleTraps(map, 'grass')
 
     // One of (4,4) / (4,6) is now ground
     const ids = [map.getTile(4, 4)?.id, map.getTile(4, 6)?.id]
@@ -730,21 +733,21 @@ describe('fixWallTraps — no-op cases', () => {
   })
 })
 
-describe('fixWallTraps — invariant via createGame', () => {
+describe('fixObstacleTraps — invariant via createGame', () => {
   // Property test: across many random levels, no wall is ever flanked by
   // mines on both perpendicular sides of any of its approach cells.
   it('createGame never leaves a mine|wall|mine perpendicular pattern', () => {
     for (let run = 0; run < 20; run++) {
       const level = run % 4
       const state = createGame(level)
-      const walls = state.map.findById('wall')
-      for (const { x, y } of walls) {
+      const obstacles = state.map.findById('building')
+      for (const { x, y } of obstacles) {
         for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
           const ac = x + dc, ar = y + dr
           const approach = state.map.getTile(ac, ar)
           // Only walkable approach cells matter — a mine approach kills the
-          // player before they ever face the wall, so it isn't a "trap".
-          if (!approach || approach.id === 'wall' || approach.id === 'mine') continue
+          // player before they ever face the obstacle, so it isn't a "trap".
+          if (!approach || approach.id === 'building' || approach.id === 'mine') continue
           const perpDirs = dc === 0 ? [[1, 0], [-1, 0]] : [[0, 1], [0, -1]]
           const bothMines = perpDirs.every(([pdc, pdr]) =>
             state.map.getTile(ac + pdc, ar + pdr)?.id === 'mine'
@@ -753,5 +756,227 @@ describe('fixWallTraps — invariant via createGame', () => {
         }
       }
     }
+  })
+})
+
+// ── createBuilding — geometry & pseudo-3D composition ─────────────────────────
+
+describe('createBuilding — geometry', () => {
+  it('reserves a (roofW+1) × (roofD+wallH+1) box of solid building tiles', () => {
+    const map = emptyMap()
+    const box = createBuilding(map, 4, 3, 3, 3)
+    expect(box).toMatchObject({ x: 4, y: 3, w: 4, h: 3 + BUILDING_WALL_HEIGHT + 1, roofW: 3, roofD: 3 })
+
+    let count = 0
+    for (let r = box.y; r < box.y + box.h; r++) {
+      for (let c = box.x; c < box.x + box.w; c++) {
+        const t = map.getTile(c, r)
+        expect(t?.id).toBe('building')
+        expect(t?.solid).toBe(true)
+        count++
+      }
+    }
+    expect(count).toBe(box.w * box.h)
+  })
+
+  it('lays out roof on top, eave on the right, brick walls below, foundation at the bottom', () => {
+    const map = emptyMap()
+    const box = createBuilding(map, 2, 2, 4, 3)        // roof rows 2..4, walls 5..6, base 7
+    expect(map.getTile(2, 2)?.metadata?.part).toBe('roof')      // roof corner
+    expect(map.getTile(2 + 4, 2)?.metadata?.part).toBe('eave')  // right overhang
+    expect(map.getTile(2, 5)?.metadata?.part).toBe('wall')      // front wall
+    expect(map.getTile(2 + 4, 5)?.metadata?.part).toBe('side')  // shaded side
+    for (let c = box.x; c < box.x + box.w; c++) {
+      expect(map.getTile(c, box.y + box.h - 1)?.metadata?.part).toBe('base')  // whole bottom row
+    }
+  })
+
+  it('places exactly one door on the front wall', () => {
+    const map = emptyMap()
+    const box = createBuilding(map, 5, 5, 5, 4)
+    const doors: string[] = []
+    for (let r = box.y; r < box.y + box.h; r++) {
+      for (let c = box.x; c < box.x + box.w; c++) {
+        if (map.getTile(c, r)?.metadata?.part === 'door') doors.push(`${c},${r}`)
+      }
+    }
+    expect(doors).toHaveLength(1)
+  })
+
+  it('renders the roof as ZX grey (WHITE ink dithered on BLACK paper)', () => {
+    const map = emptyMap()
+    createBuilding(map, 1, 1, 3, 3)
+    const roof = map.getTile(1, 1)
+    expect(roof?.ink).toBe(C.WHITE)
+    expect(roof?.paper).toBe(C.BLACK)
+  })
+
+  it('shades the side wall darker (RED) than the bright front wall (B_RED)', () => {
+    const map = emptyMap()
+    createBuilding(map, 2, 2, 3, 3)               // walls at rows 5..6
+    expect(map.getTile(2, 5)?.ink).toBe(C.B_RED)  // front
+    expect(map.getTile(2 + 3, 5)?.ink).toBe(C.RED) // side column
+  })
+})
+
+// ── placeBuildings — placement & fairness ─────────────────────────────────────
+
+// Flood-fill over non-solid cells from the start to any cell in the exit column.
+// Mines are NOT solid, so they never disconnect the field — only buildings do.
+function canReachExit(map: TileMap): boolean {
+  const seen = new Set<string>()
+  const stack: Array<[number, number]> = [[START_COL, START_ROW]]
+  while (stack.length) {
+    const [c, r] = stack.pop()!
+    if (c < 0 || r < 0 || c >= COLS || r >= ROWS) continue
+    const key = `${c},${r}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    if (map.getTile(c, r)?.solid) continue
+    if (c === COLS - 1) return true
+    stack.push([c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1])
+  }
+  return false
+}
+
+describe('placeBuildings — placement & fairness', () => {
+  it('never builds on the border ring (row 0, last row, col 0, exit col)', () => {
+    for (let level = 0; level < 4; level++) {
+      const map = emptyMap()
+      placeBuildings(map, level, createRng(1000 + level))
+      for (let c = 0; c < COLS; c++) {
+        expect(map.getTile(c, 0)?.id).not.toBe('building')
+        expect(map.getTile(c, ROWS - 1)?.id).not.toBe('building')
+      }
+      for (let r = 0; r < ROWS; r++) {
+        expect(map.getTile(0, r)?.id).not.toBe('building')
+        expect(map.getTile(COLS - 1, r)?.id).not.toBe('building')
+      }
+    }
+  })
+
+  it('never blocks the start safe zone', () => {
+    for (let s = 0; s < 20; s++) {
+      const map = emptyMap()
+      placeBuildings(map, s % 4, createRng(7 + s))
+      for (let dr = -SAFE_RADIUS; dr <= SAFE_RADIUS; dr++) {
+        for (let dc = -SAFE_RADIUS; dc <= SAFE_RADIUS; dc++) {
+          const t = map.getTile(START_COL + dc, START_ROW + dr)
+          if (t) expect(t.id).not.toBe('building')
+        }
+      }
+    }
+  })
+
+  it('keeps at least one empty tile between any two buildings (no corner-touch)', () => {
+    for (let s = 0; s < 10; s++) {
+      const map = emptyMap()
+      const boxes = placeBuildings(map, 3, createRng(42 + s))
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i], b = boxes[j]
+          // ≥1 empty column OR ≥1 empty row between the boxes
+          const sepX = b.x > a.x + a.w || a.x > b.x + b.w
+          const sepY = b.y > a.y + a.h || a.y > b.y + b.h
+          expect(sepX || sepY).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('places a big building (roof ≥ BIG_ROOF_MIN) at least once every two levels', () => {
+    for (const level of [1, 3]) {       // odd 0-indexed levels = the guaranteed-big cadence
+      const map = emptyMap()
+      const boxes = placeBuildings(map, level, createRng(99 + level))
+      const hasBig = boxes.some((b) => b.roofW >= BIG_ROOF_MIN || b.roofD >= BIG_ROOF_MIN)
+      expect(hasBig).toBe(true)
+    }
+  })
+
+  it('does not throw and places nothing when there is no free room', () => {
+    const map = emptyMap()
+    // Fill the whole interior with buildings → every candidate is rejected for
+    // overlap/gap, so nothing new fits. Must degrade gracefully, never throw.
+    for (let r = 1; r < ROWS - 1; r++) {
+      for (let c = 1; c < COLS - 1; c++) map.setTile(c, r, makeTileBuilding('wall'))
+    }
+    let boxes: BuildingBox[] = []
+    expect(() => { boxes = placeBuildings(map, 4, createRng(1)) }).not.toThrow()
+    expect(boxes).toHaveLength(0)
+  })
+
+  it('the player can always reach the exit column from the start (20 random levels)', () => {
+    for (let run = 0; run < 20; run++) {
+      const state = createGame(run % 4, 0, `reach-${run}`)
+      expect(canReachExit(state.map)).toBe(true)
+    }
+  })
+})
+
+// ── Buildings: mine & airplane exclusion ──────────────────────────────────────
+
+describe('buildings — mines and airplane drops never land on a building', () => {
+  it('createGame never places a mine on a building cell (20 random levels)', () => {
+    for (let run = 0; run < 20; run++) {
+      const state = createGame(run % 4, 0, `mines-${run}`)
+      const buildingCells = new Set(state.map.findById('building').map(({ x, y }) => `${x},${y}`))
+      for (const { x, y } of state.map.findById('mine')) {
+        expect(buildingCells.has(`${x},${y}`)).toBe(false)
+      }
+    }
+  })
+
+  // The requirement "airplane never drops a mine on a roof" is NOT an exception —
+  // addDropMinesInBand only ever targets `ground`, so building cells are silently
+  // skipped and stay buildings. This test pins that contract down.
+  it('airplane drops skip building cells silently (no throw, building stays a building)', () => {
+    const state = createGame(3, 0, 'drop-seed')
+    const buildingCells = new Set(state.map.findById('building').map(({ x, y }) => `${x},${y}`))
+    expect(buildingCells.size).toBeGreaterThan(0)
+
+    for (let pass = 0; pass < 40; pass++) {
+      state.airplanePassIndex = pass  // vary the seeded drop pattern across the whole field
+      expect(() => addDropMinesInBand(state, 10, 0, ROWS - 1)).not.toThrow()
+      for (const { col, row } of state.droppedMines) {
+        expect(buildingCells.has(`${col},${row}`)).toBe(false)
+      }
+    }
+    for (const key of buildingCells) {
+      const [c, r] = key.split(',').map(Number)
+      expect(state.map.getTile(c, r)?.id).toBe('building')
+    }
+  })
+
+  it('a building tile adjacent to the player is not counted as a warning mine', () => {
+    const map = emptyMap()
+    createBuilding(map, 5, 5, 3, 3)          // roof corner at (5,5)
+    expect(map.getTile(5, 5)?.id).toBe('building')
+    expect(countWarningMines(map, 5, 4)).toBe(0)  // player directly above the roof, no mines
+  })
+})
+
+// ── fixObstacleTraps — building perimeter edge cases ──────────────────────────
+
+describe('fixObstacleTraps — building perimeter', () => {
+  it('resolves a mine|building|mine trap on a real building perimeter', () => {
+    const map = emptyMap()
+    const box = createBuilding(map, 6, 6, 3, 3)
+    // Approach from the left of the building: approach cell sits one tile left of
+    // the front-left wall; flank it above and below with mines.
+    const wallRow = box.y + 3                 // first wall row
+    const ac = box.x - 1, ar = wallRow
+    setMine(map, ac, ar - 1)
+    setMine(map, ac, ar + 1)
+    fixObstacleTraps(map, 'grass')
+    const flanks = [map.getTile(ac, ar - 1)?.id, map.getTile(ac, ar + 1)?.id]
+    expect(flanks).toContain('ground')         // one mine relocated away
+  })
+
+  it('leaves a single-sided mine next to a building untouched', () => {
+    const map = emptyMap()
+    createBuilding(map, 6, 6, 3, 3)
+    setMine(map, 5, 9)                          // only one flank — not a trap
+    fixObstacleTraps(map, 'grass')
+    expect(map.getTile(5, 9)?.id).toBe('mine')
   })
 })

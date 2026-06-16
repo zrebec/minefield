@@ -178,15 +178,68 @@ export const GROUND_B = new Uint8Array([
   0x00, // ........
 ])
 
-// Wall — brick pattern (8×8), solid obstacle
-export const WALL = new Uint8Array([
+// ─── Building parts (8×8) — composed by createBuilding into a pseudo-3D box ─────
+// A building is a solid block of these tiles: grey roof on top, brick front +
+// darker side walls, a door and a foundation row. Mines never sit on them.
+
+// Roof — 50% dither of WHITE on BLACK reads as authentic ZX "grey" (no grey hex exists)
+export const BUILDING_ROOF = new Uint8Array([
+  0xAA, // #.#.#.#.
+  0x55, // .#.#.#.#
+  0xAA, // #.#.#.#.
+  0x55, // .#.#.#.#
+  0xAA, // #.#.#.#.
+  0x55, // .#.#.#.#
+  0xAA, // #.#.#.#.
+  0x55, // .#.#.#.#
+])
+
+// Roof right edge / eave — grey dither with a lit right fascia → the roof overhang
+export const BUILDING_EAVE = new Uint8Array([
+  0xAB, // #.#.#.##
+  0x57, // .#.#.###
+  0xAB, // #.#.#.##
+  0x57, // .#.#.###
+  0xAB, // #.#.#.##
+  0x57, // .#.#.###
+  0xAB, // #.#.#.##
+  0x57, // .#.#.###
+])
+
+// Brick wall — running-bond bricks split by black mortar; tiles vertically.
+// Used for the bright front face (B_RED) and the shaded side face (RED).
+export const BUILDING_BRICK = new Uint8Array([
+  0x00, // ........  mortar
+  0xFE, // #######.  brick course (joint at right)
+  0xFE, // #######.
+  0x00, // ........  mortar
+  0xEF, // ###.####  brick course (joint staggered)
+  0xEF, // ###.####
+  0x00, // ........  mortar
+  0xFE, // #######.
+])
+
+// Door — arched opening in the front wall (cosmetic; the tile is still solid)
+export const BUILDING_DOOR = new Uint8Array([
+  0x00, // ........
+  0x3C, // ..####..  arch
+  0x66, // .##..##.
+  0x66, // .##..##.
+  0x66, // .##..##.
+  0x66, // .##..##.
+  0x66, // .##..##.
+  0x66, // .##..##.
+])
+
+// Foundation — solid footing band grounding the building to the field
+export const BUILDING_BASE = new Uint8Array([
+  0xFF, // ########  foundation
   0xFF, // ########
-  0xA5, // #.#..#.#
-  0xA5, // #.#..#.#
   0xFF, // ########
-  0x49, // .#..#..#
-  0x49, // .#..#..#
-  0xFF, // ########
+  0x00, // ........
+  0x00, // ........
+  0x00, // ........
+  0x00, // ........
   0x00, // ........
 ])
 
@@ -269,13 +322,40 @@ export function makeTileFlag(
   }
 }
 
-export function makeTileWall(): Tile {
+export type BuildingPart = 'roof' | 'eave' | 'wall' | 'side' | 'door' | 'base'
+
+const BUILDING_SPRITE: Record<BuildingPart, Uint8Array> = {
+  roof: BUILDING_ROOF,
+  eave: BUILDING_EAVE,
+  wall: BUILDING_BRICK,
+  side: BUILDING_BRICK,
+  door: BUILDING_DOOR,
+  base: BUILDING_BASE,
+}
+
+// Ink per part — grey roof (white dither), bright-red front vs dark-red side
+// gives the cheap pseudo-3D shading; warm door; dark foundation.
+const BUILDING_INK: Record<BuildingPart, SpectrumColor> = {
+  roof: C.WHITE,
+  eave: C.WHITE,
+  wall: C.B_RED,
+  side: C.RED,
+  door: C.B_YELLOW,
+  base: C.RED,
+}
+
+// A single building cell. The whole pseudo-3D box is built from these by
+// createBuilding (buildings.ts). `solid: true` blocks movement AND — because
+// mines/airplane drops only ever target `ground` — keeps every building cell
+// permanently mine-free for free.
+export function makeTileBuilding(part: BuildingPart): Tile {
   return {
-    sprite: WALL,
-    ink: C.B_RED,
+    sprite: BUILDING_SPRITE[part],
+    ink: BUILDING_INK[part],
     paper: C.BLACK,
     solid: true,
-    id: 'wall',
+    id: 'building',
+    metadata: { part },
   }
 }
 

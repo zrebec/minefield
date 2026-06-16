@@ -107,7 +107,24 @@ NAVŠTÍVENÁ + mína → EXPLÓZIA → strata života
 - `GainNode` pre volume control a envelope
 
 ### Varovanie podľa blízkosti
-Počítať míny v okolí 3×3 od hráča (max 8 susedov):
+
+> **⚠️ ERRATA / SHOWSTOPPER (2026-06-15) — tento popis bol roky NESPRÁVNY.** Stálo tu „počítať míny v
+> okolí **3×3** od hráča (max 8 susedov)". To je **vecný nezmysel** — a presne to v dizajn-diskusii
+> spustilo falošný poplach, že hra „ráta diagonály". **Realita v kóde** (`game.ts → countWarningMines`,
+> a je to **otestované** v `game.test.ts`, vrátane testu *„beacon mine diagonally 2 away does NOT warn
+> (only cardinal)"*): počítajú sa **iba ORTOGONÁLNI susedia** (von Neumann). Hráč chodí len ortogonálne
+> (4 smery), takže diagonálna mína je neakčná → kód ju **správne ignoruje**. **Pravda je kód a testy,
+> nie tento dokument.**
+
+Čo `countWarningMines` reálne robí:
+
+- **4 ortogonálni susedia, vzdialenosť 1** — každá mína (akýkoľvek typ) `+= 1` (max 4).
+- **+ míny typu `beacon`, vzdialenosť 2 ortogonálne** (cyan, od levelu 3, `BEACON_MINE_RATIO = 0.12`;
+  „vysielajú" o bunku ďalej; diagonálny beacon sa NERÁTA). **Toto — nie diagonály — je jediný dôvod,
+  prečo súčet vie ísť nad 4** (max `4 + 4 = 8`).
+- Vráti `min(count, 8)` → tabuľka 1–8 pipov nižšie sedí.
+
+Hodnoty (count → zvuk):
 
 ```
 0 mín  → ticho

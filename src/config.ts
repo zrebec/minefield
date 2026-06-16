@@ -113,20 +113,37 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
   },
 ]
 
-// ── Walls ─────────────────────────────────────────────────────────────────────
+// ── Buildings ───────────────────────────────────────────────────────────────
+// Pseudo-3D buildings replace the old linear walls. Sizes below count the ROOF
+// footprint only; createBuilding adds extra tiles for the eave, front/side
+// walls and foundation (the full bounding box is solid and mine-free).
 
-// Wall count per level — random in range [min, max] inclusive.
+// Roof footprint bounds (tiles). Min/max fixed by design (owner): 3×3 … 8×8.
+export const ROOF_MIN = 3
+export const ROOF_MAX = 8
+
+// Front wall height (tile rows) below the roof. Bounding box height = roofD + this + 1 (foundation).
+export const BUILDING_WALL_HEIGHT = 2
+
+// A "big" building has a roof dimension ≥ this.
+export const BIG_ROOF_MIN = 6
+
+// Max roof dimension allowed per level (early levels stay modest).
 // Index = level (0-based); levels beyond range repeat the last value.
-export const WALL_COUNTS: Array<[number, number]> = [
-  [6, 7],     // Level 1
-  [10, 11],   // Level 2
-  [12, 15],   // Level 3
-  [16, 18],   // Level 4+
+export const ROOF_MAX_PER_LEVEL = [5, 6, 7, ROOF_MAX]
+
+// Building count per level — random in range [min, max] inclusive.
+// Index = level (0-based); levels beyond range repeat the last value.
+export const BUILDING_COUNTS: Array<[number, number]> = [
+  [2, 3],   // Level 1
+  [3, 4],   // Level 2
+  [4, 5],   // Level 3
+  [5, 6],   // Level 4+
 ]
 
-// Wall segment length (8×8 cells) — random in range [min, max] inclusive
-export const WALL_LENGTH_MIN = 4
-export const WALL_LENGTH_MAX = 9
+// Minimum empty-tile gap kept around every building (≥1 keeps a walkable lane
+// between buildings and prevents corner-touch pockets).
+export const BUILDING_GAP = 1
 
 // ── Airplane — movement ───────────────────────────────────────────────────────
 

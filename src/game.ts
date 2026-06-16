@@ -1,10 +1,11 @@
 import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
-import GEM_COUNT, { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, WALL_COUNTS, WALL_LENGTH_MIN, WALL_LENGTH_MAX } from './config.ts'
+import GEM_COUNT, { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS } from './config.ts'
 import {
-  makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileWall, TILE_EXPLODED,
+  makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED,
   type CellVariant, type TerrainType,
 } from './sprites.ts'
+import { placeBuildings } from './buildings.ts'
 
 const TERRAIN_TYPES: TerrainType[] = ['grass', 'snow', 'dust']
 
@@ -96,41 +97,6 @@ function randomInt(rng: Rng, min: number, max: number): number {
   return rng.range(min, max + 1)
 }
 
-function placeWalls(map: TileMap, level: number, rng: Rng): void {
-  const [minCount, maxCount] = WALL_COUNTS[Math.min(level, WALL_COUNTS.length - 1)]
-  const count = randomInt(rng, minCount, maxCount)
-  let placed = 0
-  let attempts = 0
-  while (placed < count && attempts < count * 30) {
-    attempts++
-    const horizontal = rng.chance(0.5)
-    const length = randomInt(rng, WALL_LENGTH_MIN, WALL_LENGTH_MAX)
-    const startCol = horizontal
-      ? randomInt(rng, 2, COLS - 2 - length)
-      : randomInt(rng, 2, COLS - 2)
-    const startRow = horizontal
-      ? randomInt(rng, 0, ROWS - 1)
-      : randomInt(rng, 0, ROWS - length)
-    const cells: Array<[number, number]> = []
-    for (let i = 0; i < length; i++) {
-      cells.push(horizontal ? [startCol + i, startRow] : [startCol, startRow + i])
-    }
-    let ok = true
-    for (const [c, r] of cells) {
-      if (Math.abs(c - START_COL) <= SAFE_RADIUS && Math.abs(r - START_ROW) <= SAFE_RADIUS) { ok = false; break }
-      if (c === COLS - 1) { ok = false; break }
-      if (map.getTile(c, r)?.id !== 'ground') { ok = false; break }
-      for (const [dc, dr] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-        if (map.getTile(c + dc, r + dr)?.id === 'wall') { ok = false; break }
-      }
-      if (!ok) break
-    }
-    if (!ok) continue
-    for (const [c, r] of cells) map.setTile(c, r, makeTileWall())
-    placed++
-  }
-}
-
 function placeMines(map: TileMap, count: number, safeCol: number, safeRow: number, level: number, terrain: TerrainType, rng: Rng): void {
   const clusterRatio = level >= CLUSTER_MINE_LEVEL ? CLUSTER_MINE_RATIO : 0
   const beaconRatio = level >= BEACON_MINE_LEVEL ? BEACON_MINE_RATIO : 0
@@ -152,19 +118,33 @@ function placeMines(map: TileMap, count: number, safeCol: number, safeRow: numbe
   }
 }
 
-// After mine placement: prevent the "wall ahead + mine each side" trap by
-// relocating one of the perpendicular mines back to ground.
-export function fixWallTraps(map: TileMap, terrain: TerrainType): void {
-  for (const { x, y } of map.findById('wall')) {
-    for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const ac = x + dc, ar = y + dr
-      const approach = map.getTile(ac, ar)
-      if (!approach || approach.id !== 'ground') continue
-      const perpDirs = dc === 0 ? [[1, 0], [-1, 0]] : [[0, 1], [0, -1]]
-      const perps: Array<[number, number]> = perpDirs.map(([pdc, pdr]) => [ac + pdc, ar + pdr])
-      if (perps.every(([pc, pr]) => map.getTile(pc, pr)?.id === 'mine')) {
-        const [pc, pr] = perps[0]
-        map.setTile(pc, pr, makeTileGround(cellVariant(pc, pr), terrain))
+// Prevent the "obstacle ahead + mine on each side" trap (forced step onto a mine)
+// around any solid obstacle perimeter. For every walkable approach cell flanked
+// by mines on both perpendicular sides, relocate one flank mine back to ground.
+//
+// Runs to a FIXED POINT: relocating a mine can turn a previously-deadly "mine
+// approach" (which the player would die on before ever facing the obstacle) into
+// a fresh walkable trap one tile over. A single pass can miss that cascade on a
+// dense building perimeter, so we repeat until a full pass changes nothing.
+// Termination is guaranteed — every change removes exactly one mine.
+export function fixObstacleTraps(map: TileMap, terrain: TerrainType): void {
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const { x, y } of map.findById('building')) {
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const ac = x + dc, ar = y + dr
+        const approach = map.getTile(ac, ar)
+        // Walkable = on the map, not solid, not a mine (a mine approach kills the
+        // player first, so it isn't a trap). Matches the invariant we assert.
+        if (!approach || approach.solid || approach.id === 'mine') continue
+        const perpDirs = dc === 0 ? [[1, 0], [-1, 0]] : [[0, 1], [0, -1]]
+        const perps: Array<[number, number]> = perpDirs.map(([pdc, pdr]) => [ac + pdc, ar + pdr])
+        if (perps.every(([pc, pr]) => map.getTile(pc, pr)?.id === 'mine')) {
+          const [pc, pr] = perps[0]
+          map.setTile(pc, pr, makeTileGround(cellVariant(pc, pr), terrain))
+          changed = true
+        }
       }
     }
   }
@@ -232,11 +212,12 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number):
     ? 'grass'
     : rng.pick(TERRAIN_TYPES)
   const map = buildMap(terrain)
-  placeWalls(map, level, rng)
+  placeBuildings(map, level, rng)
   placeMines(map, cfg.mines, START_COL, START_ROW, level, terrain, rng)
-  fixWallTraps(map, terrain)
   placeGems(map, GEM_COUNT, START_COL, START_ROW, rng)
   map.setTile(START_COL, START_ROW, makeTileVisited(cellVariant(START_COL, START_ROW), terrain))
+  // De-trap LAST, on the final board (gems are walkable too), to a fixed point.
+  fixObstacleTraps(map, terrain)
 
   const firstAcMs = rng.float(cfg.acFirstMs, cfg.acFirstMaxMs)
 
