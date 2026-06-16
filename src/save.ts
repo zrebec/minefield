@@ -12,12 +12,14 @@ import {
   makeTileBuilding, makeTileFlag, TILE_EXPLODED,
 } from './sprites.ts'
 
-// Building parts ↔ save chars (none collide with the mine/flag/terrain codes below)
+// Building parts ↔ save chars (none collide with the mine/flag/terrain codes below).
+// Roof shade is a pure function of position, so 'roof' stores one char and the
+// variant is recomputed on load (makeTileBuilding(part, col, row)).
 const BUILDING_PART_CHAR: Record<BuildingPart, string> = {
-  roof: 'R', eave: 'E', wall: 'H', side: 'S', door: 'D', base: 'F',
+  roof: 'R', eave: 'E', brick: 'H', side: 'S', window: 'N', concrete: 'F', chimney: 'Y',
 }
 const CHAR_BUILDING_PART: Record<string, BuildingPart> = {
-  R: 'roof', E: 'eave', H: 'wall', S: 'side', D: 'door', F: 'base',
+  R: 'roof', E: 'eave', H: 'brick', S: 'side', N: 'window', F: 'concrete', Y: 'chimney',
 }
 
 export interface MinefieldSave {
@@ -80,7 +82,7 @@ function placeFromChar(
   const variant = cellVariant(col, row)
   const t = target.terrain
   const part = CHAR_BUILDING_PART[ch]
-  if (part) { target.map.setTile(col, row, makeTileBuilding(part)); return }
+  if (part) { target.map.setTile(col, row, makeTileBuilding(part, col, row)); return }
   switch (ch) {
     case '.': target.map.setTile(col, row, makeTileGround(variant, t)); return
     case 'V': target.map.setTile(col, row, makeTileVisited(variant, t)); return
@@ -186,7 +188,7 @@ export function setStateGetter(getter: () => GameState): void {
 
 export const saveProfile: SaveProfile<MinefieldSave> = createSaveProfile<MinefieldSave>({
   key: 'minefield',
-  // v2: terrain encoding gained pseudo-3D buildings (parts R/E/H/S/D/F) and
+  // v2: terrain encoding gained high-angle buildings (parts R/E/H/S/N/F/Y) and
   // dropped the old linear-wall code 'W'. No migrate — pre-building saves are
   // cleanly rejected (version_unsupported) rather than loaded half-broken.
   version: 2,

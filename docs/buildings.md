@@ -1,12 +1,14 @@
-# Budovy namiesto „bezduchých“ stien — dizajn (pseudo-3D oblique)
+# Budovy namiesto „bezduchých“ stien — dizajn (high-angle / pohľad zhora)
 
-> **Status: NÁVRH na schválenie (neimplementované).** Zdroj: zadanie ownera (2026-06-16) +
-> overenie v kóde (`game.ts`, `sprites.ts`, `renderer.ts`, `player.ts`, `config.ts`) + 4 zafixované
-> rozhodnutia (nižšie). Pendant v portfólio docs: `retro/docs/sk/minefield.md` →
+> **Status: IMPLEMENTOVANÉ (review).** Zdroj: zadanie ownera (2026-06-16) + overenie v kóde
+> (`game.ts`, `sprites.ts`, `buildings.ts`, `renderer.ts`, `player.ts`, `config.ts`, `save.ts`) +
+> zafixované rozhodnutia (nižšie) + **revízia podľa referenčného obrázka**
+> (`retro/docs/assets/sprites/…png`). Pendant v portfólio docs: `retro/docs/sk/minefield.md` →
 > *„Chrobáky do hlavy → Budovy namiesto bezduchých stien“*.
 >
-> **Cieľ:** lineárne, náhodne pohodené steny nahradiť **pseudo-3D budovami** — obdĺžnikové pôdorysy,
-> ktoré opticky „vyrastajú“ ako kreslená kocka (šedá strecha + tehlový predok + tmavší bok).
+> **Cieľ:** lineárne steny nahradiť **budovami videnými z vysokého uhla** — dominuje **šedá
+> textúrovaná strecha**, pod ňou len tenký 2-riadkový **tehlový predok** (okná, tmavšie okraje) a
+> 1-riadkový **biely betónový základ**. Komín navrchu. Mína nikdy nie je na budove.
 
 ---
 
@@ -14,10 +16,10 @@
 
 | # | Otázka | Rozhodnutie |
 |---|--------|-------------|
-| 1 | **Max veľkosť strechy** | **8×8 tiles**, min **3×3** (rozmer berie **iba strechu**; bok + pôdorys + predná stena sú tiles navyše). |
+| 1 | **Veľkosť strechy** | Šírka a hĺbka **rolované nezávisle** → rôzne obdĺžniky / orientácie (3×8, 8×4, 4×8…), **nie len štvorce**. Per-rozmer cap **8** (zriedka), min **3** (`ROOF_MIN=2` ak chceš aj 2×N). |
 | 2 | **Steny vs budovy** | **Budovy nahrádzajú** lineárne steny. `placeWalls` → `placeBuildings`. |
-| 3 | **Kolízia / férovosť** | **Celý vykreslený obrys budovy** = `solid` a **bez mín**. Pod nepriehľadnou strechou sa nikdy neskryje mína ani cesta. |
-| 4 | **Vizuál** | **Kreslená kocka (oblique)** — šedá strecha zhora, viditeľný **predok aj bok** (hĺbka). |
+| 3 | **Kolízia / férovosť** | **Celý obrys budovy** = `solid` a **bez mín**. Pod nepriehľadnou strechou sa nikdy neskryje mína ani cesta. |
+| 4 | **Vizuál** | **Pohľad zhora (high-angle):** dominantná šedá **textúrovaná** strecha; tenký tehlový predok (**2 riadky**, okná + tmavšie okrajové stĺpce pre hĺbku); **biely betónový** základ (**1 riadok**); **komín** na priestrannej streche. **Bez dverí.** |
 
 ---
 
@@ -66,49 +68,40 @@ bez mín“ (rozhodnutie #3) vynútené *konštrukciou*: žiadna bunka pod kresb
 
 ### 4.1 Pojmy
 
-- **Strecha (roof footprint)** — `W × D` dlaždíc, `W, D ∈ [3, 8]`. *Toto* je „veľkosť budovy“, ako ju
-  zadáva jadro hry a ako ju vníma hráč.
-- **Obrys (bounding box)** — celý rezervovaný obdĺžnik dlaždíc: strecha **+ predná stena** (`H_wall`
-  riadkov) **+ pravý bok** (1 stĺpec) **+ pätka/tieň** (1 riadok). Celý obrys je `solid` a bez mín.
+- **Strecha (roof footprint)** — `W × D` dlaždíc, `W, D ∈ [3, 8]` **rolované nezávisle**. *Toto* je
+  „veľkosť budovy“, ktorú zadáva jadro hry.
+- **Obrys (bounding box)** — `W × (D + H_wall + 1)`: strecha (`D` riadkov, posledný = eave lip) **+
+  tehlový predok** (`H_wall = 2` riadky) **+ betónový základ** (1 riadok). Celý obrys je `solid` a bez mín.
+  Šírka obrysu = `W` (žiaden extra stĺpec — hĺbka ide cez tieňovanie, nie cez bočný stĺpec).
 
-### 4.2 Mapa dlaždíc — príklad **min 3×3 strecha** (`W=3, D=3, H_wall=2`)
+### 4.2 Mapa dlaždíc — príklad **strecha W=6, D=4** (`H_wall=2`, box `6 × 7`)
 
 ```
-        col→  c0  c0+1 c0+2 c0+3
-   row r0    [R]  [R]  [R]  [E]     R = strecha (šedá)   E = pravá hrana strechy (zvýraznenie)
-       r0+1  [R]  [R]  [R]  [E]
-       r0+2  [R]  [R]  [R]  [E]
-       r0+3  [F]  [F]  [F]  [s]     F = predná stena (tehly)   s = bok (tmavšie tehly)
-       r0+4  [F]  [G]  [F]  [s]     G = brána/okno (kozmetika, stále solid)
-       r0+5  [p]  [p]  [p]  [s]     p = pätka / tieň pri zemi
+        c0 .................. c0+5
+  r0    R   R   R   R   I   R      R = strecha (šedá, textúrovaná)
+  r0+1  R   R   R   R   R   R      I = komín (na priestrannej streche)
+  r0+2  R   R   R   R   R   R
+  r0+3  E   E   E   E   E   E      E = eave (spodná hrana strechy + tieň presahu)
+  r0+4  S   O   #   #   O   S      # = tehly (bright)   S = tmavší okrajový stĺpec
+  r0+5  S   #   #   #   #   S      O = okno (žlté tabuľky v tehle)
+  r0+6  =   =   =   =   =   =      = = biely betónový základ
 ```
 
-- **Obrys** = `(W+1) × (D + H_wall + 1)` = pre 3×3 → **4 × 6 dlaždíc**.
-- **Hĺbka (3D)** vzniká z troch vecí: **šedá plocha strechy** zhora + **pravý bok `s`/`E`** v tmavšej
-  tehle + **predná stena** s bránou. Presne to odlišuje kocku od plochej steny (rozhodnutie #4).
+- **Hĺbka (3D)** bez bočného stĺpca: **dominantná strecha** zhora + **eave tieň** (presah) + **tmavšie
+  okrajové stĺpce** tehál (`S`, `C.RED`) oproti svetlému predku (`#`, `C.B_RED`). Pohľad **zhora**, takže
+  steny sú zámerne tenké (2 riadky) — *„nekresli tak veľa stien“*.
+- **Strecha nie je sterilná:** každá `roof` bunka dostane **odtieň** (light/mid/dark dither) z čistej
+  funkcie pozície `roofVariant(col,row)` → mottled, deterministicky a seed-stabilne (identické každý level).
+- **Okná** len na hornom tehlovom riadku, každý ~3. vnútorný stĺpec, ak `W ≥ 4`. **Komín** raz, hore-vpravo,
+  ak `roofW ≥ 4 ∧ roofD ≥ 3`. **Žiadne dvere** (budova je nepriechodná, dvere boli zbytočný gimmick).
 
-### 4.3 Oblique „lean“ (naklonenie) — jadro vs polish
-
-- **Jadro (Fáza 1–2):** obrys ostáva **čistý obdĺžnik** (vyššie). Bok `s` + hrana `E` už dávajú
-  čitateľnú kocku. Toto sa **bez problémov dlaždicuje pre ľubovoľné 3×3…8×8** a je čisté pri
-  `imageSmoothingEnabled = false`.
-- **Voliteľný polish:** jemné naklonenie strechy hore-vpravo (parallelogram) cez **rohové dielce**.
-  Obrys zostáva obdĺžnik (rohové „diery“ vyplní sky/roof-overhang dielec) → **nič nie je „iba čiastočne
-  viditeľné“**. Mieru naklonenia (0 / 1 dlaždica) ladíme vizuálne, **nega­mensilo gameplay**.
-
-> **Prečo nie plný parallelogram od začiatku:** pri 8×8 streche by per-riadkové schody zhltli veľa artu
-> a hraničných prípadov. Postupujeme inkrementálne (Fáza 1 = logika, Fáza 2 = kocka), presne ako
-> odporúča portfólio doc.
-
-### 4.4 Rozmery v `createBuilding` (rozmer definuje create metóda — zadanie)
+### 4.3 `createBuilding`
 
 ```ts
-createBuilding(map, c0, r0, roofW, roofD, opts?)   // roofW, roofD ∈ [3..8]
-// stampne do TileMap obrys: roof (WxD) + side (1 stĺpec) + front (H_wall) + base (1)
-// vráti bounding box { x, y, w, h } pre placement/fairness kontroly
+createBuilding(map, c0, r0, roofW, roofD, wallH = BUILDING_WALL_HEIGHT)  // roofW, roofD ∈ [3..8]
+// stampne obrys: roof (D-1 riadkov) + eave (1) + tehly (wallH) + betón (1), šírka W
+// vráti { x, y, w, h, roofW, roofD } pre placement/fairness kontroly
 ```
-
-`H_wall` (výška prednej steny) — **návrh: 2** (alebo mierne škáluj s `roofD`). Laditeľné v `config.ts`.
 
 ---
 
@@ -116,19 +109,20 @@ createBuilding(map, c0, r0, roofW, roofD, opts?)   // roofW, roofD ∈ [3..8]
 
 Nové 8×8 dlaždice do `sprites.ts` (ako pixel-arrays, žiadne externé obrázky):
 
-| Dielec | `metadata.part` | Sprite (návrh) | Ink | Paper |
-|--------|-----------------|----------------|-----|-------|
-| **Strecha** | `roof` | 50 % dither (`0xAA`/`0x55`) → **autentická ZX šedá** | `C.WHITE` | `C.BLACK` |
-| **Hrana strechy** | `roof-edge` | dither + plná pravá/horná línia | `C.WHITE` | `C.BLACK` |
-| **Predná stena** | `wall` | tehlový vzor (≈ dnešný `WALL`) | `C.B_RED` | `C.BLACK` |
-| **Bok** | `side` | tehlový vzor, **tmavší** (tieň) | `C.RED` | `C.BLACK` |
-| **Brána/okno** | `door` | obdĺžnik/mreža v stene (kozmetika) | `C.B_YELLOW` | `C.BLACK` |
-| **Pätka/tieň** | `base` | tenký tieň pri zemi | `C.BLACK`/`C.RED` | `C.BLACK` |
-| **Komín** *(nice-to-have)* | `chimney` | malý blok + „dym“ | `C.WHITE` | `C.BLACK` |
+| Dielec | `metadata.part` | Sprite | Ink | Paper |
+|--------|-----------------|--------|-----|-------|
+| **Strecha** | `roof` | 3 odtiene dither (light/mid/dark), per-bunka cez `roofVariant` | `C.WHITE` | `C.BLACK` |
+| **Eave (lip)** | `eave` | dither hore + čierny tieň presahu dole | `C.WHITE` | `C.BLACK` |
+| **Predok** | `brick` | running-bond tehly (3px kurzy, striedané škáry) | `C.B_RED` | `C.BLACK` |
+| **Okraj/bok** | `side` | tá istá tehla, **tmavšia** (hĺbka) | `C.RED` | `C.BLACK` |
+| **Okno** | `window` | 2×2 žlté tabuľky v tehle | `C.B_YELLOW` | `C.B_RED` |
+| **Základ** | `concrete` | jasný biely betónový pás | `C.WHITE` | `C.BLACK` |
+| **Komín** | `chimney` | krytý komínový blok | `C.WHITE` | `C.BLACK` |
 
-**„Šedá“ na ZX neexistuje ako hex** → robíme ju **ditherom bielej/čiernej** (`C.WHITE` na `C.BLACK`),
-čo je dobový spôsob, ako Speccy „šedú“ kreslil. **Hĺbka kocky** = bright červená predok (`C.B_RED`) vs
-normálna červená bok (`C.RED`). Všetko **výhradne v palete** (žiadne nové hex hodnoty).
+**„Šedá“ na ZX neexistuje ako hex** → **dither bielej/čiernej** (`C.WHITE` na `C.BLACK`); tri hustoty =
+tri odtiene → mottled strecha. **Hĺbka** = bright predok (`C.B_RED`) vs tmavšie okraje (`C.RED`).
+**Okno** = jediný dielec s ne-čiernym paperom (`C.B_RED` = tehlový rám okolo žltých tabuliek). Všetko
+**výhradne v palete** (žiadne nové hex hodnoty); každá 8×8 bunka má jednu (ink, paper) dvojicu — ZX clash sedí.
 
 > Color-clash ostáva korektný: každá 8×8 bunka má jednu (ink, paper) dvojicu — presne ZX limit.
 

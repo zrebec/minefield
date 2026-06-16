@@ -114,19 +114,23 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
 ]
 
 // ── Buildings ───────────────────────────────────────────────────────────────
-// Pseudo-3D buildings replace the old linear walls. Sizes below count the ROOF
-// footprint only; createBuilding adds extra tiles for the eave, front/side
-// walls and foundation (the full bounding box is solid and mine-free).
+// High-angle buildings replace the old linear walls. Sizes below are the ROOF
+// footprint; createBuilding adds 2 brick rows + 1 concrete row below it (the
+// full bounding box is solid and mine-free). Seen from above, the roof dominates.
 
-// Roof footprint bounds (tiles). Min/max fixed by design (owner): 3×3 … 8×8.
-export const ROOF_MIN = 3
+// Roof footprint bounds (tiles) — width and depth are rolled INDEPENDENTLY, so
+// buildings come in varied rectangles/orientations (3×8, 8×4, 4×8 …), not just
+// squares. 8 is the per-dimension cap and stays rare via ROOF_MAX_PER_LEVEL.
+// (Drop ROOF_MIN to 2 if you also want extra-thin 2×N buildings.)
+export const ROOF_MIN = 2
 export const ROOF_MAX = 8
 
-// Front wall height (tile rows) below the roof. Bounding box height = roofD + this + 1 (foundation).
+// Brick front-face height (tile rows). Foundation is always 1 row below it, so
+// bounding box height = roofD + this + 1. Kept small on purpose — top-down view.
 export const BUILDING_WALL_HEIGHT = 2
 
 // A "big" building has a roof dimension ≥ this.
-export const BIG_ROOF_MIN = 6
+export const BIG_ROOF_MIN = 4
 
 // Max roof dimension allowed per level (early levels stay modest).
 // Index = level (0-based); levels beyond range repeat the last value.

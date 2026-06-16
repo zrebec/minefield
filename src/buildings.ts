@@ -27,21 +27,23 @@ function randInt(rng: Rng, min: number, max: number): number {
 }
 
 /**
- * Stamps one pseudo-3D building into the map as a solid block of `'building'`
- * tiles. Layout (oblique "drawn cube" — grey roof on top, brick front + darker
- * right side, foundation at the bottom):
+ * Stamps one high-angle building into the map as a solid block of `'building'`
+ * tiles. Seen from above, the grey textured roof dominates; only a thin 2-row
+ * brick face (with lit windows + darker edge columns for depth) and a 1-row
+ * white concrete foundation show below it. A chimney sits on roomy roofs.
  *
  * ```
- *   [roof ][roof ][roof ][eave]   ← roof footprint roofW×roofD  + eave overhang
- *   [roof ][roof ][roof ][eave]
- *   [wall ][door ][wall ][side]   ← front wall (BUILDING_WALL_HEIGHT rows)
- *   [wall ][wall ][wall ][side]
- *   [base ][base ][base ][base]   ← foundation
+ *   [roof][roof][roof][roof][roof][chmy]   ← roofD rows of textured grey roof,
+ *   [roof][roof][roof][roof][roof][roof]     last row is the eave (overhang lip)
+ *   [eave][eave][eave][eave][eave][eave]
+ *   [side][brik][wndw][brik][wndw][side]   ← 2 brick rows: bright front,
+ *   [side][brik][brik][brik][brik][side]     dark edge columns, lit windows
+ *   [conc][conc][conc][conc][conc][conc]   ← 1 white concrete foundation row
  * ```
  *
- * Bounding box = (roofW + 1) × (roofD + wallH + 1). Returns it so the caller can
- * run placement/fairness checks. Coordinates outside the map are ignored by
- * `setTile`, so callers must size/position the box to fit (placeBuildings does).
+ * Bounding box = roofW × (roofD + wallH + 1). Returns it so the caller can run
+ * placement/fairness checks. Out-of-bounds cells are ignored by `setTile`, so
+ * callers must size/position the box to fit (placeBuildings does).
  */
 export function createBuilding(
   map: TileMap,
@@ -51,29 +53,35 @@ export function createBuilding(
   roofD: number,
   wallH: number = BUILDING_WALL_HEIGHT,
 ): BuildingBox {
-  const w = roofW + 1
+  const w = roofW
   const h = roofD + wallH + 1
-  const sideCol = c0 + roofW          // rightmost column: eave (roof rows) → side (wall rows)
-  const wallTop = r0 + roofD          // first wall row
-  const baseRow = r0 + roofD + wallH  // foundation row
-  const doorCol = c0 + Math.floor((roofW - 1) / 2)
-  const doorRow = baseRow - 1         // door sits on the bottom front-wall row
+  const eaveRow = r0 + roofD - 1      // roof's bottom lip
+  const brickTop = r0 + roofD         // first of the wallH brick rows
+  const concRow = r0 + roofD + wallH  // foundation row
+  // One chimney near the top-right roof, only where the roof has room for it.
+  const hasChimney = roofW >= 4 && roofD >= 3
+  const chimCol = c0 + roofW - 2
+  const chimRow = r0 + 1
 
   for (let dy = 0; dy < h; dy++) {
     for (let dx = 0; dx < w; dx++) {
       const cc = c0 + dx
       const rr = r0 + dy
       let part: BuildingPart
-      if (rr === baseRow) {
-        part = 'base'
-      } else if (rr < wallTop) {
-        part = cc === sideCol ? 'eave' : 'roof'
+      if (rr === concRow) {
+        part = 'concrete'
+      } else if (rr >= brickTop) {
+        const edge = dx === 0 || dx === w - 1
+        // windows on the top brick row, every 3rd interior column, wide enough
+        const window = !edge && rr === brickTop && w >= 4 && dx % 3 === 1
+        part = window ? 'window' : edge ? 'side' : 'brick'
+      } else if (rr === eaveRow) {
+        part = 'eave'
       } else {
-        part = cc === sideCol ? 'side'
-          : (cc === doorCol && rr === doorRow) ? 'door'
-            : 'wall'
+        part = 'roof'
       }
-      map.setTile(cc, rr, makeTileBuilding(part))
+      if (hasChimney && cc === chimCol && rr === chimRow) part = 'chimney'
+      map.setTile(cc, rr, makeTileBuilding(part, cc, rr))
     }
   }
 
@@ -135,9 +143,10 @@ export function placeBuildings(map: TileMap, level: number, rng: Rng): BuildingB
     attempts++
     const needBig = forceBig && boxes.length === 0
     const lo = needBig ? BIG_ROOF_MIN : ROOF_MIN
+    // width and depth rolled independently → varied rectangles / orientations
     const roofW = randInt(rng, lo, roofMax)
     const roofD = randInt(rng, lo, roofMax)
-    const w = roofW + 1
+    const w = roofW
     const h = roofD + BUILDING_WALL_HEIGHT + 1
 
     // Keep ≥1 margin from top/left/bottom edges and leave the exit column free:

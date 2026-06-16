@@ -635,7 +635,7 @@ describe('terrain — applyClusterBlast visited tiles use terrain path color', (
 // A single solid obstacle tile (one building cell) — enough to exercise the
 // per-tile trap-relocation logic without stamping a whole building.
 function setObstacle(map: TileMap, col: number, row: number): void {
-  map.setTile(col, row, makeTileBuilding('wall'))
+  map.setTile(col, row, makeTileBuilding('brick'))
 }
 
 describe('fixObstacleTraps — vertical wall', () => {
@@ -759,13 +759,13 @@ describe('fixObstacleTraps — invariant via createGame', () => {
   })
 })
 
-// ── createBuilding — geometry & pseudo-3D composition ─────────────────────────
+// ── createBuilding — geometry & high-angle composition ────────────────────────
 
 describe('createBuilding — geometry', () => {
-  it('reserves a (roofW+1) × (roofD+wallH+1) box of solid building tiles', () => {
+  it('reserves a roofW × (roofD + wallH + 1) box of solid building tiles', () => {
     const map = emptyMap()
     const box = createBuilding(map, 4, 3, 3, 3)
-    expect(box).toMatchObject({ x: 4, y: 3, w: 4, h: 3 + BUILDING_WALL_HEIGHT + 1, roofW: 3, roofD: 3 })
+    expect(box).toMatchObject({ x: 4, y: 3, w: 3, h: 3 + BUILDING_WALL_HEIGHT + 1, roofW: 3, roofD: 3 })
 
     let count = 0
     for (let r = box.y; r < box.y + box.h; r++) {
@@ -779,31 +779,46 @@ describe('createBuilding — geometry', () => {
     expect(count).toBe(box.w * box.h)
   })
 
-  it('lays out roof on top, eave on the right, brick walls below, foundation at the bottom', () => {
+  it('stacks roof → eave lip → 2 brick rows → 1 concrete row, top to bottom', () => {
     const map = emptyMap()
-    const box = createBuilding(map, 2, 2, 4, 3)        // roof rows 2..4, walls 5..6, base 7
-    expect(map.getTile(2, 2)?.metadata?.part).toBe('roof')      // roof corner
-    expect(map.getTile(2 + 4, 2)?.metadata?.part).toBe('eave')  // right overhang
-    expect(map.getTile(2, 5)?.metadata?.part).toBe('wall')      // front wall
-    expect(map.getTile(2 + 4, 5)?.metadata?.part).toBe('side')  // shaded side
+    const box = createBuilding(map, 2, 2, 4, 3)   // roof 2..3, eave 4, brick 5..6, concrete 7
+    expect(map.getTile(2, 2)?.metadata?.part).toBe('roof')       // roof body
+    expect(map.getTile(2, 4)?.metadata?.part).toBe('eave')       // overhang lip
+    expect(map.getTile(2, 5)?.metadata?.part).toBe('side')       // dark edge column
+    expect(map.getTile(3, 5)?.metadata?.part).toBe('window')     // lit window (interior, w≥4)
+    expect(map.getTile(4, 5)?.metadata?.part).toBe('brick')      // bright front face
     for (let c = box.x; c < box.x + box.w; c++) {
-      expect(map.getTile(c, box.y + box.h - 1)?.metadata?.part).toBe('base')  // whole bottom row
+      expect(map.getTile(c, box.y + box.h - 1)?.metadata?.part).toBe('concrete')  // whole bottom row
     }
   })
 
-  it('places exactly one door on the front wall', () => {
+  it('has lit windows on a wide front and never a door', () => {
     const map = emptyMap()
-    const box = createBuilding(map, 5, 5, 5, 4)
-    const doors: string[] = []
+    const box = createBuilding(map, 5, 5, 6, 4)
+    let windows = 0
+    let doors = 0
     for (let r = box.y; r < box.y + box.h; r++) {
       for (let c = box.x; c < box.x + box.w; c++) {
-        if (map.getTile(c, r)?.metadata?.part === 'door') doors.push(`${c},${r}`)
+        const part = map.getTile(c, r)?.metadata?.part
+        if (part === 'window') windows++
+        if (part === 'door') doors++
       }
     }
-    expect(doors).toHaveLength(1)
+    expect(windows).toBeGreaterThan(0)
+    expect(doors).toBe(0)
   })
 
-  it('renders the roof as ZX grey (WHITE ink dithered on BLACK paper)', () => {
+  it('puts a chimney on a roomy roof but not on a tiny one', () => {
+    const big = emptyMap()
+    createBuilding(big, 3, 3, 5, 4)
+    expect(big.findById('building').some(({ tile }) => tile.metadata?.part === 'chimney')).toBe(true)
+
+    const tiny = emptyMap()
+    createBuilding(tiny, 3, 3, 3, 3)
+    expect(tiny.findById('building').some(({ tile }) => tile.metadata?.part === 'chimney')).toBe(false)
+  })
+
+  it('renders the roof as ZX grey (WHITE ink on BLACK paper)', () => {
     const map = emptyMap()
     createBuilding(map, 1, 1, 3, 3)
     const roof = map.getTile(1, 1)
@@ -811,11 +826,11 @@ describe('createBuilding — geometry', () => {
     expect(roof?.paper).toBe(C.BLACK)
   })
 
-  it('shades the side wall darker (RED) than the bright front wall (B_RED)', () => {
+  it('shades the edge columns darker (RED) than the bright front brick (B_RED)', () => {
     const map = emptyMap()
-    createBuilding(map, 2, 2, 3, 3)               // walls at rows 5..6
-    expect(map.getTile(2, 5)?.ink).toBe(C.B_RED)  // front
-    expect(map.getTile(2 + 3, 5)?.ink).toBe(C.RED) // side column
+    createBuilding(map, 2, 2, 3, 3)               // brick rows 5..6, w=3 (no windows)
+    expect(map.getTile(2, 5)?.ink).toBe(C.RED)    // left edge column = side
+    expect(map.getTile(3, 5)?.ink).toBe(C.B_RED)  // interior = bright brick
   })
 })
 
@@ -884,11 +899,11 @@ describe('placeBuildings — placement & fairness', () => {
     }
   })
 
-  it('places a big building (roof ≥ BIG_ROOF_MIN) at least once every two levels', () => {
+  it('places a genuinely big building (both roof dims ≥ BIG_ROOF_MIN) every two levels', () => {
     for (const level of [1, 3]) {       // odd 0-indexed levels = the guaranteed-big cadence
       const map = emptyMap()
       const boxes = placeBuildings(map, level, createRng(99 + level))
-      const hasBig = boxes.some((b) => b.roofW >= BIG_ROOF_MIN || b.roofD >= BIG_ROOF_MIN)
+      const hasBig = boxes.some((b) => b.roofW >= BIG_ROOF_MIN && b.roofD >= BIG_ROOF_MIN)
       expect(hasBig).toBe(true)
     }
   })
@@ -898,7 +913,7 @@ describe('placeBuildings — placement & fairness', () => {
     // Fill the whole interior with buildings → every candidate is rejected for
     // overlap/gap, so nothing new fits. Must degrade gracefully, never throw.
     for (let r = 1; r < ROWS - 1; r++) {
-      for (let c = 1; c < COLS - 1; c++) map.setTile(c, r, makeTileBuilding('wall'))
+      for (let c = 1; c < COLS - 1; c++) map.setTile(c, r, makeTileBuilding('brick'))
     }
     let boxes: BuildingBox[] = []
     expect(() => { boxes = placeBuildings(map, 4, createRng(1)) }).not.toThrow()

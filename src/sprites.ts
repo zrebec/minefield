@@ -178,68 +178,83 @@ export const GROUND_B = new Uint8Array([
   0x00, // ........
 ])
 
-// ─── Building parts (8×8) — composed by createBuilding into a pseudo-3D box ─────
-// A building is a solid block of these tiles: grey roof on top, brick front +
-// darker side walls, a door and a foundation row. Mines never sit on them.
+// ─── Building parts (8×8) — composed by createBuilding into a high-angle box ────
+// Seen from above: a big textured grey ROOF dominates; only a thin 2-row brick
+// front face + a 1-row white concrete foundation are visible below it. Mines
+// never sit on any of these (they're solid, non-ground).
 
-// Roof — 50% dither of WHITE on BLACK reads as authentic ZX "grey" (no grey hex exists)
-export const BUILDING_ROOF = new Uint8Array([
-  0xAA, // #.#.#.#.
-  0x55, // .#.#.#.#
-  0xAA, // #.#.#.#.
-  0x55, // .#.#.#.#
-  0xAA, // #.#.#.#.
-  0x55, // .#.#.#.#
-  0xAA, // #.#.#.#.
-  0x55, // .#.#.#.#
+// Roof — WHITE dithered on BLACK = authentic ZX "grey" (no grey hex exists).
+// Three weathering shades, scattered per-cell (roofVariant) so the roof reads
+// as a mottled surface instead of a sterile flat fill.
+export const BUILDING_ROOF_MID = new Uint8Array([
+  0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55,  // 50% grey
+])
+export const BUILDING_ROOF_LIGHT = new Uint8Array([
+  0xDD, 0x77, 0xDD, 0x77, 0xDD, 0x77, 0xDD, 0x77,  // denser → lighter patch
+])
+export const BUILDING_ROOF_DARK = new Uint8Array([
+  0x88, 0x22, 0x88, 0x22, 0x88, 0x22, 0x88, 0x22,  // sparser → darker patch
 ])
 
-// Roof right edge / eave — grey dither with a lit right fascia → the roof overhang
+// Eave — the roof's bottom lip: grey on top, a black overhang shadow below.
+// Sells the height step from roof down to the front wall.
 export const BUILDING_EAVE = new Uint8Array([
-  0xAB, // #.#.#.##
-  0x57, // .#.#.###
-  0xAB, // #.#.#.##
-  0x57, // .#.#.###
-  0xAB, // #.#.#.##
-  0x57, // .#.#.###
-  0xAB, // #.#.#.##
-  0x57, // .#.#.###
+  0xAA, // #.#.#.#.
+  0x55, // .#.#.#.#
+  0xAA, // #.#.#.#.
+  0x55, // .#.#.#.#
+  0xAA, // #.#.#.#.
+  0x55, // .#.#.#.#
+  0x00, // ........  overhang shadow
+  0x00, // ........
 ])
 
-// Brick wall — running-bond bricks split by black mortar; tiles vertically.
-// Used for the bright front face (B_RED) and the shaded side face (RED).
+// Brick — clean running-bond bricks (3px courses, staggered joints), tiles
+// vertically for the 2-row face. Bright B_RED front; dark RED at the box edges.
 export const BUILDING_BRICK = new Uint8Array([
   0x00, // ........  mortar
   0xFE, // #######.  brick course (joint at right)
   0xFE, // #######.
+  0xFE, // #######.
   0x00, // ........  mortar
   0xEF, // ###.####  brick course (joint staggered)
   0xEF, // ###.####
-  0x00, // ........  mortar
-  0xFE, // #######.
+  0xEF, // ###.####
 ])
 
-// Door — arched opening in the front wall (cosmetic; the tile is still solid)
-export const BUILDING_DOOR = new Uint8Array([
+// Window — 2×2 lit yellow panes set into the brick (paper = brick red)
+export const BUILDING_WINDOW = new Uint8Array([
   0x00, // ........
-  0x3C, // ..####..  arch
+  0x00, // ........
+  0x66, // .##..##.  upper panes
   0x66, // .##..##.
+  0x00, // ........  glazing bar
+  0x66, // .##..##.  lower panes
   0x66, // .##..##.
-  0x66, // .##..##.
-  0x66, // .##..##.
-  0x66, // .##..##.
-  0x66, // .##..##.
+  0x00, // ........
 ])
 
-// Foundation — solid footing band grounding the building to the field
-export const BUILDING_BASE = new Uint8Array([
-  0xFF, // ########  foundation
+// Foundation — bright white concrete footing (distinct from the grey roof)
+export const BUILDING_CONCRETE = new Uint8Array([
+  0x77, // .###.###
   0xFF, // ########
+  0xEE, // ###.###.
   0xFF, // ########
+  0x77, // .###.###
+  0xFF, // ########
+  0xEE, // ###.###.
+  0xFF, // ########
+])
+
+// Chimney — capped stack on the roof (white on black halo, like the reference)
+export const BUILDING_CHIMNEY = new Uint8Array([
   0x00, // ........
-  0x00, // ........
-  0x00, // ........
-  0x00, // ........
+  0x7E, // .######.  cap
+  0x7E, // .######.
+  0x3C, // ..####..  stack
+  0x3C, // ..####..
+  0x3C, // ..####..
+  0x3C, // ..####..
   0x00, // ........
 ])
 
@@ -322,37 +337,51 @@ export function makeTileFlag(
   }
 }
 
-export type BuildingPart = 'roof' | 'eave' | 'wall' | 'side' | 'door' | 'base'
+// 'brick' = bright front face, 'side' = the box's darker edge columns (same
+// sprite, dimmer ink). 'roof' picks a weathering shade from the cell position.
+export type BuildingPart = 'roof' | 'eave' | 'brick' | 'side' | 'window' | 'concrete' | 'chimney'
 
-const BUILDING_SPRITE: Record<BuildingPart, Uint8Array> = {
-  roof: BUILDING_ROOF,
+const BUILDING_SPRITE: Record<Exclude<BuildingPart, 'roof'>, Uint8Array> = {
   eave: BUILDING_EAVE,
-  wall: BUILDING_BRICK,
+  brick: BUILDING_BRICK,
   side: BUILDING_BRICK,
-  door: BUILDING_DOOR,
-  base: BUILDING_BASE,
+  window: BUILDING_WINDOW,
+  concrete: BUILDING_CONCRETE,
+  chimney: BUILDING_CHIMNEY,
 }
 
-// Ink per part — grey roof (white dither), bright-red front vs dark-red side
-// gives the cheap pseudo-3D shading; warm door; dark foundation.
 const BUILDING_INK: Record<BuildingPart, SpectrumColor> = {
-  roof: C.WHITE,
+  roof: C.WHITE,      // grey (dithered)
   eave: C.WHITE,
-  wall: C.B_RED,
-  side: C.RED,
-  door: C.B_YELLOW,
-  base: C.RED,
+  brick: C.B_RED,     // bright front
+  side: C.RED,        // dark edge → 3D
+  window: C.B_YELLOW, // lit panes
+  concrete: C.WHITE,  // white footing
+  chimney: C.WHITE,
 }
 
-// A single building cell. The whole pseudo-3D box is built from these by
+// Window panes glow yellow over a brick-red frame; everything else is on black.
+const BUILDING_PAPER: Partial<Record<BuildingPart, SpectrumColor>> = {
+  window: C.B_RED,
+}
+
+// Deterministic per-cell roof shade — a pure function of position, so the same
+// building location always weathers identically (and the field is seed-stable).
+function roofVariant(col: number, row: number): Uint8Array {
+  const h = ((col * 73856093) ^ (row * 19349663)) >>> 0
+  const k = h % 8
+  return k >= 7 ? BUILDING_ROOF_DARK : k >= 5 ? BUILDING_ROOF_LIGHT : BUILDING_ROOF_MID
+}
+
+// A single building cell. The whole high-angle box is built from these by
 // createBuilding (buildings.ts). `solid: true` blocks movement AND — because
 // mines/airplane drops only ever target `ground` — keeps every building cell
-// permanently mine-free for free.
-export function makeTileBuilding(part: BuildingPart): Tile {
+// permanently mine-free for free. `col`/`row` only matter for 'roof' shading.
+export function makeTileBuilding(part: BuildingPart, col = 0, row = 0): Tile {
   return {
-    sprite: BUILDING_SPRITE[part],
+    sprite: part === 'roof' ? roofVariant(col, row) : BUILDING_SPRITE[part],
     ink: BUILDING_INK[part],
-    paper: C.BLACK,
+    paper: BUILDING_PAPER[part] ?? C.BLACK,
     solid: true,
     id: 'building',
     metadata: { part },
