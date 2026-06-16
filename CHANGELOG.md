@@ -1,3 +1,10 @@
+# [0.24.0](https://github.com/zrebec/minefield/compare/v0.23.0...v0.24.0) (2026-06-16)
+
+
+### Features
+
+* **input:** D toggles debug, R rerolls a random (non-daily) field ([ff9954f](https://github.com/zrebec/minefield/commit/ff9954fed0f59e6d1d99963d65576b2df7986cc0))
+
 # [0.23.0](https://github.com/zrebec/minefield/compare/v0.22.0...v0.23.0) (2026-06-16)
 
 
