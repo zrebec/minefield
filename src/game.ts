@@ -165,16 +165,33 @@ function placeGems(map: TileMap, count: number, safeCol: number, safeRow: number
   }
 }
 
-export function countWarningMines(map: TileMap, col: number, row: number): number {
+// Mines in the 4 orthogonal neighbours at distance 1 (any type) — the cells the
+// player can step onto and die. 0–4. The "immediate danger" count that drives
+// the detector meter; any value ≥ 1 means a lethal step exists (never "safe").
+export function countAdjacentMines(map: TileMap, col: number, row: number): number {
   let count = 0
   for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
     if (map.getTile(col + dc, row + dr)?.id === 'mine') count++
   }
+  return count
+}
+
+// Beacon mines broadcasting from distance 2 orthogonally — a ranged early
+// warning (cyan mines, level 3+), not steppable this turn. 0–4. Drives the
+// separate cyan beacon indicator.
+export function countBeaconSignals(map: TileMap, col: number, row: number): number {
+  let count = 0
   for (const [dr, dc] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) {
     const tile = map.getTile(col + dc, row + dr)
     if (tile?.id === 'mine' && tile.metadata?.mineType === 'beacon') count++
   }
-  return Math.min(count, 8)
+  return count
+}
+
+// Total proximity the audio beep escalates over (0–8) = immediate + ranged.
+// Kept as one number so the sound is unchanged; the HUD splits it back out.
+export function countWarningMines(map: TileMap, col: number, row: number): number {
+  return Math.min(countAdjacentMines(map, col, row) + countBeaconSignals(map, col, row), 8)
 }
 
 export function applyClusterBlast(state: GameState, centerCol: number, centerRow: number): void {

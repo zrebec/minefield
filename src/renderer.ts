@@ -1,5 +1,6 @@
 import { CANVAS_W, CANVAS_H, ROWS, COLS, CELL, C } from './constants.ts'
 import type { GameState, AirplaneState } from './game.ts'
+import { countAdjacentMines, countBeaconSignals } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor } from 'zx-kit'
 import { loadHighScores } from './assets/highscore.ts'
 import { L } from './lang.ts'
@@ -11,6 +12,7 @@ import {
   MINE, EXPLOSION_1, EXPLOSION_2,
   AIRPLANE_RIGHT, AIRPLANE_LEFT,
   HEART, GROUND_A, GROUND_B,
+  LED_ON, LED_OFF,
 } from './sprites.ts'
 
 const STATUS_Y = ROWS * CELL  // 176
@@ -55,6 +57,31 @@ function renderAirplane(ctx: CanvasRenderingContext2D, plane: AirplaneState): vo
 
 // ─── Status bar ───────────────────────────────────────────────────────────────
 
+// Mine-detector — an accessible visual twin of the proximity beep, split into
+// the two dangers the sound conflates. A 4-segment meter shows IMMEDIATE mines
+// (countAdjacentMines, 0–4): a lit slot is a filled disc, amber (1–2) → red
+// (3–4) — never green, because any adjacent mine is a lethal step. Empty slots
+// are ALWAYS green rings (never recolouring), so a full meter reads "all clear".
+// Each tile stays 2-colour (one ink on black). A separate cyan lamp lights for a
+// ranged BEACON broadcasting 2 cells out.
+const DETECTOR_COL = 12
+
+function renderDetector(ctx: CanvasRenderingContext2D, adjacent: number, beacon: number): void {
+  drawText(ctx, '[', DETECTOR_COL * CELL, STATUS_Y, C.B_CYAN, C.BLACK)
+  const litInk = adjacent <= 2 ? C.B_YELLOW : C.B_RED
+  for (let i = 0; i < 4; i++) {
+    const x = (DETECTOR_COL + 1 + i) * CELL
+    if (i < adjacent) drawSprite(ctx, LED_ON, x, STATUS_Y, litInk, C.BLACK)
+    else drawSprite(ctx, LED_OFF, x, STATUS_Y, C.BLUE, C.BLACK)  // empty = green ring, always
+  }
+  drawText(ctx, ']', (DETECTOR_COL + 5) * CELL, STATUS_Y, C.B_CYAN, C.BLACK)
+  // Separate beacon lamp, one cell after the bracket — cyan disc when broadcasting,
+  // else the same green empty ring as the meter (consistent, no recolouring).
+  const bx = (DETECTOR_COL + 7) * CELL
+  if (beacon > 0) drawSprite(ctx, LED_ON, bx, STATUS_Y, C.B_CYAN, C.BLACK)
+  else drawSprite(ctx, LED_OFF, bx, STATUS_Y, C.B_RED, C.BLACK)
+}
+
 function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void {
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, STATUS_Y, CANVAS_W, 16)
@@ -85,6 +112,12 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
 
   if (state.airplane && state.airplane.warningBlink) {
     drawTextCentered(ctx, L.STR_AIRCRAFT, STATUS_Y, C.B_YELLOW, C.BLACK)
+  } else {
+    renderDetector(
+      ctx,
+      countAdjacentMines(state.map, state.playerCol, state.playerRow),
+      countBeaconSignals(state.map, state.playerCol, state.playerRow),
+    )
   }
 }
 
@@ -264,13 +297,13 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
 
   // === SKY + TITLE (rows 0-3) ===
-  drawTextCentered(ctx, L.STR_TITLE,    1 * CELL, C.B_CYAN, C.BLACK)
-  drawTextCentered(ctx, L.STR_SUBTITLE, 3 * CELL, C.CYAN,   C.BLACK)
+  drawTextCentered(ctx, L.STR_TITLE, 1 * CELL, C.B_CYAN, C.BLACK)
+  drawTextCentered(ctx, L.STR_SUBTITLE, 3 * CELL, C.CYAN, C.BLACK)
 
   // === TREE SILHOUETTES ON HORIZON (rows 4-5) ===
   const treeCols = [0, 1, 6, 7, 13, 14, 24, 25, 30, 31]
   for (const col of treeCols) {
-    drawSprite(ctx, INTRO_TREE_TOP,   col * CELL, 4 * CELL, C.GREEN,  C.BLACK)
+    drawSprite(ctx, INTRO_TREE_TOP, col * CELL, 4 * CELL, C.GREEN, C.BLACK)
     drawSprite(ctx, INTRO_TREE_TRUNK, col * CELL, 5 * CELL, C.YELLOW, C.BLACK)
   }
 
@@ -302,16 +335,16 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
   drawSprite(ctx, PLAYER_RIGHT_A, 2 * CELL, 9 * CELL, C.B_WHITE, C.BLACK)
 
   // Mines scattered across the field
-  drawSprite(ctx, MINE,  7 * CELL, 10 * CELL, C.B_RED, C.BLACK)
+  drawSprite(ctx, MINE, 7 * CELL, 10 * CELL, C.B_RED, C.BLACK)
   drawSprite(ctx, MINE, 14 * CELL, 11 * CELL, C.B_RED, C.BLACK)
-  drawSprite(ctx, MINE, 19 * CELL, 10 * CELL, C.RED,   C.BLACK)
+  drawSprite(ctx, MINE, 19 * CELL, 10 * CELL, C.RED, C.BLACK)
   drawSprite(ctx, MINE, 26 * CELL, 11 * CELL, C.B_RED, C.BLACK)
 
   // 2×2 explosion on the right — soldier stepped on a mine
-  drawSprite(ctx, EXPLOSION_1, 22 * CELL,  8 * CELL, C.B_YELLOW, C.BLACK)
-  drawSprite(ctx, EXPLOSION_2, 23 * CELL,  8 * CELL, C.B_YELLOW, C.B_RED)
-  drawSprite(ctx, EXPLOSION_2, 22 * CELL,  9 * CELL, C.B_YELLOW, C.B_RED)
-  drawSprite(ctx, EXPLOSION_1, 23 * CELL,  9 * CELL, C.B_YELLOW, C.BLACK)
+  drawSprite(ctx, EXPLOSION_1, 22 * CELL, 8 * CELL, C.B_YELLOW, C.BLACK)
+  drawSprite(ctx, EXPLOSION_2, 23 * CELL, 8 * CELL, C.B_YELLOW, C.B_RED)
+  drawSprite(ctx, EXPLOSION_2, 22 * CELL, 9 * CELL, C.B_YELLOW, C.B_RED)
+  drawSprite(ctx, EXPLOSION_1, 23 * CELL, 9 * CELL, C.B_YELLOW, C.BLACK)
 
   // Soldier fleeing right
   drawSprite(ctx, PLAYER_LEFT_A, 28 * CELL, 9 * CELL, C.B_WHITE, C.BLACK)
@@ -332,11 +365,11 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
         (14 + i) * CELL, C.WHITE, C.BLACK)
     })
   } else {
-    drawTextCentered(ctx, L.STR_CTRL_MOVE,  13 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, L.STR_CTRL_FLAG,  14 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, L.STR_CTRL_PAUSE, 15 * CELL, C.WHITE,   C.BLACK)
-    drawTextCentered(ctx, L.STR_GOAL,       16 * CELL, C.B_GREEN, C.BLACK)
-    drawTextCentered(ctx, L.STR_AUDIO_HINT, 17 * CELL, C.YELLOW,  C.BLACK)
+    drawTextCentered(ctx, L.STR_CTRL_MOVE, 13 * CELL, C.WHITE, C.BLACK)
+    drawTextCentered(ctx, L.STR_CTRL_FLAG, 14 * CELL, C.WHITE, C.BLACK)
+    drawTextCentered(ctx, L.STR_CTRL_PAUSE, 15 * CELL, C.WHITE, C.BLACK)
+    drawTextCentered(ctx, L.STR_GOAL, 16 * CELL, C.B_GREEN, C.BLACK)
+    drawTextCentered(ctx, L.STR_AUDIO_HINT, 17 * CELL, C.YELLOW, C.BLACK)
   }
 
   if (blink) {
@@ -349,7 +382,7 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
 
   const build = import.meta.env.VITE_APP_BUILD ?? 'DEV'
   const zxKit = import.meta.env.VITE_ZX_KIT_VERSION ?? '?'
-  drawTextCentered(ctx, L.STR_COPYRIGHT(build),     21 * CELL, C.BLUE, C.BLACK)
+  drawTextCentered(ctx, L.STR_COPYRIGHT(build), 21 * CELL, C.BLUE, C.BLACK)
   drawTextCentered(ctx, L.STR_ZXKIT_VERSION(zxKit), 22 * CELL, C.BLUE, C.BLACK)
 }
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, createGame, addDropMinesInBand, applyClusterBlast, fixObstacleTraps, type MineType } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, fixObstacleTraps, type MineType } from './game.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT } from './config.ts'
@@ -96,6 +96,39 @@ describe('countWarningMines — normal mines', () => {
     setMine(map, 5, 3, 'beacon'); setMine(map, 5, 7, 'beacon')
     setMine(map, 3, 5, 'beacon'); setMine(map, 7, 5, 'beacon')
     expect(countWarningMines(map, 5, 5)).toBe(8)
+  })
+})
+
+// ── detector split: immediate adjacency vs ranged beacon ─────────────────────
+
+describe('countAdjacentMines / countBeaconSignals (HUD split)', () => {
+  it('adjacency counts only distance-1 mines, any type, max 4', () => {
+    const map = emptyMap()
+    setMine(map, 5, 4); setMine(map, 6, 5, 'beacon')   // up = normal, right = beacon (dist 1)
+    expect(countAdjacentMines(map, 5, 5)).toBe(2)       // both count as immediate
+  })
+
+  it('adjacency ignores distance-2 beacons (those are the ranged signal)', () => {
+    const map = emptyMap()
+    setMine(map, 5, 3, 'beacon')                        // 2 above
+    expect(countAdjacentMines(map, 5, 5)).toBe(0)
+  })
+
+  it('beacon signal counts only distance-2 beacons (not normal mines, not dist-1)', () => {
+    const map = emptyMap()
+    setMine(map, 5, 3, 'beacon')                        // 2 above = beacon signal
+    setMine(map, 3, 5)                                  // 2 left = normal → ignored
+    setMine(map, 5, 4, 'beacon')                        // 1 above = adjacency, not signal
+    expect(countBeaconSignals(map, 5, 5)).toBe(1)
+  })
+
+  it('the two parts sum to the audio value', () => {
+    const map = emptyMap()
+    setMine(map, 5, 4); setMine(map, 4, 5)              // 2 adjacent
+    setMine(map, 5, 3, 'beacon'); setMine(map, 7, 5, 'beacon')  // 2 beacon signals
+    const total = countAdjacentMines(map, 5, 5) + countBeaconSignals(map, 5, 5)
+    expect(total).toBe(countWarningMines(map, 5, 5))
+    expect(total).toBe(4)
   })
 })
 

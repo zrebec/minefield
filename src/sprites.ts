@@ -270,6 +270,31 @@ export const GEM = new Uint8Array([
   0x18, // ...##...
 ])
 
+// Mine-detector meter LEDs (HUD only). Round to echo the circular mine sprite:
+// a lit segment is a filled disc in its danger colour; an unlit one is a dim
+// ring (blue on black) — together an 8-segment Geiger meter (count =
+// countWarningMines, parity with the beep).
+export const LED_ON = new Uint8Array([
+  0x3C, // ..####..
+  0x7E, // .######.
+  0xFF, // ########
+  0xFF, // ########
+  0xFF, // ########
+  0xFF, // ########
+  0x7E, // .######.
+  0x3C, // ..####..
+])
+export const LED_OFF = new Uint8Array([
+  0x3C, // ..####..
+  0x42, // .#....#.
+  0x81, // #......#
+  0x81, // #......#
+  0x81, // #......#
+  0x81, // #......#
+  0x42, // .#....#.
+  0x3C, // ..####..
+])
+
 // ─── Tile factories ───────────────────────────────────────────────────────────
 // variant 'a' = (col+row)%2===0, 'b' = odd — encodes checkerboard parity
 
