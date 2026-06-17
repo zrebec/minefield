@@ -1,3 +1,10 @@
+# [0.25.0](https://github.com/zrebec/minefield/compare/v0.24.0...v0.25.0) (2026-06-17)
+
+
+### Features
+
+* **hud:** mine-detector — split immediate vs ranged danger ([1e62101](https://github.com/zrebec/minefield/commit/1e621014eb9fe96db8e1196b59b874c85a18352b))
+
 # [0.24.0](https://github.com/zrebec/minefield/compare/v0.23.0...v0.24.0) (2026-06-16)
 
 
