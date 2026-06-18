@@ -1,6 +1,6 @@
 import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
-import GEM_COUNT, { START_COL, START_ROW, SAFE_RADIUS, LEVEL_CONFIGS, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS } from './config.ts'
+import GEM_COUNT, { START_COL, SAFE_RADIUS, LEVEL_CONFIGS, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED,
   type CellVariant, type TerrainType,
@@ -51,6 +51,8 @@ export interface GameState {
   score: number
   playerCol: number
   playerRow: number
+  /** Seeded vertical spawn row (0..ROWS-1); also the respawn target. */
+  startRow: number
   playerDir: Dir
   walkTween: Tween | null
   walkAnim: Animation
@@ -224,15 +226,19 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number):
   // Field generation is seeded: pass a `seed` (e.g. dailySeed(level)) for a reproducible
   // daily field; omit it (tests / free play) to get a fresh field each call.
   const rng = createRng(seed ?? randomSeed())
+  // Vertical start height varies per seed: same seed ⇒ same row for everyone
+  // (fair), no seed ⇒ random like the rest of the field. Drawn first so the
+  // buildings, mines and gems all carve their safe zone around the chosen row.
+  const startRow = randomInt(rng, 0, ROWS - 1)
   // Level 0 is always grass so the player learns the default look first
   const terrain: TerrainType = level === 0
     ? 'grass'
     : rng.pick(TERRAIN_TYPES)
   const map = buildMap(terrain)
-  placeBuildings(map, level, rng)
-  placeMines(map, cfg.mines, START_COL, START_ROW, level, terrain, rng)
-  placeGems(map, GEM_COUNT, START_COL, START_ROW, rng)
-  map.setTile(START_COL, START_ROW, makeTileVisited(cellVariant(START_COL, START_ROW), terrain))
+  placeBuildings(map, level, rng, startRow)
+  placeMines(map, cfg.mines, START_COL, startRow, level, terrain, rng)
+  placeGems(map, GEM_COUNT, START_COL, startRow, rng)
+  map.setTile(START_COL, startRow, makeTileVisited(cellVariant(START_COL, startRow), terrain))
   // De-trap LAST, on the final board (gems are walkable too), to a fixed point.
   fixObstacleTraps(map, terrain)
 
@@ -246,7 +252,8 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number):
     lives: cfg.lives,
     score: initialScore,
     playerCol: START_COL,
-    playerRow: START_ROW,
+    playerRow: startRow,
+    startRow,
     playerDir: 'right',
     walkTween: null,
     walkAnim: createAnimation(2, WALK_FRAME_MS, { loop: true }),

@@ -32,11 +32,10 @@ export const KEY_REPEAT_INTERVAL = 120
 
 // ── Player & Start ────────────────────────────────────────────────────────────
 
-// Starting column and row (0-indexed).
-// START_COL=0 = left edge. START_ROW=11 keeps the player in the same absolute
-// cell after the playfield shrank 22→21 rows (so nothing about the start moved);
-// note 21 is odd, so the exact centre is now row 10 — switch to 10 if a perfectly
-// centred start is preferred.
+// Starting column and row (0-indexed). START_COL=0 = left edge (every game
+// spawns on the left). The live spawn ROW is now seeded per-field (see
+// createGame → startRow); START_ROW remains only as the legacy fallback for
+// saves written before seeded starts, where games did spawn on this row.
 export const START_COL = 0
 export const START_ROW = 11
 

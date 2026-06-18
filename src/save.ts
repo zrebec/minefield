@@ -4,7 +4,7 @@
 
 import { createSaveProfile, createAnimation, createTileMap, type SaveProfile } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
-import GEM_COUNT, { WALK_FRAME_MS } from './config.ts'
+import GEM_COUNT, { START_ROW, WALK_FRAME_MS } from './config.ts'
 import { type GameState, type Dir } from './game.ts'
 import {
   type TerrainType, type CellVariant, type BuildingPart,
@@ -30,6 +30,10 @@ export interface MinefieldSave {
   playerCol: number
   playerRow: number
   playerDir: Dir
+  /** Seeded spawn row / respawn target. Optional: saves written before this
+   *  feature lack it and default to the old fixed START_ROW (exactly where
+   *  those games spawned), so they stay loadable without a version bump. */
+  startRow?: number
   totalMines: number
   explodedMines: number
   gemsCollected: number
@@ -119,6 +123,7 @@ function serializeState(state: GameState): MinefieldSave {
     playerCol: state.playerCol,
     playerRow: state.playerRow,
     playerDir: state.playerDir,
+    startRow: state.startRow,
     totalMines: state.totalMines,
     explodedMines: state.explodedMines,
     gemsCollected: state.gemsCollected,
@@ -139,6 +144,7 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.playerCol = data.playerCol
   target.playerRow = data.playerRow
   target.playerDir = data.playerDir
+  target.startRow = data.startRow ?? START_ROW
   target.totalMines = data.totalMines
   target.explodedMines = data.explodedMines
   target.gemsCollected = data.gemsCollected

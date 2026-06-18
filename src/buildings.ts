@@ -1,7 +1,7 @@
 import type { TileMap, Rng } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
 import {
-  START_COL, START_ROW, SAFE_RADIUS,
+  START_COL, SAFE_RADIUS,
   BUILDING_COUNTS, BUILDING_WALL_HEIGHT, BUILDING_GAP,
   ROOF_MIN, ROOF_MAX_PER_LEVEL, BIG_ROOF_MIN,
 } from './config.ts'
@@ -91,11 +91,11 @@ export function createBuilding(
 // Does the box (already including its eave/side/base tiles) overlap the start
 // safe zone? Buildings must never wall the player in at spawn — keep one extra
 // ring of clearance so they can always step out.
-function hitsSafeZone(c0: number, r0: number, w: number, h: number): boolean {
+function hitsSafeZone(c0: number, r0: number, w: number, h: number, startRow: number): boolean {
   for (let rr = r0; rr < r0 + h; rr++) {
     for (let cc = c0; cc < c0 + w; cc++) {
       if (Math.abs(cc - START_COL) <= SAFE_RADIUS + 1 &&
-          Math.abs(rr - START_ROW) <= SAFE_RADIUS + 1) return true
+          Math.abs(rr - startRow) <= SAFE_RADIUS + 1) return true
     }
   }
   return false
@@ -129,7 +129,7 @@ function tooCloseToBuilding(
  * Returns the placed boxes (may be fewer than targeted if the field is tight,
  * never throws).
  */
-export function placeBuildings(map: TileMap, level: number, rng: Rng): BuildingBox[] {
+export function placeBuildings(map: TileMap, level: number, rng: Rng, startRow: number): BuildingBox[] {
   const [minCount, maxCount] = BUILDING_COUNTS[Math.min(level, BUILDING_COUNTS.length - 1)]
   const target = randInt(rng, minCount, maxCount)
   const roofMax = ROOF_MAX_PER_LEVEL[Math.min(level, ROOF_MAX_PER_LEVEL.length - 1)]
@@ -157,7 +157,7 @@ export function placeBuildings(map: TileMap, level: number, rng: Rng): BuildingB
 
     const c0 = randInt(rng, 1, maxC0)
     const r0 = randInt(rng, 1, maxR0)
-    if (hitsSafeZone(c0, r0, w, h)) continue
+    if (hitsSafeZone(c0, r0, w, h, startRow)) continue
     if (tooCloseToBuilding(map, c0, r0, w, h, BUILDING_GAP)) continue
 
     boxes.push(createBuilding(map, c0, r0, roofW, roofD))

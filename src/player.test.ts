@@ -3,7 +3,7 @@ import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { createGame, type GameState } from './game.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import {
-  START_COL, START_ROW,
+  START_COL,
   SCORE_PER_CELL, SCORE_MULTIPLIERS,
   EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS,
   COMBO_DURATION_MS, GEM_SCORE,
@@ -421,7 +421,7 @@ describe('respawnPlayer', () => {
     const state = makeState(10, 10)
     respawnPlayer(state)
     expect(state.playerCol).toBe(START_COL)
-    expect(state.playerRow).toBe(START_ROW)
+    expect(state.playerRow).toBe(state.startRow)
   })
 
   it('resets playerDir to right', () => {

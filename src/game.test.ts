@@ -427,7 +427,7 @@ describe('createGame initial state', () => {
 
   it('marks starting cell as visited from the start', () => {
     const state = createGame(0)
-    expect(state.map.getTile(START_COL, START_ROW)?.id).toBe('visited')
+    expect(state.map.getTile(START_COL, state.startRow)?.id).toBe('visited')
   })
 
   it('initializes walkTween to null (player not walking)', () => {
@@ -583,7 +583,7 @@ describe('terrain — createGame selection and map consistency', () => {
 
   it('starting visited cell has terrain path color (grass → yellow)', () => {
     const state = createGame(0)
-    expect(state.map.getTile(START_COL, START_ROW)?.ink).toBe(C.B_YELLOW)
+    expect(state.map.getTile(START_COL, state.startRow)?.ink).toBe(C.B_YELLOW)
   })
 })
 
@@ -871,9 +871,9 @@ describe('createBuilding — geometry', () => {
 
 // Flood-fill over non-solid cells from the start to any cell in the exit column.
 // Mines are NOT solid, so they never disconnect the field — only buildings do.
-function canReachExit(map: TileMap): boolean {
+function canReachExit(map: TileMap, startRow: number): boolean {
   const seen = new Set<string>()
-  const stack: Array<[number, number]> = [[START_COL, START_ROW]]
+  const stack: Array<[number, number]> = [[START_COL, startRow]]
   while (stack.length) {
     const [c, r] = stack.pop()!
     if (c < 0 || r < 0 || c >= COLS || r >= ROWS) continue
@@ -891,7 +891,7 @@ describe('placeBuildings — placement & fairness', () => {
   it('never builds on the border ring (row 0, last row, col 0, exit col)', () => {
     for (let level = 0; level < 4; level++) {
       const map = emptyMap()
-      placeBuildings(map, level, createRng(1000 + level))
+      placeBuildings(map, level, createRng(1000 + level), START_ROW)
       for (let c = 0; c < COLS; c++) {
         expect(map.getTile(c, 0)?.id).not.toBe('building')
         expect(map.getTile(c, ROWS - 1)?.id).not.toBe('building')
@@ -906,7 +906,7 @@ describe('placeBuildings — placement & fairness', () => {
   it('never blocks the start safe zone', () => {
     for (let s = 0; s < 20; s++) {
       const map = emptyMap()
-      placeBuildings(map, s % 4, createRng(7 + s))
+      placeBuildings(map, s % 4, createRng(7 + s), START_ROW)
       for (let dr = -SAFE_RADIUS; dr <= SAFE_RADIUS; dr++) {
         for (let dc = -SAFE_RADIUS; dc <= SAFE_RADIUS; dc++) {
           const t = map.getTile(START_COL + dc, START_ROW + dr)
@@ -919,7 +919,7 @@ describe('placeBuildings — placement & fairness', () => {
   it('keeps at least one empty tile between any two buildings (no corner-touch)', () => {
     for (let s = 0; s < 10; s++) {
       const map = emptyMap()
-      const boxes = placeBuildings(map, 3, createRng(42 + s))
+      const boxes = placeBuildings(map, 3, createRng(42 + s), START_ROW)
       for (let i = 0; i < boxes.length; i++) {
         for (let j = i + 1; j < boxes.length; j++) {
           const a = boxes[i], b = boxes[j]
@@ -935,7 +935,7 @@ describe('placeBuildings — placement & fairness', () => {
   it('places a genuinely big building (both roof dims ≥ BIG_ROOF_MIN) every two levels', () => {
     for (const level of [1, 3]) {       // odd 0-indexed levels = the guaranteed-big cadence
       const map = emptyMap()
-      const boxes = placeBuildings(map, level, createRng(99 + level))
+      const boxes = placeBuildings(map, level, createRng(99 + level), START_ROW)
       const hasBig = boxes.some((b) => b.roofW >= BIG_ROOF_MIN && b.roofD >= BIG_ROOF_MIN)
       expect(hasBig).toBe(true)
     }
@@ -949,15 +949,40 @@ describe('placeBuildings — placement & fairness', () => {
       for (let c = 1; c < COLS - 1; c++) map.setTile(c, r, makeTileBuilding('brick'))
     }
     let boxes: BuildingBox[] = []
-    expect(() => { boxes = placeBuildings(map, 4, createRng(1)) }).not.toThrow()
+    expect(() => { boxes = placeBuildings(map, 4, createRng(1), START_ROW) }).not.toThrow()
     expect(boxes).toHaveLength(0)
   })
 
   it('the player can always reach the exit column from the start (20 random levels)', () => {
     for (let run = 0; run < 20; run++) {
       const state = createGame(run % 4, 0, `reach-${run}`)
-      expect(canReachExit(state.map)).toBe(true)
+      expect(canReachExit(state.map, state.startRow)).toBe(true)
     }
+  })
+})
+
+// ── Seeded start row ──────────────────────────────────────────────────────────
+
+describe('seeded vertical start row', () => {
+  it('is identical for the same seed (fair) and within the field', () => {
+    const a = createGame(0, 0, 'start-row-seed')
+    const b = createGame(0, 0, 'start-row-seed')
+    expect(a.startRow).toBe(b.startRow)
+    expect(a.startRow).toBeGreaterThanOrEqual(0)
+    expect(a.startRow).toBeLessThan(ROWS)
+  })
+
+  it('spawns the player on the seeded row, marked visited', () => {
+    const s = createGame(0, 0, 'start-row-seed')
+    expect(s.playerRow).toBe(s.startRow)
+    expect(s.map.getTile(START_COL, s.startRow)?.id).toBe('visited')
+  })
+
+  it('varies the start row across seeds (not pinned to one row)', () => {
+    const rows = new Set(
+      Array.from({ length: 30 }, (_, i) => createGame(0, 0, `row-${i}`).startRow),
+    )
+    expect(rows.size).toBeGreaterThan(1)
   })
 })
 

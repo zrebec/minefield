@@ -1,5 +1,5 @@
 import { CELL, COLS, ROWS } from './constants.ts'
-import { START_COL, START_ROW, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS } from './config.ts'
+import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS } from './config.ts'
 import { type GameState, countWarningMines, applyClusterBlast, type MineType } from './game.ts'
 import type { Direction } from './input.ts'
 import { playWarning, playExplosion, playGemCollect, playFootstep, isAmbientSoundActive } from './audio.ts'
@@ -137,7 +137,7 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
 export function respawnPlayer(state: GameState): void {
   state.lives--
   state.playerCol = START_COL
-  state.playerRow = START_ROW
+  state.playerRow = state.startRow
   state.playerDir = 'right'
   state.walkTween = null
   state.bufferedDir = null
