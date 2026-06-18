@@ -1,6 +1,6 @@
 import { CELL, COLS, ROWS } from './constants.ts'
 import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS } from './config.ts'
-import { type GameState, countWarningMines, applyClusterBlast, type MineType } from './game.ts'
+import { type GameState, countWarningMines, applyClusterBlast, gemColor, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
 import type { Direction } from './input.ts'
 import { playWarning, playExplosion, playGemCollect, playFootstep, isAmbientSoundActive } from './audio.ts'
 import { makeTileVisited, makeTileGround, makeTileMine, makeTileGem, makeTileFlag, TILE_EXPLODED } from './sprites.ts'
@@ -101,10 +101,14 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
   state.playerCol = newCol
   state.playerRow = newRow
 
-  const wasUnvisited = tile.id !== 'visited'
   const hadGem = tile.id === 'gem'
+  const gemKind = hadGem ? ((tile.metadata?.gemKind as string) ?? 'cyan') : undefined
+  // A full backpack can't claim a gem: leave it on the field (cell stays a gem,
+  // not visited) so it's collectible again once a slot frees up.
+  const collectGem = hadGem && inventoryTotal(state.inventory) < INVENTORY_CAP
+  const claimsCell = !hadGem || collectGem
 
-  if (wasUnvisited) {
+  if (claimsCell && tile.id !== 'visited') {
     state.map.setTile(newCol, newRow, makeTileVisited(cellVariant(newCol, newRow), state.terrain))
     state.comboCount++
     state.comboTimer = COMBO_DURATION_MS
@@ -119,7 +123,8 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
     }
   }
 
-  if (hadGem) {
+  if (collectGem && gemKind) {
+    state.inventory[gemKind] = (state.inventory[gemKind] ?? 0) + 1
     state.gemsCollected++
     const cMult = comboMultiplier(state.comboCount)
     state.score += Math.round(GEM_SCORE * cMult)
@@ -166,15 +171,17 @@ export function toggleFlag(state: GameState): void {
     if (underneath === 'mine') {
       state.map.setTile(fc, fr, makeTileMine(mineType ?? 'normal', variant, state.terrain))
     } else if (underneath === 'gem') {
-      state.map.setTile(fc, fr, makeTileGem())
+      const kind = (tile.metadata?.gemKind as string) ?? 'cyan'
+      state.map.setTile(fc, fr, makeTileGem(kind, gemColor(kind)))
     } else {
       state.map.setTile(fc, fr, makeTileGround(variant, state.terrain))
     }
   } else if (tile.id === 'ground' || tile.id === 'mine' || tile.id === 'gem') {
     const underneath = tile.id
     const mineType = tile.id === 'mine' ? (tile.metadata?.mineType as string | undefined) : undefined
+    const gemKind = tile.id === 'gem' ? ((tile.metadata?.gemKind as string) ?? 'cyan') : undefined
     const variant = tile.id === 'gem' ? cellVariant(fc, fr) : (tile.metadata?.variant as 'a' | 'b' | undefined) ?? cellVariant(fc, fr)
-    state.map.setTile(fc, fr, makeTileFlag(underneath, mineType, variant))
+    state.map.setTile(fc, fr, makeTileFlag(underneath, mineType, variant, gemKind))
   }
   // 'visited' and 'exploded' cells cannot be flagged
 }

@@ -5,7 +5,7 @@
 import { createSaveProfile, createAnimation, createTileMap, type SaveProfile } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
 import GEM_COUNT, { START_ROW, WALK_FRAME_MS } from './config.ts'
-import { type GameState, type Dir } from './game.ts'
+import { type GameState, type Dir, gemColor } from './game.ts'
 import {
   type TerrainType, type CellVariant, type BuildingPart,
   makeTileGround, makeTileVisited, makeTileMine, makeTileGem,
@@ -22,6 +22,13 @@ const CHAR_BUILDING_PART: Record<string, BuildingPart> = {
   R: 'roof', E: 'eave', H: 'brick', S: 'side', N: 'window', F: 'concrete', Y: 'chimney',
 }
 
+// Gem kind ↔ save char (digits, unused elsewhere). Ground gems 1-4, flagged
+// gems 5-8. Legacy 'G'/'g' (pre-colour saves) still decode as plain cyan.
+const GEM_GROUND_CHAR: Record<string, string> = { red: '1', cyan: '2', gold: '3', green: '4' }
+const CHAR_GEM_GROUND: Record<string, string> = { '1': 'red', '2': 'cyan', '3': 'gold', '4': 'green' }
+const GEM_FLAG_CHAR: Record<string, string> = { red: '5', cyan: '6', gold: '7', green: '8' }
+const CHAR_GEM_FLAG: Record<string, string> = { '5': 'red', '6': 'cyan', '7': 'gold', '8': 'green' }
+
 export interface MinefieldSave {
   terrain: TerrainType
   level: number
@@ -37,6 +44,8 @@ export interface MinefieldSave {
   totalMines: number
   explodedMines: number
   gemsCollected: number
+  /** Cumulative backpack (gem id → count). Optional: older saves restore empty. */
+  inventory?: Record<string, number>
   cycleSteps: number
   isNight: boolean
   comboCount: number
@@ -58,7 +67,7 @@ function encodeCell(state: GameState, col: number, row: number): string {
     case 'ground': return '.'
     case 'visited': return 'V'
     case 'building': return BUILDING_PART_CHAR[tile.metadata?.part as BuildingPart] ?? '_'
-    case 'gem': return 'G'
+    case 'gem': return GEM_GROUND_CHAR[(tile.metadata?.gemKind as string) ?? 'cyan'] ?? '2'
     case 'exploded': return 'X'
     case 'mine': {
       const mt = tile.metadata?.mineType as string | undefined
@@ -66,7 +75,7 @@ function encodeCell(state: GameState, col: number, row: number): string {
     }
     case 'flag': {
       const underneath = tile.metadata?.underneath as string
-      if (underneath === 'gem') return 'g'
+      if (underneath === 'gem') return GEM_FLAG_CHAR[(tile.metadata?.gemKind as string) ?? 'cyan'] ?? '6'
       if (underneath === 'mine') {
         const mt = tile.metadata?.mineType as string | undefined
         return mt === 'cluster' ? 'c' : mt === 'beacon' ? 'b' : 'm'
@@ -87,6 +96,10 @@ function placeFromChar(
   const t = target.terrain
   const part = CHAR_BUILDING_PART[ch]
   if (part) { target.map.setTile(col, row, makeTileBuilding(part, col, row)); return }
+  const gemGround = CHAR_GEM_GROUND[ch]
+  if (gemGround) { target.map.setTile(col, row, makeTileGem(gemGround, gemColor(gemGround))); return }
+  const gemFlag = CHAR_GEM_FLAG[ch]
+  if (gemFlag) { target.map.setTile(col, row, makeTileFlag('gem', undefined, variant, gemFlag)); return }
   switch (ch) {
     case '.': target.map.setTile(col, row, makeTileGround(variant, t)); return
     case 'V': target.map.setTile(col, row, makeTileVisited(variant, t)); return
@@ -127,6 +140,7 @@ function serializeState(state: GameState): MinefieldSave {
     totalMines: state.totalMines,
     explodedMines: state.explodedMines,
     gemsCollected: state.gemsCollected,
+    inventory: state.inventory,
     cycleSteps: state.cycleSteps,
     isNight: state.isNight,
     comboCount: state.comboCount,
@@ -148,6 +162,7 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.totalMines = data.totalMines
   target.explodedMines = data.explodedMines
   target.gemsCollected = data.gemsCollected
+  target.inventory = data.inventory ?? {}
   target.gemsTotal = GEM_COUNT
   target.cycleSteps = data.cycleSteps
   target.isNight = data.isNight

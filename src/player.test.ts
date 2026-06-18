@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
-import { createGame, type GameState } from './game.ts'
+import { createGame, INVENTORY_CAP, type GameState } from './game.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import {
   START_COL,
@@ -320,6 +320,24 @@ describe('movePlayer — gem collection', () => {
     const cellScore = Math.round(SCORE_PER_CELL * SCORE_MULTIPLIERS[0] * 1.0)
     const gemScore  = Math.round(GEM_SCORE * 1.0)
     expect(state.score).toBe(cellScore + gemScore)
+  })
+
+  it('collects the gem into the backpack by kind', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileGem('red', C.RED))
+    step(state, 'right')
+    expect(state.inventory.red).toBe(1)
+  })
+
+  it('refuses a gem when the backpack is full — it stays on the field', () => {
+    const state = makeState(5, 5)
+    state.inventory = { cyan: INVENTORY_CAP }   // backpack full
+    state.map.setTile(6, 5, makeTileGem('red', C.RED))
+    const beforeGems = state.gemsCollected
+    step(state, 'right')
+    expect(state.inventory.red ?? 0).toBe(0)         // not collected
+    expect(state.gemsCollected).toBe(beforeGems)     // not counted
+    expect(state.map.getTile(6, 5)?.id).toBe('gem')  // gem remains, cell not claimed
   })
 })
 

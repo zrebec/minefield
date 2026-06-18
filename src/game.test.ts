@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, fixObstacleTraps, type MineType } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, fixObstacleTraps, GEM_KINDS, type MineType } from './game.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT } from './config.ts'
@@ -983,6 +983,34 @@ describe('seeded vertical start row', () => {
       Array.from({ length: 30 }, (_, i) => createGame(0, 0, `row-${i}`).startRow),
     )
     expect(rows.size).toBeGreaterThan(1)
+  })
+})
+
+// ── Coloured gems ─────────────────────────────────────────────────────────────
+
+describe('gem kinds — exact-quota distribution & colour', () => {
+  function gemCounts(seed: string): Record<string, number> {
+    const state = createGame(0, 0, seed)
+    const counts: Record<string, number> = {}
+    for (const { tile } of state.map.findById('gem')) {
+      const k = tile.metadata?.gemKind as string
+      counts[k] = (counts[k] ?? 0) + 1
+    }
+    return counts
+  }
+
+  it('splits 12 gems as 3 red / 6 cyan / 1 gold / 2 green, every seed', () => {
+    for (const seed of ['gems-a', 'gems-b', 'gems-c']) {
+      expect(gemCounts(seed)).toEqual({ red: 3, cyan: 6, gold: 1, green: 2 })
+    }
+  })
+
+  it('each gem tile carries its kind colour as ink', () => {
+    const state = createGame(0, 0, 'gems-a')
+    for (const { tile } of state.map.findById('gem')) {
+      const kind = GEM_KINDS.find((k) => k.id === tile.metadata?.gemKind)
+      expect(tile.ink).toBe(kind?.color)
+    }
   })
 })
 

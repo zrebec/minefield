@@ -1,5 +1,5 @@
 import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
-import { COLS, ROWS } from './constants.ts'
+import { COLS, ROWS, C, type SpectrumColor } from './constants.ts'
 import GEM_COUNT, { START_COL, SAFE_RADIUS, LEVEL_CONFIGS, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED,
@@ -8,6 +8,54 @@ import {
 import { placeBuildings } from './buildings.ts'
 
 const TERRAIN_TYPES: TerrainType[] = ['grass', 'snow', 'dust']
+
+// ── Collectible gems ──────────────────────────────────────────────────────────
+// Data-driven: add a colour by dropping another entry here. `weight` is the
+// field share (≈ percent; summed and normalised), `color` is the shared GEM
+// sprite's ink on the field AND in the HUD inventory. Lives here (not config)
+// because per-level distributions may diverge later — make it a function of
+// level when that lands.
+export interface GemKind {
+  id: string
+  color: SpectrumColor
+  weight: number
+}
+export const GEM_KINDS: readonly GemKind[] = [
+  { id: 'red',   color: C.RED,    weight: 20 },
+  { id: 'cyan',  color: C.CYAN,   weight: 50 },
+  { id: 'gold',  color: C.YELLOW, weight: 10 },
+  { id: 'green', color: C.GREEN,  weight: 20 },
+]
+
+// The HUD inventory draws one sprite per held gem along the top row, so the
+// backpack caps at the row width — a 33rd item simply isn't picked up.
+export const INVENTORY_CAP = COLS
+
+export function gemColor(id: string): SpectrumColor {
+  return (GEM_KINDS.find((k) => k.id === id) ?? GEM_KINDS[0]).color
+}
+
+export function inventoryTotal(inv: Record<string, number>): number {
+  let n = 0
+  for (const id in inv) n += inv[id]
+  return n
+}
+
+// Exact-quota colour assignment (largest remainder; ties → array order).
+// 12 gems · 20/50/10/20 → 3 red / 6 cyan / 1 gold / 2 green.
+function gemKindSequence(total: number, kinds: readonly GemKind[]): string[] {
+  const weightSum = kinds.reduce((s, k) => s + k.weight, 0)
+  const exact = kinds.map((k) => (total * k.weight) / weightSum)
+  const counts = exact.map(Math.floor)
+  let used = counts.reduce((a, b) => a + b, 0)
+  const byFraction = exact
+    .map((e, i) => ({ i, frac: e - Math.floor(e) }))
+    .sort((a, b) => b.frac - a.frac || a.i - b.i)
+  for (let k = 0; used < total; k++, used++) counts[byFraction[k % byFraction.length].i]++
+  const seq: string[] = []
+  kinds.forEach((k, i) => { for (let n = 0; n < counts[i]; n++) seq.push(k.id) })
+  return seq
+}
 
 /**
  * Today's date as `YYYY-MM-DD` (local time). The daily-challenge field is seeded from
@@ -71,6 +119,9 @@ export interface GameState {
   comboTimer: number
   gemsTotal: number
   gemsCollected: number
+  /** Cumulative backpack: gem id → count. Persists across levels, capped at
+   *  INVENTORY_CAP, drawn 1:1 in the HUD top row. */
+  inventory: Record<string, number>
   droppedMines: Array<{ col: number; row: number }>
   dropFlashTimer: number
   runState: RunState
@@ -153,6 +204,7 @@ export function fixObstacleTraps(map: TileMap, terrain: TerrainType): void {
 }
 
 function placeGems(map: TileMap, count: number, safeCol: number, safeRow: number, rng: Rng): void {
+  const kinds = gemKindSequence(count, GEM_KINDS)
   let placed = 0
   let attempts = 0
   while (placed < count && attempts < count * 20) {
@@ -162,7 +214,8 @@ function placeGems(map: TileMap, count: number, safeCol: number, safeRow: number
     const tile = map.getTile(col, row)
     if (tile?.id !== 'ground') continue
     if (Math.abs(col - safeCol) <= SAFE_RADIUS + 2 && Math.abs(row - safeRow) <= SAFE_RADIUS + 2) continue
-    map.setTile(col, row, makeTileGem())
+    const id = kinds[placed]
+    map.setTile(col, row, makeTileGem(id, gemColor(id)))
     placed++
   }
 }
@@ -221,7 +274,7 @@ function randomSeed(): number {
   return (Math.random() * 0x100000000) >>> 0
 }
 
-export function createGame(level = 0, initialScore = 0, seed?: string | number): GameState {
+export function createGame(level = 0, initialScore = 0, seed?: string | number, initialInventory: Record<string, number> = {}): GameState {
   const cfg = LEVEL_CONFIGS[Math.min(level, LEVEL_CONFIGS.length - 1)]
   // Field generation is seeded: pass a `seed` (e.g. dailySeed(level)) for a reproducible
   // daily field; omit it (tests / free play) to get a fresh field each call.
@@ -272,6 +325,7 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number):
     comboTimer: 0,
     gemsTotal: GEM_COUNT,
     gemsCollected: 0,
+    inventory: { ...initialInventory },
     droppedMines: [],
     dropFlashTimer: 0,
     runState: 'idle',

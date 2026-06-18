@@ -325,13 +325,17 @@ export function makeTileMine(mineType: string, variant: CellVariant, terrain: Te
   }
 }
 
-export function makeTileGem(): Tile {
+// Colour is the gem kind's ink (see GEM_KINDS in game.ts); kind is stored so the
+// field tile, save and HUD inventory all agree. Defaults keep no-arg callers
+// (tests, legacy saves) working as a plain cyan gem.
+export function makeTileGem(kind = 'cyan', color: SpectrumColor = C.CYAN): Tile {
   return {
     sprite: GEM,
-    ink: C.B_CYAN,
+    ink: color,
     paper: C.BLACK,
     solid: false,
     id: 'gem',
+    metadata: { gemKind: kind },
   }
 }
 
@@ -351,6 +355,7 @@ export function makeTileFlag(
   underneath: string,
   mineType: string | undefined,
   variant: CellVariant | undefined,
+  gemKind?: string,
 ): Tile {
   return {
     sprite: FLAG,
@@ -358,7 +363,7 @@ export function makeTileFlag(
     paper: C.BLACK,
     solid: false,
     id: 'flag',
-    metadata: { underneath, mineType, variant },
+    metadata: { underneath, mineType, variant, gemKind },
   }
 }
 

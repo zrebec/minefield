@@ -172,7 +172,7 @@ function gameLoop(timestamp: number): void {
     if (consumeRandomMap()) {
       randomMode = true
       stopAmbientSounds()
-      state = createGame(state.level, state.score)   // no seed → fresh random field
+      state = createGame(state.level, state.score, undefined, state.inventory)   // no seed → fresh random field; keep backpack
       resetInput(); resetUI()
       flashBorder(C.B_MAGENTA, 2, 80)
     }
@@ -240,9 +240,11 @@ function gameLoop(timestamp: number): void {
     state.levelCompleteTimer -= dt
     if (state.levelCompleteTimer <= 0) {
       const prevScore = state.score
+      const prevInventory = state.inventory
       stopAmbientSounds()
-      // random run stays random across levels; otherwise the daily field per level
-      state = createGame(state.level + 1, prevScore, randomMode ? undefined : dailySeed(state.level + 1))
+      // random run stays random across levels; otherwise the daily field per level.
+      // Backpack carries over (it's the player's, not the field's).
+      state = createGame(state.level + 1, prevScore, randomMode ? undefined : dailySeed(state.level + 1), prevInventory)
       writeSave(saveProfile, 'auto')   // checkpoint at the start of every level
     }
 

@@ -1,6 +1,6 @@
 import { CANVAS_W, CANVAS_H, ROWS, STATUS_ROWS, COLS, CELL, C } from './constants.ts'
 import type { GameState, AirplaneState } from './game.ts'
-import { countAdjacentMines, countBeaconSignals } from './game.ts'
+import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor } from 'zx-kit'
 import { loadHighScores } from './assets/highscore.ts'
 import { L } from './lang.ts'
@@ -9,7 +9,7 @@ import {
   PLAYER_LEFT_A, PLAYER_LEFT_B,
   PLAYER_UP_A, PLAYER_UP_B,
   PLAYER_DOWN_A, PLAYER_DOWN_B,
-  MINE, EXPLOSION_1, EXPLOSION_2,
+  MINE, GEM, EXPLOSION_1, EXPLOSION_2,
   AIRPLANE_RIGHT, AIRPLANE_LEFT,
   HEART, GROUND_A, GROUND_B,
   LED_ON, LED_OFF,
@@ -86,9 +86,22 @@ function renderDetector(ctx: CanvasRenderingContext2D, adjacent: number, beacon:
   else drawSprite(ctx, LED_OFF, bx, STATUS_Y, C.B_RED, C.BLACK)
 }
 
+// Top HUD row = the player's backpack: one gem sprite per held item, grouped by
+// colour in GEM_KINDS order, left-to-right, capped at the row width.
+function renderInventory(ctx: CanvasRenderingContext2D, state: GameState): void {
+  let slot = 0
+  for (const kind of GEM_KINDS) {
+    const n = state.inventory[kind.id] ?? 0
+    for (let i = 0; i < n && slot < INVENTORY_CAP; i++, slot++) {
+      drawSprite(ctx, GEM, slot * CELL, STATUS_TOP, kind.color, C.BLACK)
+    }
+  }
+}
+
 function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void {
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, STATUS_TOP, CANVAS_W, STATUS_ROWS * CELL)
+  renderInventory(ctx, state)
 
   drawText(ctx, L.STR_SCORE(state.score), 0, STATUS_Y, C.B_WHITE, C.BLACK)
   if (state.runState === 'idle') {
