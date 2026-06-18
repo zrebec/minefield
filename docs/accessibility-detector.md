@@ -1,8 +1,29 @@
-# Prístupnosť — detektor mín (3 svetlá) + haptika
+# Prístupnosť — detektor mín (HUD meter) + haptika
 
-> **Status: NÁVRH (neimplementované).** Dizajnová poznámka k prístupnosti a k „detektoru mín".
-> Zdroj: nápad ownera + úprimný rozbor (Claude), 2026-06-15. Pendant v portfólio docs:
-> `retro/docs/sk/minefield.md` (sekcie F4/F9 + „Na zamyslenie").
+> **Status: ✅ IMPLEMENTOVANÉ (2026-06-17).** Vizuálny detektor je v hre (HUD, status bar). Text nižšie
+> od „Problém…" je **pôvodný návrh** (historický kontext); čo reálne shiplo a v čom sa líši, je v sekcii
+> **„Čo sa shiplo"** hneď pod týmto. Haptika (F9) ostáva budúca. Pendant: `retro/docs/sk/minefield.md`.
+
+---
+
+## Čo sa shiplo (2026-06-17)
+
+Vizuálny mine-detector v **HUD** (horný riadok status baru, stred medzi `SCORE` a `LEVEL`) — **nie na
+borderi** (border bol môj favorit, ale stály readout bez blikania vyhral). Implementácia:
+
+- **4-segment meter = priľahlé míny** (`countAdjacentMines`, 0–4): rozsvietený slot = vyplnený disk,
+  **amber (1–2) → red (3–4)**, prázdny = krúžok. **Nikdy zelená pri nebezpečenstve** (ľubovoľná priľahlá
+  mína = smrteľný krok). *(Pozn.: shiplo ako 0–4 cez všetky 4 ortogonálne dist-1 — explicitná
+  „back-exclusion" na 0–3 sa neimplementovala; „späť" je v praxi 0 a 0–4 nepotrebuje facing → funguje aj
+  pri spawne/teleporte.)*
+- **Beacon = samostatná cyan LED** (`countBeaconSignals`, dist-2) → **model (A)** z rozboru nižšie. Cyan
+  = farba beacon míny; nepočujúci tým dostáva aj ranged varovanie, nielen priľahlé.
+- **Audio nezmenené:** `countWarningMines` vracia ten istý 0–8 súčet, len je teraz poskladaný z
+  `countAdjacentMines + countBeaconSignals` (HUD ho rozdelí späť na dve časti).
+- **Stály N-of-4 readout, nie sekvenčné blikanie** — presne ako odporúčal rozbor nižšie.
+- **Color-clash dodržaný** (1 ink na 8×8): disk aj krúžok = jedna farba na čiernej.
+- **Neimplementované (možné rozšírenia):** haptika (F9), border-signál, kurzor-pripnuté LED, per-kanál
+  prepínač v nastaveniach, farboslepý režim, presný počet beaconov (teraz on/off).
 
 ---
 
@@ -120,13 +141,14 @@ To isté N → **N pulzov vibrácie** cez Gamepad API `gamepad.vibrationActuator
 
 ---
 
-## Otvorené rozhodnutia (TODO pred implementáciou)
+## Rozhodnutia (vyriešené pri implementácii 2026-06-17)
 
-- [ ] **Model susednosti** (A/B/C vyššie) — *blokuje všetko ostatné.*
-- [ ] Border vs kurzor-LED vs HUD pruh (odporúčam border).
-- [ ] Farby 1/2/3 a či pulzovať.
-- [ ] Nastavenia: per-kanál prepínač (zvuk / svetlo / haptika).
-- [ ] Intro obrazovka: vysvetliť detektor (najmä pri modeli B, kde sa líši od zvuku).
+- [x] **Model susednosti** → **(A)** beacon = vlastný cyan indikátor.
+- [x] Border vs kurzor-LED vs HUD → **HUD (horný riadok, stred).**
+- [x] Farby a či pulzovať → **amber/red disky, stály readout (bez pulzu).**
+- [ ] Nastavenia: per-kanál prepínač (zvuk / svetlo / haptika). *(zostáva)*
+- [ ] Intro obrazovka: vysvetliť detektor. *(zostáva)*
+- [ ] Haptika (F9) + presný počet beaconov. *(zostáva)*
 
 ## Odkazy do existujúceho dizajnu
 - `CLAUDE.md` → *Zvukový systém → Varovanie podľa blízkosti* (3×3, 0–8) — zdroj rozporu.
