@@ -1,3 +1,10 @@
+# [0.27.0](https://github.com/zrebec/minefield/compare/v0.26.0...v0.27.0) (2026-06-18)
+
+
+### Features
+
+* **spawn:** seed the vertical start row (random per field, fair per seed) ([e1f9623](https://github.com/zrebec/minefield/commit/e1f9623a35469670694e1a848cc8a88a5d976ac1))
+
 # [0.26.0](https://github.com/zrebec/minefield/compare/v0.25.0...v0.26.0) (2026-06-18)
 
 
