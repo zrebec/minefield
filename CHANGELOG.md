@@ -1,3 +1,10 @@
+# [0.26.0](https://github.com/zrebec/minefield/compare/v0.25.0...v0.26.0) (2026-06-18)
+
+
+### Features
+
+* **hud:** expand status bar to 3 rows, shrink playfield to 21 ([14b7e7e](https://github.com/zrebec/minefield/commit/14b7e7e8352f8856086c551c4661f72c6eea5f67))
+
 # [0.25.0](https://github.com/zrebec/minefield/compare/v0.24.0...v0.25.0) (2026-06-17)
 
 
