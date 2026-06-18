@@ -1,3 +1,10 @@
+# [0.28.0](https://github.com/zrebec/minefield/compare/v0.27.0...v0.28.0) (2026-06-18)
+
+
+### Features
+
+* **gems:** data-driven colour kinds + HUD backpack inventory ([5e8ccf2](https://github.com/zrebec/minefield/commit/5e8ccf291567355603fc8b92128297a616507559))
+
 # [0.27.0](https://github.com/zrebec/minefield/compare/v0.26.0...v0.27.0) (2026-06-18)
 
 
