@@ -1,4 +1,4 @@
-import { CANVAS_W, CANVAS_H, ROWS, COLS, CELL, C } from './constants.ts'
+import { CANVAS_W, CANVAS_H, ROWS, STATUS_ROWS, COLS, CELL, C } from './constants.ts'
 import type { GameState, AirplaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor } from 'zx-kit'
@@ -15,7 +15,11 @@ import {
   LED_ON, LED_OFF,
 } from './sprites.ts'
 
-const STATUS_Y = ROWS * CELL  // 176
+// The bottom HUD spans STATUS_ROWS rows. Its top row is reserved (left empty for
+// now); existing content lives in the bottom two rows, so STATUS_Y keeps its old
+// value (176) and none of the content drawing below needs to move.
+const STATUS_TOP = ROWS * CELL    // top of the HUD strip / reserved empty row (168)
+const STATUS_Y = STATUS_TOP + CELL  // first populated HUD row (176)
 
 function drawTextCentered(
   ctx: CanvasRenderingContext2D,
@@ -84,7 +88,7 @@ function renderDetector(ctx: CanvasRenderingContext2D, adjacent: number, beacon:
 
 function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void {
   ctx.fillStyle = C.BLACK
-  ctx.fillRect(0, STATUS_Y, CANVAS_W, 16)
+  ctx.fillRect(0, STATUS_TOP, CANVAS_W, STATUS_ROWS * CELL)
 
   drawText(ctx, L.STR_SCORE(state.score), 0, STATUS_Y, C.B_WHITE, C.BLACK)
   if (state.runState === 'idle') {

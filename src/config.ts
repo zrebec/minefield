@@ -33,7 +33,10 @@ export const KEY_REPEAT_INTERVAL = 120
 // ── Player & Start ────────────────────────────────────────────────────────────
 
 // Starting column and row (0-indexed).
-// START_COL=0 = left edge, START_ROW=11 = vertical centre (ROWS/2)
+// START_COL=0 = left edge. START_ROW=11 keeps the player in the same absolute
+// cell after the playfield shrank 22→21 rows (so nothing about the start moved);
+// note 21 is odd, so the exact centre is now row 10 — switch to 10 if a perfectly
+// centred start is preferred.
 export const START_COL = 0
 export const START_ROW = 11
 

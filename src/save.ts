@@ -189,9 +189,11 @@ export function setStateGetter(getter: () => GameState): void {
 export const saveProfile: SaveProfile<MinefieldSave> = createSaveProfile<MinefieldSave>({
   key: 'minefield',
   // v2: terrain encoding gained high-angle buildings (parts R/E/H/S/N/F/Y) and
-  // dropped the old linear-wall code 'W'. No migrate — pre-building saves are
+  // dropped the old linear-wall code 'W'.
+  // v3: playfield shrank 22→21 rows. A v2 map has one extra row, so loading it
+  // into a 21-row world would misalign every cell — no migrate, old saves are
   // cleanly rejected (version_unsupported) rather than loaded half-broken.
-  version: 2,
+  version: 3,
   serialize: () => serializeState(getCurrentState()),
   deserialize: (data) => applyToState(getCurrentState(), data),
   // No migrate needed for v1 — add when the shape changes.
