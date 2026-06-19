@@ -1,6 +1,6 @@
-import { C, CANVAS_W, CELL, ROWS } from './constants.ts'
+import { C, CANVAS_W, CELL, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
-import { createGame, dailySeed, type GameState, type GamePhase } from './game.ts'
+import { createGame, dailySeed, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown, consumeManualSave, consumeRandomMap } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave } from 'zx-kit'
@@ -16,6 +16,9 @@ let appPhase: AppPhase = 'intro'
 let state: GameState = createGame(0)
 setStateGetter(() => state)
 let lastTime = 0
+// Capture mode (dev-only): when true the loop stops ticking/rendering so a
+// manually installed frame stays on screen for a deterministic screenshot.
+let frozen = false
 const blinker = createBlinker(BLINK_INTERVAL_MS)
 let audioReady = false
 let prevGamePhase: GamePhase = 'playing'
@@ -83,6 +86,7 @@ function enterHiScore(): void {
 }
 
 function gameLoop(timestamp: number): void {
+  if (frozen) return  // capture mode: keep the manually rendered frame
   const dt = Math.min(timestamp - lastTime, 100)
   lastTime = timestamp
   const ctx = getCtx()
@@ -309,3 +313,58 @@ function main(): void {
 }
 
 main()
+
+// ─── Capture hook (dev-only, stripped from production builds) ──────────────────
+// Drives deterministic screenshots for docs (scripts/capture.mjs). Deliberately
+// has NO way to fake state — only real gameplay: start a fixed-seed game and take
+// genuine moves (the actual movePlayer + walk). Every captured frame is therefore
+// a state the game can really reach (score, backpack, trail all consistent).
+// Tree-shaken out when import.meta.env.DEV is false.
+if (import.meta.env.DEV) {
+  // Read-only snapshot — lets the capture script route the player (BFS around
+  // mines/buildings) without ever mutating the game's own state.
+  const snapshot = () => ({
+    phase: state.phase,
+    runState: state.runState,
+    player: { col: state.playerCol, row: state.playerRow },
+    startRow: state.startRow,
+    score: state.score,
+    lives: state.lives,
+    inventory: { ...state.inventory },
+    cols: COLS,
+    rows: ROWS,
+    gems: state.map.findById('gem').map(({ x, y, tile }) => ({ col: x, row: y, kind: tile.metadata?.gemKind as string })),
+    mines: state.map.findById('mine').map(({ x, y }) => ({ col: x, row: y })),
+    buildings: state.map.findById('building').map(({ x, y }) => ({ col: x, row: y })),
+  })
+  ;(window as unknown as Record<string, unknown>).__mf = {
+    newGame(seed?: string) {                       // authentic fresh level (no injection)
+      frozen = true
+      state = createGame(0, 0, seed)
+      appPhase = 'ingame'
+      renderFrame(getCtx(), state)
+      return snapshot()
+    },
+    steps(dirs: Dir[]) {                           // take REAL moves (movePlayer + walk to completion)
+      for (const dir of dirs) {
+        // mirror main.ts: the first move leaves the idle 'scout' state
+        if (state.runState === 'idle') { state.runState = 'running'; state.debugMode = false }
+        movePlayer(state, dir)
+        tickPlayer(state, WALK_DURATION_MS + 5)
+      }
+      renderFrame(getCtx(), state)
+      return snapshot()
+    },
+    setDebug(on: boolean) {                        // the real idle-only debug toggle
+      state.debugMode = on
+      renderFrame(getCtx(), state)
+      return snapshot()
+    },
+    showIntro(page = 0): void {                    // the title screen
+      frozen = true
+      appPhase = 'intro'
+      renderIntro(getCtx(), true, page)
+    },
+    field: snapshot,                               // read-only, for routing only
+  }
+}
