@@ -114,6 +114,10 @@ function gameLoop(timestamp: number): void {
       randomMode = false   // fresh run = today's daily field
       state = createGame(0, 0, dailySeed(0))   // daily field — same for everyone today
       readSaveLatest(saveProfile)   // mutates state in-place if a save exists
+      // A resumed save keeps its own seed: dropSeedBase===null marks a random
+      // (R-rerolled) run, which must stay random so it can't launder into a
+      // recorded score on the daily leaderboard.
+      randomMode = state.dropSeedBase === null
       introPage = 0
       introPageTimer = INTRO_PAGE_MS
       resetInput(); resetUI()
@@ -262,7 +266,9 @@ function gameLoop(timestamp: number): void {
       // No save scumming — saves are cleared on game over (Spectrum philosophy)
       deleteSave(saveProfile, 'auto')
       deleteSave(saveProfile, 'manual')
-      if (isHighScore(state.score)) {
+      // Random (R-rerolled) runs never reach the leaderboard — otherwise you
+      // could reroll until an easy map, farm a score and "beat" the daily.
+      if (!randomMode && isHighScore(state.score)) {
         enterHiScore()
       } else {
         appPhase = 'intro'

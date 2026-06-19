@@ -52,6 +52,10 @@ export interface MinefieldSave {
   isNight: boolean
   comboCount: number
   nextAircraftMs: number
+  /** Field seed base: a string for daily runs, null for a random (R-rerolled)
+   *  run. Persisted so a resumed random run stays random (and off the
+   *  leaderboard). Optional: older saves lack it and resume as daily. */
+  dropSeedBase?: string | null
   /** Row-major map encoding; each row is a string of length COLS. */
   map: string[]
 }
@@ -148,6 +152,7 @@ function serializeState(state: GameState): MinefieldSave {
     isNight: state.isNight,
     comboCount: state.comboCount,
     nextAircraftMs: state.nextAircraftMs,
+    dropSeedBase: state.dropSeedBase,
     map,
   }
 }
@@ -173,6 +178,9 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.comboCount = data.comboCount
   target.comboTimer = 0
   target.nextAircraftMs = data.nextAircraftMs
+  // null is meaningful (random run) so check presence, not truthiness; absent in
+  // older saves → keep the daily seed the fresh game was created with.
+  if (data.dropSeedBase !== undefined) target.dropSeedBase = data.dropSeedBase
 
   // Replace map wholesale
   const fresh = createTileMap(COLS, ROWS)
