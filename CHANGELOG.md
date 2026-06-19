@@ -1,3 +1,10 @@
+# [0.31.0](https://github.com/zrebec/minefield/compare/v0.30.1...v0.31.0) (2026-06-19)
+
+
+### Features
+
+* **mode:** explicit daily vs random with auto-resume ([1687baf](https://github.com/zrebec/minefield/commit/1687baf595f7b73afe3da93136d53209e4e6868f))
+
 ## [0.30.1](https://github.com/zrebec/minefield/compare/v0.30.0...v0.30.1) (2026-06-19)
 
 
