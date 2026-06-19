@@ -436,6 +436,18 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState): vo
     }
   }
 
+  // Permanently revealed mines (cyan-gem reward) — drawn after the night overlay
+  // so they stay visible even at night, in their type colour like the debug view.
+  for (const { col, row } of state.revealedMines) {
+    const tile = state.map.getTile(col, row)
+    if (tile?.id !== 'mine') continue   // already detonated / cleared → nothing to show
+    const mineType = tile.metadata?.mineType as string
+    const ink = mineType === 'cluster' ? C.B_YELLOW
+      : mineType === 'beacon' ? C.B_CYAN
+        : C.B_RED
+    drawSprite(ctx, MINE, col * CELL, row * CELL, ink, C.BLACK)
+  }
+
   // Drop flash overlay — newly dropped mines blink white
   if (state.dropFlashTimer > 0) {
     const flashOn = Math.floor(state.dropFlashTimer / 100) % 2 === 1

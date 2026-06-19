@@ -133,6 +133,14 @@ export function playExtraLife(): void {
   ])
 }
 
+export function playReveal(): void {
+  // Short ominous low two-tone — a mine has just been exposed.
+  playPattern([
+    { freq: 196, dur: 70 },
+    { freq: 147, dur: 130 },
+  ])
+}
+
 export function startApproachSound(): void {
   const ctx = getAudioContext()
   if (!ctx || approachOsc || airplaneOsc) return

@@ -19,6 +19,7 @@ vi.mock('./audio.ts', () => ({
   playGemCollect: vi.fn(),
   playFootstep: vi.fn(),
   playExtraLife: vi.fn(),
+  playReveal: vi.fn(),
   isAmbientSoundActive: vi.fn().mockReturnValue(false),
 }))
 
@@ -373,6 +374,27 @@ describe('movePlayer — gem collection', () => {
     step(state, 'right')
     step(state, 'right')
     expect(state.lives).toBe(lives0)
+    expect(state.inventory.cyan).toBe(2)
+  })
+
+  it('reveals a live mine after a third cyan gem (and consumes the three)', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(10, 10, makeTileMine('normal', 'a', 'grass')) // a live mine off the path
+    for (let i = 0; i < 3; i++) state.map.setTile(6 + i, 5, makeTileGem('cyan', C.CYAN))
+    for (let i = 0; i < 3; i++) step(state, 'right')
+    expect(state.revealedMines).toHaveLength(1)
+    expect(state.revealedMines[0]).toEqual({ col: 10, row: 10 })
+    expect(state.inventory.cyan ?? 0).toBe(0)
+  })
+
+  it('does not reveal before the third cyan gem', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(10, 10, makeTileMine('normal', 'a', 'grass'))
+    state.map.setTile(6, 5, makeTileGem('cyan', C.CYAN))
+    state.map.setTile(7, 5, makeTileGem('cyan', C.CYAN))
+    step(state, 'right')
+    step(state, 'right')
+    expect(state.revealedMines).toHaveLength(0)
     expect(state.inventory.cyan).toBe(2)
   })
 })

@@ -46,6 +46,8 @@ export interface MinefieldSave {
   gemsCollected: number
   /** Cumulative backpack (gem id → count). Optional: older saves restore empty. */
   inventory?: Record<string, number>
+  /** Mines revealed by the cyan-gem reward this level. Optional: older saves []. */
+  revealedMines?: Array<{ col: number; row: number }>
   cycleSteps: number
   isNight: boolean
   comboCount: number
@@ -141,6 +143,7 @@ function serializeState(state: GameState): MinefieldSave {
     explodedMines: state.explodedMines,
     gemsCollected: state.gemsCollected,
     inventory: state.inventory,
+    revealedMines: state.revealedMines,
     cycleSteps: state.cycleSteps,
     isNight: state.isNight,
     comboCount: state.comboCount,
@@ -163,6 +166,7 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.explodedMines = data.explodedMines
   target.gemsCollected = data.gemsCollected
   target.inventory = data.inventory ?? {}
+  target.revealedMines = data.revealedMines ?? []
   target.gemsTotal = GEM_COUNT
   target.cycleSteps = data.cycleSteps
   target.isNight = data.isNight

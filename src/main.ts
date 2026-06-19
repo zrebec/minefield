@@ -331,6 +331,7 @@ if (import.meta.env.DEV) {
     score: state.score,
     lives: state.lives,
     inventory: { ...state.inventory },
+    revealedMines: state.revealedMines.map((m) => ({ ...m })),
     cols: COLS,
     rows: ROWS,
     gems: state.map.findById('gem').map(({ x, y, tile }) => ({ col: x, row: y, kind: tile.metadata?.gemKind as string })),

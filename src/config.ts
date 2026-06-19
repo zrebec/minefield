@@ -203,6 +203,11 @@ export const GEM_SCORE = 1000
 // backpack slots). The first real gem "function" — see GEM_KINDS in game.ts.
 export const RED_GEMS_PER_LIFE = 2
 
+// Collecting this many CYAN gems permanently reveals one still-live mine for the
+// rest of the level (and frees the slots). The mine can be anywhere unwalked —
+// often behind you — so it's a deceptive, not strictly useful, reward.
+export const CYAN_GEMS_PER_REVEAL = 3
+
 // ── Combo system ──────────────────────────────────────────────────────────────
 
 // How long (ms) a combo remains active without stepping on a new cell

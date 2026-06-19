@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, fixObstacleTraps, GEM_KINDS, type MineType } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, GEM_KINDS, type MineType } from './game.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT } from './config.ts'
@@ -1011,6 +1011,41 @@ describe('gem kinds — exact-quota distribution & colour', () => {
       const kind = GEM_KINDS.find((k) => k.id === tile.metadata?.gemKind)
       expect(tile.ink).toBe(kind?.color)
     }
+  })
+})
+
+// ── revealMine (cyan-gem reward) ──────────────────────────────────────────────
+
+describe('revealMine — cyan-gem reward', () => {
+  it('reveals an undetonated mine off the walked path', () => {
+    const state = createGame(0, 0, 'reveal-seed')
+    expect(revealMine(state)).toBe(true)
+    expect(state.revealedMines).toHaveLength(1)
+    const m = state.revealedMines[0]
+    // findById('mine') only yields live mines, so the pick is a real, legal target
+    expect(state.map.getTile(m.col, m.row)?.id).toBe('mine')
+  })
+
+  it('never reveals the same mine twice', () => {
+    const state = createGame(0, 0, 'reveal-seed')
+    revealMine(state); revealMine(state); revealMine(state)
+    const keys = state.revealedMines.map((m) => `${m.col},${m.row}`)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it('is deterministic for the same seed', () => {
+    const a = createGame(0, 0, 'reveal-seed'); revealMine(a)
+    const b = createGame(0, 0, 'reveal-seed'); revealMine(b)
+    expect(a.revealedMines[0]).toEqual(b.revealedMines[0])
+  })
+
+  it('returns false once every live mine is revealed', () => {
+    const state = createGame(0, 0, 'reveal-seed')
+    const total = state.map.findById('mine').length
+    expect(total).toBeGreaterThan(0)
+    for (let i = 0; i < total; i++) expect(revealMine(state)).toBe(true)
+    expect(revealMine(state)).toBe(false)
+    expect(state.revealedMines).toHaveLength(total)
   })
 })
 

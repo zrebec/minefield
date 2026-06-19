@@ -122,6 +122,8 @@ export interface GameState {
   /** Cumulative backpack: gem id → count. Persists across levels, capped at
    *  INVENTORY_CAP, drawn 1:1 in the HUD top row. */
   inventory: Record<string, number>
+  /** Mines permanently revealed by the cyan-gem reward, this level only. */
+  revealedMines: Array<{ col: number; row: number }>
   droppedMines: Array<{ col: number; row: number }>
   dropFlashTimer: number
   runState: RunState
@@ -267,6 +269,29 @@ export function applyClusterBlast(state: GameState, centerCol: number, centerRow
   }
 }
 
+/**
+ * Permanently reveal one still-live mine for the rest of the level (cyan-gem
+ * reward). Candidates come from `findById('mine')`, which by construction holds
+ * only undetonated mines off the walked path (a stepped-on mine is 'exploded',
+ * a walked cell is 'visited', buildings are 'building') — so every candidate is
+ * automatically a legal target, no extra filtering needed. The pick is seeded
+ * off the field seed (like airplane drops) so a daily challenge reveals the same
+ * mines for identical play. Returns false when nothing is left to reveal.
+ */
+export function revealMine(state: GameState): boolean {
+  const shown = new Set(state.revealedMines.map((m) => `${m.col},${m.row}`))
+  const candidates = state.map.findById('mine')
+    .map(({ x, y }) => ({ col: x, row: y }))
+    .filter((m) => !shown.has(`${m.col},${m.row}`))
+    .sort((a, b) => a.row - b.row || a.col - b.col) // stable order before the seeded pick
+  if (candidates.length === 0) return false
+  const rng = state.dropSeedBase !== null
+    ? createRng(`${state.dropSeedBase}:reveal${state.revealedMines.length}`)
+    : createRng(randomSeed())
+  state.revealedMines.push(candidates[randomInt(rng, 0, candidates.length - 1)])
+  return true
+}
+
 /** A fresh 32-bit integer seed for `createRng`. `Math.random()` alone (a float in
  *  [0,1)) is truncated to 0 by createRng's `seed >>> 0`, so every game would share
  *  one seed (identical terrain/mines/drops). This spreads it across the full uint32. */
@@ -326,6 +351,7 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
     gemsTotal: GEM_COUNT,
     gemsCollected: 0,
     inventory: { ...initialInventory },
+    revealedMines: [],
     droppedMines: [],
     dropFlashTimer: 0,
     runState: 'idle',

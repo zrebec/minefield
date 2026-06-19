@@ -84,9 +84,9 @@ const SHOTS = {
   // up a handful of gems. Score, trail and backpack reflect those exact moves.
   play: async (page) => {
     const field = await call(page, 'newGame', SEED)
-    const dirs = planCollect(field, 4)
+    const dirs = planCollect(field, 8)
     const after = await call(page, 'steps', dirs)
-    console.log(`  play: ${dirs.length} steps, score ${after.score}, backpack ${JSON.stringify(after.inventory)}`)
+    console.log(`  play: ${dirs.length} steps, score ${after.score}, lives ${after.lives}, backpack ${JSON.stringify(after.inventory)}, revealed ${after.revealedMines.length}`)
     return canvasPng(page)
   },
 }

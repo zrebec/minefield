@@ -1,8 +1,8 @@
 import { CELL, COLS, ROWS } from './constants.ts'
-import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, RED_GEMS_PER_LIFE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS } from './config.ts'
-import { type GameState, countWarningMines, applyClusterBlast, gemColor, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
+import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, RED_GEMS_PER_LIFE, CYAN_GEMS_PER_REVEAL, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS } from './config.ts'
+import { type GameState, countWarningMines, applyClusterBlast, revealMine, gemColor, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
 import type { Direction } from './input.ts'
-import { playWarning, playExplosion, playGemCollect, playFootstep, playExtraLife, isAmbientSoundActive } from './audio.ts'
+import { playWarning, playExplosion, playGemCollect, playFootstep, playExtraLife, playReveal, isAmbientSoundActive } from './audio.ts'
 import { makeTileVisited, makeTileGround, makeTileMine, makeTileGem, makeTileFlag, TILE_EXPLODED } from './sprites.ts'
 import { createTween, tickTween, tickAnimation, resetAnimation } from 'zx-kit'
 
@@ -134,6 +134,12 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
       state.inventory.red -= RED_GEMS_PER_LIFE
       state.lives++
       playExtraLife()
+    }
+    // Every CYAN_GEMS_PER_REVEAL cyan gems reveal one live mine (only spend the
+    // gems if a mine was actually revealed).
+    if (gemKind === 'cyan' && state.inventory.cyan >= CYAN_GEMS_PER_REVEAL && revealMine(state)) {
+      state.inventory.cyan -= CYAN_GEMS_PER_REVEAL
+      playReveal()
     }
   }
 
