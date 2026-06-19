@@ -1,3 +1,10 @@
+# [0.30.0](https://github.com/zrebec/minefield/compare/v0.29.0...v0.30.0) (2026-06-19)
+
+
+### Features
+
+* **gems:** cyan gems reveal a live mine (3 cyan = 1 permanent reveal) ([af0812c](https://github.com/zrebec/minefield/commit/af0812ce35076f05c789d91e1915da390eb83a35))
+
 # [0.29.0](https://github.com/zrebec/minefield/compare/v0.28.0...v0.29.0) (2026-06-19)
 
 
