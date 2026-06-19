@@ -124,6 +124,15 @@ export function playGameOver(): void {
   ])
 }
 
+export function playExtraLife(): void {
+  // Short bright rising triad — distinct from the level-win fanfare.
+  playPattern([
+    { freq: 392, dur: 90 },
+    { freq: 523, dur: 90 },
+    { freq: 659, dur: 150 },
+  ])
+}
+
 export function startApproachSound(): void {
   const ctx = getAudioContext()
   if (!ctx || approachOsc || airplaneOsc) return

@@ -18,6 +18,7 @@ vi.mock('./audio.ts', () => ({
   playExplosion: vi.fn(),
   playGemCollect: vi.fn(),
   playFootstep: vi.fn(),
+  playExtraLife: vi.fn(),
   isAmbientSoundActive: vi.fn().mockReturnValue(false),
 }))
 
@@ -338,6 +339,41 @@ describe('movePlayer — gem collection', () => {
     expect(state.inventory.red ?? 0).toBe(0)         // not collected
     expect(state.gemsCollected).toBe(beforeGems)     // not counted
     expect(state.map.getTile(6, 5)?.id).toBe('gem')  // gem remains, cell not claimed
+  })
+
+  it('converts every two red gems into an extra life (and consumes them)', () => {
+    const state = makeState(5, 5)
+    const lives0 = state.lives
+    state.map.setTile(6, 5, makeTileGem('red', C.RED))
+    step(state, 'right')
+    expect(state.lives).toBe(lives0)            // one red: no life yet
+    expect(state.inventory.red).toBe(1)
+    state.map.setTile(7, 5, makeTileGem('red', C.RED))
+    step(state, 'right')
+    expect(state.lives).toBe(lives0 + 1)        // second red → +1 life
+    expect(state.inventory.red ?? 0).toBe(0)    // pair consumed
+  })
+
+  it('a fourth red gem grants a second life', () => {
+    const state = makeState(5, 5)
+    const lives0 = state.lives
+    for (let i = 0; i < 4; i++) {
+      state.map.setTile(6 + i, 5, makeTileGem('red', C.RED))
+      step(state, 'right')
+    }
+    expect(state.lives).toBe(lives0 + 2)
+    expect(state.inventory.red ?? 0).toBe(0)
+  })
+
+  it('other gem colours never grant a life', () => {
+    const state = makeState(5, 5)
+    const lives0 = state.lives
+    state.map.setTile(6, 5, makeTileGem('cyan', C.CYAN))
+    state.map.setTile(7, 5, makeTileGem('cyan', C.CYAN))
+    step(state, 'right')
+    step(state, 'right')
+    expect(state.lives).toBe(lives0)
+    expect(state.inventory.cyan).toBe(2)
   })
 })
 

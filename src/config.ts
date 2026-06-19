@@ -199,6 +199,10 @@ export default 12
 // Base gem collection bonus (before combo multiplier)
 export const GEM_SCORE = 1000
 
+// Collecting this many RED gems converts them into +1 life (and frees their
+// backpack slots). The first real gem "function" — see GEM_KINDS in game.ts.
+export const RED_GEMS_PER_LIFE = 2
+
 // ── Combo system ──────────────────────────────────────────────────────────────
 
 // How long (ms) a combo remains active without stepping on a new cell

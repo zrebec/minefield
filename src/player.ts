@@ -1,8 +1,8 @@
 import { CELL, COLS, ROWS } from './constants.ts'
-import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS } from './config.ts'
+import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, RED_GEMS_PER_LIFE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS } from './config.ts'
 import { type GameState, countWarningMines, applyClusterBlast, gemColor, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
 import type { Direction } from './input.ts'
-import { playWarning, playExplosion, playGemCollect, playFootstep, isAmbientSoundActive } from './audio.ts'
+import { playWarning, playExplosion, playGemCollect, playFootstep, playExtraLife, isAmbientSoundActive } from './audio.ts'
 import { makeTileVisited, makeTileGround, makeTileMine, makeTileGem, makeTileFlag, TILE_EXPLODED } from './sprites.ts'
 import { createTween, tickTween, tickAnimation, resetAnimation } from 'zx-kit'
 
@@ -129,6 +129,12 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
     const cMult = comboMultiplier(state.comboCount)
     state.score += Math.round(GEM_SCORE * cMult)
     playGemCollect(state.comboCount)
+    // Every RED_GEMS_PER_LIFE red gems convert into an extra life, freeing slots.
+    if (gemKind === 'red' && state.inventory.red >= RED_GEMS_PER_LIFE) {
+      state.inventory.red -= RED_GEMS_PER_LIFE
+      state.lives++
+      playExtraLife()
+    }
   }
 
   const nearby = countWarningMines(state.map, newCol, newRow)
