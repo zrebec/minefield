@@ -31,6 +31,11 @@ export const STR_COMBO = (count: number) => `KOMBO:x${count}` // 8 znakov
 
 export const STR_LEVEL = (levelOneBased: number) => `LVL:${levelOneBased}`  // 6 znakov
 
+// Náhodná (R) hra: STR_RANDOM_TAG je stály, blikajúce STR_NO_SCORE varuje, že
+// beh nejde do rebríčka. Bez diakritiky (ZX ROM font).
+export const STR_RANDOM_TAG = 'NAH'                          // 3 znaky (náhodný)
+export const STR_NO_SCORE = 'BEZ SKORE'                      // 9 znakov
+
 // ── Status bar — dolný riadok ─────────────────────────────────────────────
 
 export const STR_MINES = (remaining: number) =>
@@ -92,7 +97,7 @@ export const STR_GOAL       = 'PREJDI POLE!'                // 12 znakov
 
 export const STR_AUDIO_HINT = 'KLIK/TAP PRE ZVUK'           // 17 znakov
 
-export const STR_START_HINT = 'SPACE / ENTER / START = HRA' // 27 znakov
+export const STR_START_HINT = 'SPACE = DENNY    R = NAHODNY' // 28 znakov
 
 export const STR_COPYRIGHT      = (build: string)   => `(C) 2026  VYDANIE:${build}`
 export const STR_ZXKIT_VERSION  = (version: string) => `ZX-KIT:${version}`

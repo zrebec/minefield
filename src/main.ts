@@ -13,7 +13,7 @@ import { saveProfile, setStateGetter } from './save.ts'
 type AppPhase = 'intro' | 'ingame' | 'hiscore'
 
 let appPhase: AppPhase = 'intro'
-let state: GameState = createGame(0)
+let state: GameState = createGame(0, 0, dailySeed(0))  // placeholder; replaced on resume/start
 setStateGetter(() => state)
 let lastTime = 0
 // Capture mode (dev-only): when true the loop stops ticking/rendering so a
@@ -22,10 +22,8 @@ let frozen = false
 const blinker = createBlinker(BLINK_INTERVAL_MS)
 let audioReady = false
 let prevGamePhase: GamePhase = 'playing'
-// Daily seed is the default (fair, comparable scores). The R key flips this on
-// for the rest of the run → random non-daily fields for dev + replayability.
-// A fresh run from the intro always resets back to daily.
-let randomMode = false
+// A run's daily/random identity is the single source of truth on the state:
+// state.dropSeedBase === null ⇔ random. No separate flag to drift out of sync.
 
 // Name entry state for hiscore phase
 let hiName: string[] = []
@@ -34,8 +32,9 @@ const letterQueue: string[] = []
 const PAD_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ '
 let padLetterIdx = 0
 
-// Intro: only Space / Enter / S start the game
+// Intro: Space / Enter / S (or gamepad Start) begin the daily run; R begins a random run.
 let startKeyPending = false
+let startRandomPending = false
 
 const VOL_BAR_W = 10 * CELL  // 10 chars × 8 px
 const VOL_BAR_X = (CANVAS_W - VOL_BAR_W) / 2
@@ -105,19 +104,19 @@ function gameLoop(timestamp: number): void {
       introPageTimer = INTRO_PAGE_MS
     }
     tickMovement(dt)  // keep gamepad polled
-    if (consumePause()) startKeyPending = true  // gamepad Start button starts game
-    if (startKeyPending) {
+    if (consumePause()) startKeyPending = true         // gamepad Start = daily
+    if (consumeRandomMap()) startRandomPending = true  // R = random (title only)
+    if (startKeyPending || startRandomPending) {
+      const random = startRandomPending
       startKeyPending = false
+      startRandomPending = false
       consumeAnyKey()   // drain so no stale key reaches ingame
       initAudioOnce()
       stopAmbientSounds()
-      randomMode = false   // fresh run = today's daily field
-      state = createGame(0, 0, dailySeed(0))   // daily field — same for everyone today
-      readSaveLatest(saveProfile)   // mutates state in-place if a save exists
-      // A resumed save keeps its own seed: dropSeedBase===null marks a random
-      // (R-rerolled) run, which must stay random so it can't launder into a
-      // recorded score on the daily leaderboard.
-      randomMode = state.dropSeedBase === null
+      // No save can exist at the title (auto-resume skips it when one does), so
+      // this is always a fresh run. random ⇒ dropSeedBase null ⇒ off the board.
+      state = createGame(0, 0, random ? undefined : dailySeed(0))
+      writeSave(saveProfile, 'auto')   // make the run resumable from level 1
       introPage = 0
       introPageTimer = INTRO_PAGE_MS
       resetInput(); resetUI()
@@ -175,15 +174,9 @@ function gameLoop(timestamp: number): void {
   state.blink = blink
 
   if (state.phase === 'playing') {
-    // R — reroll the current level with a random (non-daily) seed; rest of the
-    // run stays random. Works in any runState; lands back in idle (re-scout).
-    if (consumeRandomMap()) {
-      randomMode = true
-      stopAmbientSounds()
-      state = createGame(state.level, state.score, undefined, state.inventory)   // no seed → fresh random field; keep backpack
-      resetInput(); resetUI()
-      flashBorder(C.B_MAGENTA, 2, 80)
-    }
+    // R does nothing in-game — random is chosen only on the title. Still drain
+    // the key so an in-game press can't linger and trigger a random start later.
+    consumeRandomMap()
 
     if (state.runState === 'idle') {
       // Debug available only in idle — scout before starting
@@ -249,10 +242,11 @@ function gameLoop(timestamp: number): void {
     if (state.levelCompleteTimer <= 0) {
       const prevScore = state.score
       const prevInventory = state.inventory
+      const wasRandom = state.dropSeedBase === null
       stopAmbientSounds()
       // random run stays random across levels; otherwise the daily field per level.
       // Backpack carries over (it's the player's, not the field's).
-      state = createGame(state.level + 1, prevScore, randomMode ? undefined : dailySeed(state.level + 1), prevInventory)
+      state = createGame(state.level + 1, prevScore, wasRandom ? undefined : dailySeed(state.level + 1), prevInventory)
       writeSave(saveProfile, 'auto')   // checkpoint at the start of every level
     }
 
@@ -266,9 +260,9 @@ function gameLoop(timestamp: number): void {
       // No save scumming — saves are cleared on game over (Spectrum philosophy)
       deleteSave(saveProfile, 'auto')
       deleteSave(saveProfile, 'manual')
-      // Random (R-rerolled) runs never reach the leaderboard — otherwise you
-      // could reroll until an easy map, farm a score and "beat" the daily.
-      if (!randomMode && isHighScore(state.score)) {
+      // Random runs never reach the leaderboard — otherwise you could practise
+      // an easy map, farm a score and "beat" the daily. (dropSeedBase null = random.)
+      if (state.dropSeedBase !== null && isHighScore(state.score)) {
         enterHiScore()
       } else {
         appPhase = 'intro'
@@ -314,6 +308,11 @@ function main(): void {
       }
     }
   })
+
+  // Resume an in-progress save straight into the game, skipping the title; the
+  // run keeps its daily/random identity via dropSeedBase. Saves are cleared on
+  // game over, so this only fires for an unfinished run.
+  if (readSaveLatest(saveProfile).ok) appPhase = 'ingame'
 
   requestAnimationFrame(gameLoop)
 }

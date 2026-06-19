@@ -48,6 +48,11 @@ export const STR_COMBO = (count: number) => `COMBO:x${count}`
 // Level display, right-aligned. 'LVL:99' = 6 chars.
 export const STR_LEVEL = (levelOneBased: number) => `LVL:${levelOneBased}`
 
+// Random (R-rerolled) run markers, top HUD row. STR_RANDOM_TAG is steady, the
+// blinking STR_NO_SCORE warns the run is off the leaderboard.
+export const STR_RANDOM_TAG = 'RND'
+export const STR_NO_SCORE = 'NO SCORE'
+
 // ── Status bar — bottom row ──────────────────────────────────────────────
 
 // Remaining undisarmed mines counter. 'MINES:999' = 9 chars.
@@ -132,7 +137,7 @@ export const STR_GOAL       = 'CROSS THE FIELD!'       // 16 chars
 export const STR_AUDIO_HINT = 'CLICK/TAP TO ENABLE SOUND'
 
 // "Press to start" banner — blinks. 29 chars.
-export const STR_START_HINT = 'SPACE / ENTER / START = BEGIN'
+export const STR_START_HINT = 'SPACE = DAILY    R = RANDOM'
 
 // Footer lines — copyright + zx-kit version. `(C) 2026  RELEASE:{x}` is
 // stretched to fit the right-aligned RELEASE tag without overflow at

@@ -103,6 +103,15 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
   ctx.fillRect(0, STATUS_TOP, CANVAS_W, STATUS_ROWS * CELL)
   renderInventory(ctx, state)
 
+  // Random (R-rerolled) run flag on the top row — steady tag + blinking warning
+  // that this run never reaches the leaderboard. dropSeedBase===null ⇔ random.
+  if (state.dropSeedBase === null) {
+    const noScoreX = (COLS - L.STR_NO_SCORE.length) * CELL
+    const tagX = noScoreX - (L.STR_RANDOM_TAG.length + 1) * CELL
+    drawText(ctx, L.STR_RANDOM_TAG, tagX, STATUS_TOP, C.B_MAGENTA, C.BLACK)
+    if (state.blink) drawText(ctx, L.STR_NO_SCORE, noScoreX, STATUS_TOP, C.B_RED, C.BLACK)
+  }
+
   drawText(ctx, L.STR_SCORE(state.score), 0, STATUS_Y, C.B_WHITE, C.BLACK)
   if (state.runState === 'idle') {
     drawText(ctx, L.STR_IDLE, (COLS - L.STR_IDLE.length) * CELL, STATUS_Y, C.B_GREEN, C.BLACK)
