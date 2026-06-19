@@ -1,3 +1,10 @@
+# [0.29.0](https://github.com/zrebec/minefield/compare/v0.28.0...v0.29.0) (2026-06-19)
+
+
+### Features
+
+* **gems:** red gems convert to extra lives (2 red = +1 life) ([59a7110](https://github.com/zrebec/minefield/commit/59a7110ade582e361bc1f9df9385f255a92468d0))
+
 # [0.28.0](https://github.com/zrebec/minefield/compare/v0.27.0...v0.28.0) (2026-06-18)
 
 
