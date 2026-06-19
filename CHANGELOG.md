@@ -1,3 +1,10 @@
+## [0.30.1](https://github.com/zrebec/minefield/compare/v0.30.0...v0.30.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **score:** keep random (R-rerolled) runs off the leaderboard ([3c0a68d](https://github.com/zrebec/minefield/commit/3c0a68d43e9469bc93273c25c93be6f0f7932b83))
+
 # [0.30.0](https://github.com/zrebec/minefield/compare/v0.29.0...v0.30.0) (2026-06-19)
 
 
