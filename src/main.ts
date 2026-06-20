@@ -3,7 +3,7 @@ import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './confi
 import { createGame, dailySeed, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown, consumeManualSave, consumeRandomMap } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
-import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave } from 'zx-kit'
+import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
@@ -39,6 +39,10 @@ let startRandomPending = false
 const VOL_BAR_W = 10 * CELL  // 10 chars × 8 px
 const VOL_BAR_X = (CANVAS_W - VOL_BAR_W) / 2
 const VOL_BAR_Y = Math.floor(ROWS / 2) * CELL
+
+// Debug mode
+const dbg = createDebugMonitor({ targetFps: 60 })
+let showDebug = false
 
 function volBar() {
   return {
@@ -84,8 +88,23 @@ function enterHiScore(): void {
   flashBorder(C.B_WHITE, 2, 80, C.B_CYAN)
 }
 
+function finishFrame(ctx: CanvasRenderingContext2D): void {
+  endFrame(dbg)
+  if (showDebug) {
+    drawDebugOverlay(ctx, sampleDebug(dbg, {
+      app: appPhase,
+      phase: state.phase,
+      run: state.runState,
+      lvl: state.level + 1,
+      mines: state.map.findById('mine').length,
+    }))
+  }
+  requestAnimationFrame(gameLoop)
+}
+
 function gameLoop(timestamp: number): void {
   if (frozen) return  // capture mode: keep the manually rendered frame
+  beginFrame(dbg, timestamp)
   const dt = Math.min(timestamp - lastTime, 100)
   lastTime = timestamp
   const ctx = getCtx()
@@ -125,7 +144,7 @@ function gameLoop(timestamp: number): void {
     }
     renderIntro(ctx, blink, introPage)
     tickUI(dt); renderUI(ctx)
-    requestAnimationFrame(gameLoop)
+    finishFrame(ctx)
     return
   }
 
@@ -155,10 +174,10 @@ function gameLoop(timestamp: number): void {
 
     // Gamepad D-pad letter cycling
     const padDir = tickMovement(dt)
-    if (padDir === 'up')   padLetterIdx = (padLetterIdx + 1) % PAD_LETTERS.length
+    if (padDir === 'up') padLetterIdx = (padLetterIdx + 1) % PAD_LETTERS.length
     if (padDir === 'down') padLetterIdx = (padLetterIdx + PAD_LETTERS.length - 1) % PAD_LETTERS.length
     if (padDir === 'right' && hiCursor < 3) letterQueue.push(PAD_LETTERS[padLetterIdx])
-    if (padDir === 'left')                  letterQueue.push('BS')
+    if (padDir === 'left') letterQueue.push('BS')
     if (consumePause()) {
       if (hiCursor < 3) letterQueue.push(PAD_LETTERS[padLetterIdx])
       letterQueue.push('ENTER')
@@ -167,7 +186,7 @@ function gameLoop(timestamp: number): void {
 
     renderHiScoreEntry(ctx, hiName, hiCursor, blink, PAD_LETTERS[padLetterIdx])
     tickUI(dt); renderUI(ctx)
-    requestAnimationFrame(gameLoop)
+    finishFrame(ctx)
     return
   }
 
@@ -274,7 +293,7 @@ function gameLoop(timestamp: number): void {
   prevGamePhase = state.phase
   renderFrame(ctx, state)
   tickUI(dt); renderUI(ctx)
-  requestAnimationFrame(gameLoop)
+  finishFrame(ctx)
 }
 
 function main(): void {
@@ -292,6 +311,12 @@ function main(): void {
   window.addEventListener('click', () => initAudioOnce(), { once: true })
 
   window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (!e.repeat && (e.key === 'o' || e.key === 'O') && !e.ctrlKey && !e.metaKey && !e.altKey && appPhase !== 'hiscore') {
+      showDebug = !showDebug
+      e.preventDefault()
+      return
+    }
+
     if (appPhase === 'intro') {
       if (e.key === ' ' || e.key === 'Enter' || e.key === 's' || e.key === 'S') {
         startKeyPending = true
@@ -343,34 +368,34 @@ if (import.meta.env.DEV) {
     mines: state.map.findById('mine').map(({ x, y }) => ({ col: x, row: y })),
     buildings: state.map.findById('building').map(({ x, y }) => ({ col: x, row: y })),
   })
-  ;(window as unknown as Record<string, unknown>).__mf = {
-    newGame(seed?: string) {                       // authentic fresh level (no injection)
-      frozen = true
-      state = createGame(0, 0, seed)
-      appPhase = 'ingame'
-      renderFrame(getCtx(), state)
-      return snapshot()
-    },
-    steps(dirs: Dir[]) {                           // take REAL moves (movePlayer + walk to completion)
-      for (const dir of dirs) {
-        // mirror main.ts: the first move leaves the idle 'scout' state
-        if (state.runState === 'idle') { state.runState = 'running'; state.debugMode = false }
-        movePlayer(state, dir)
-        tickPlayer(state, WALK_DURATION_MS + 5)
-      }
-      renderFrame(getCtx(), state)
-      return snapshot()
-    },
-    setDebug(on: boolean) {                        // the real idle-only debug toggle
-      state.debugMode = on
-      renderFrame(getCtx(), state)
-      return snapshot()
-    },
-    showIntro(page = 0): void {                    // the title screen
-      frozen = true
-      appPhase = 'intro'
-      renderIntro(getCtx(), true, page)
-    },
-    field: snapshot,                               // read-only, for routing only
-  }
+    ; (window as unknown as Record<string, unknown>).__mf = {
+      newGame(seed?: string) {                       // authentic fresh level (no injection)
+        frozen = true
+        state = createGame(0, 0, seed)
+        appPhase = 'ingame'
+        renderFrame(getCtx(), state)
+        return snapshot()
+      },
+      steps(dirs: Dir[]) {                           // take REAL moves (movePlayer + walk to completion)
+        for (const dir of dirs) {
+          // mirror main.ts: the first move leaves the idle 'scout' state
+          if (state.runState === 'idle') { state.runState = 'running'; state.debugMode = false }
+          movePlayer(state, dir)
+          tickPlayer(state, WALK_DURATION_MS + 5)
+        }
+        renderFrame(getCtx(), state)
+        return snapshot()
+      },
+      setDebug(on: boolean) {                        // the real idle-only debug toggle
+        state.debugMode = on
+        renderFrame(getCtx(), state)
+        return snapshot()
+      },
+      showIntro(page = 0): void {                    // the title screen
+        frozen = true
+        appPhase = 'intro'
+        renderIntro(getCtx(), true, page)
+      },
+      field: snapshot,                               // read-only, for routing only
+    }
 }
