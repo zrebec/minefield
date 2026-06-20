@@ -1,3 +1,10 @@
+# [0.32.0](https://github.com/zrebec/minefield/compare/v0.31.0...v0.32.0) (2026-06-20)
+
+
+### Features
+
+* **debug:** add zx-kit performance overlay ([f49f9f2](https://github.com/zrebec/minefield/commit/f49f9f206ba94e3c923cc8f0e04ed4bba625c1a4))
+
 # [0.31.0](https://github.com/zrebec/minefield/compare/v0.30.1...v0.31.0) (2026-06-19)
 
 
