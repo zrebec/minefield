@@ -16,6 +16,14 @@ concurrency:
 
 jobs:
   release:
+    # Only release (and therefore deploy) on releasable commits. chore/docs/ci and
+    # dependabot bumps don't cut a version and don't redeploy. Manual override below.
+    if: >
+      github.event_name == 'push' &&
+      (startsWith(github.event.head_commit.message, 'feat') ||
+       startsWith(github.event.head_commit.message, 'fix') ||
+       startsWith(github.event.head_commit.message, 'perf') ||
+       contains(github.event.head_commit.message, 'BREAKING CHANGE'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -37,7 +45,12 @@ jobs:
         run: npx semantic-release --no-ci
 
   build:
-    needs: release   # počká na release
+    needs: release
+    # Build/deploy only when the release job actually ran (releasable commit),
+    # or on a manual workflow_dispatch override.
+    if: >
+      !cancelled() &&
+      (needs.release.result == 'success' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
