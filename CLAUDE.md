@@ -304,6 +304,33 @@ probedCells: Set<string>  // cleared on any player move
 
 ---
 
+## Action Replay — KĽÚČOVÁ FUNKCIA (plánovaná, cross-cutting)
+
+Nahraj celý priebeh hry a prehraj ho **zrýchlene**, pričom sa **odhalia míny** (presne ako v Mined-Out,
+kde sú míny počas hry neviditeľné a ukážu sa len v action replay). **Technicky to ide a je to elegantné —
+netreba nahrávať surové canvas snímky.**
+
+**Ako (deterministicky).** Hra je **plne deterministická zo seedu** (terén, míny, gemy, lietadlo, reveal —
+všetko seedované). Takže celý beh = **seed + zoznam vstupov (s časovaním)** — pár bajtov.
+- **Záznam:** loguj každý vstup (smer, flag, …) + krok/čas.
+- **Prehrávanie:** z toho istého seedu re-simuluj beh kŕmením vstupov (pôvodným alebo zrýchleným tempom),
+  renderuj snímky. Deterministicky → reprodukuje beh **presne**.
+- **Odhalenie mín:** v replayi poznáme seed → vykreslíme míny viditeľne (debug-štýl) → „kde boli míny".
+- **Zrýchlenie:** kŕm vstupy rýchlejšie / preskoč walk-tweeny.
+
+**Tri výplaty:** (1) **reveal** (Mined-Out efekt); (2) **zdieľanie** — seed+vstupy = krátky kód/URL →
+„pozri môj dnešný daily beh" (sociálne/súťažné, spája s daily seed); (3) **verifikácia skóre / anti-cheat**
+— skóre na rebríčku sa dá prehrať a overiť bez backendu (dopĺňa random-mode anti-cheat).
+
+**Brute-force alternatíva:** nahrávať surové canvas `ImageData` per snímka — dnešná RAM to dovolí, ale je
+to ťažké, nezdieľateľné a neoveriteľné → **input-replay je striktne lepší** pre seedovanú hru.
+
+**zx-kit:** deterministický **input-recorder/replayer** je generický primitív (každá seedovaná zx-kit hra
+dostane replay + zdieľanie + verifikáciu zadarmo). Open: extrahovať z minefieldu neskôr, alebo rovno do
+zx-kitu a minefield = plná integrácia.
+
+---
+
 ## Zvažované budúce funkcie (NEIMPLEMENTOVANÉ)
 
 > Hra je považovaná za funkčne kompletnú. Tieto funkcie sú zvažované, nie rozhodnuté.
