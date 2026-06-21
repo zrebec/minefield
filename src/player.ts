@@ -1,5 +1,5 @@
 import { CELL, COLS, ROWS } from './constants.ts'
-import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, RED_GEMS_PER_LIFE, CYAN_GEMS_PER_REVEAL, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS } from './config.ts'
+import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, GEM_TIME_BONUS_MS, RED_GEMS_PER_LIFE, CYAN_GEMS_PER_REVEAL, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS } from './config.ts'
 import { type GameState, countWarningMines, applyClusterBlast, revealMine, gemColor, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
 import type { Direction } from './input.ts'
 import { playWarning, playExplosion, playGemCollect, playFootstep, playExtraLife, playReveal, isAmbientSoundActive } from './audio.ts'
@@ -126,6 +126,7 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
   if (collectGem && gemKind) {
     state.inventory[gemKind] = (state.inventory[gemKind] ?? 0) + 1
     state.gemsCollected++
+    state.timeLeftMs += GEM_TIME_BONUS_MS  // every gem (any colour) buys time
     const cMult = comboMultiplier(state.comboCount)
     state.score += Math.round(GEM_SCORE * cMult)
     playGemCollect(state.comboCount)

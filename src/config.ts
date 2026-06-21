@@ -216,6 +216,9 @@ export const CYAN_GEMS_PER_REVEAL = 3
 // Tunable — adjust after playtest.
 export const TIMER_BASE_MS = 600_000      // 10:00 starting budget per level
 
+// Time granted per gem collected (any colour). Flat — decoupled from gem identity.
+export const GEM_TIME_BONUS_MS = 30_000   // +0:30 per gem
+
 // At or below this, the HUD clock turns red and blinks.
 export const TIMER_LOW_MS = 60_000        // 1:00 warning threshold
 

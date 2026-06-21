@@ -6,7 +6,7 @@ import {
   START_COL,
   SCORE_PER_CELL, SCORE_MULTIPLIERS,
   EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS,
-  COMBO_DURATION_MS, GEM_SCORE,
+  COMBO_DURATION_MS, GEM_SCORE, GEM_TIME_BONUS_MS,
   DAY_STEPS, NIGHT_STEPS,
   WALK_DURATION_MS,
 } from './config.ts'
@@ -340,6 +340,23 @@ describe('movePlayer — gem collection', () => {
     expect(state.inventory.red ?? 0).toBe(0)         // not collected
     expect(state.gemsCollected).toBe(beforeGems)     // not counted
     expect(state.map.getTile(6, 5)?.id).toBe('gem')  // gem remains, cell not claimed
+  })
+
+  it('grants GEM_TIME_BONUS_MS of timer per collected gem', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileGem('cyan', C.CYAN))
+    const before = state.timeLeftMs
+    step(state, 'right')
+    expect(state.timeLeftMs).toBe(before + GEM_TIME_BONUS_MS)
+  })
+
+  it('grants no time when the backpack is full (gem not collected)', () => {
+    const state = makeState(5, 5)
+    state.inventory = { cyan: INVENTORY_CAP }
+    state.map.setTile(6, 5, makeTileGem('red', C.RED))
+    const before = state.timeLeftMs
+    step(state, 'right')
+    expect(state.timeLeftMs).toBe(before)
   })
 
   it('converts every two red gems into an extra life (and consumes them)', () => {
