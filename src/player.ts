@@ -126,7 +126,7 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
   if (collectGem && gemKind) {
     state.inventory[gemKind] = (state.inventory[gemKind] ?? 0) + 1
     state.gemsCollected++
-    state.timeLeftMs += GEM_TIME_BONUS_MS  // every gem (any colour) buys time
+    state.timeLeftMs += GEM_TIME_BONUS_MS[gemKind] ?? 0  // time bonus by gem colour
     const cMult = comboMultiplier(state.comboCount)
     state.score += Math.round(GEM_SCORE * cMult)
     playGemCollect(state.comboCount)

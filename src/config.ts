@@ -216,8 +216,15 @@ export const CYAN_GEMS_PER_REVEAL = 3
 // Tunable — adjust after playtest.
 export const TIMER_BASE_MS = 600_000      // 10:00 starting budget per level
 
-// Time granted per gem collected (any colour). Flat — decoupled from gem identity.
-export const GEM_TIME_BONUS_MS = 30_000   // +0:30 per gem
+// Time granted per gem collected, by colour. Rarer gems give more (cyan is the
+// most common → 0). Tunable per kind; a missing kind grants 0. Full-clear total
+// at these values: cyan 6×0 + green 2×5s + red 3×10s + gold 1×30s = +70s/level.
+export const GEM_TIME_BONUS_MS: Record<string, number> = {
+  cyan:  0,
+  green: 5_000,
+  red:   10_000,
+  gold:  30_000,
+}
 
 // At or below this, the HUD clock turns red and blinks.
 export const TIMER_LOW_MS = 60_000        // 1:00 warning threshold

@@ -342,17 +342,25 @@ describe('movePlayer — gem collection', () => {
     expect(state.map.getTile(6, 5)?.id).toBe('gem')  // gem remains, cell not claimed
   })
 
-  it('grants GEM_TIME_BONUS_MS of timer per collected gem', () => {
+  it('grants the gem-colour time bonus on pickup (red)', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileGem('red', C.RED))
+    const before = state.timeLeftMs
+    step(state, 'right')
+    expect(state.timeLeftMs).toBe(before + GEM_TIME_BONUS_MS.red)
+  })
+
+  it('grants no time for a zero-bonus gem colour (cyan)', () => {
     const state = makeState(5, 5)
     state.map.setTile(6, 5, makeTileGem('cyan', C.CYAN))
     const before = state.timeLeftMs
     step(state, 'right')
-    expect(state.timeLeftMs).toBe(before + GEM_TIME_BONUS_MS)
+    expect(state.timeLeftMs).toBe(before)            // GEM_TIME_BONUS_MS.cyan === 0
   })
 
   it('grants no time when the backpack is full (gem not collected)', () => {
     const state = makeState(5, 5)
-    state.inventory = { cyan: INVENTORY_CAP }
+    state.inventory = { gold: INVENTORY_CAP }        // full of a high-bonus colour
     state.map.setTile(6, 5, makeTileGem('red', C.RED))
     const before = state.timeLeftMs
     step(state, 'right')
