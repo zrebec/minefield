@@ -1,3 +1,10 @@
+# [0.33.0](https://github.com/zrebec/minefield/compare/v0.32.0...v0.33.0) (2026-06-21)
+
+
+### Features
+
+* **hud:** expand HUD to 6 rows (playfield 21->18) ([99dbc84](https://github.com/zrebec/minefield/commit/99dbc847f58d1073c6f84b14dab48c2973e30631))
+
 # [0.32.0](https://github.com/zrebec/minefield/compare/v0.31.0...v0.32.0) (2026-06-20)
 
 
