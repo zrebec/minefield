@@ -60,9 +60,41 @@ export const STR_PRESS_ANY_KEY = 'STLAC KLAVES'             // 12 znakov
 export const STR_SCORE_OVERLAY = (score: number) =>
   `SKORE: ${String(score).padStart(5, '0')}`                // 13 znakov
 
-// ── Pause overlay ─────────────────────────────────────────────────────────
+// ── Pause overlay (stránky: ovládanie / gemy / skóre) ─────────────────────
 
 export const STR_PAUSED = '** PAUZA **'                     // 11 znakov
+export const STR_PAUSE_TITLES = ['OVLADANIE', 'GEMY', 'SKORE']
+export const STR_PAUSE_HINT   = 'SIPKY: STRANA   P: SPAT'
+
+export const CONTROL_DESC: Record<string, string> = {
+  move:   'Pohyb',
+  flag:   'Vlajka pred hracom',
+  pause:  'Pauza / pokracovanie',
+  save:   'Manualne ulozenie',
+  reveal: 'Odkry miny (v pokoji)',
+  fps:    'FPS / CPU prekrytie',
+  volume: 'Hlasitost +/-',
+  start:  'Spustit denny beh',
+  random: 'Spustit nahodny beh',
+}
+
+export const GEM_LABEL: Record<string, string> = { red: 'CERV', cyan: 'CYAN', gold: 'ZLAT', green: 'ZELEN' }
+export const GEM_SPECIAL: Record<string, string> = {
+  red:   '2 = +1 zivot',
+  cyan:  '3 = odkry minu',
+  gold:  'vela bodov',
+  green: '(len cas)',
+}
+export const STR_GEM_ALL  = (pts: number) => `Kazdy gem: +${pts} b.`
+export const STR_GEM_FULL = 'Plny batoh: gem ostane na poli'
+
+export const STR_SCORE_LINES = (gemPts: number, goldBonus: number): string[] => [
+  'Kazda nova bunka: base x level',
+  'Combo: retaz buniek, az x2',
+  `Zber gemu: +${gemPts} (x combo)`,
+  `Zlaty gem: +${goldBonus} navyse`,
+  'Slapnutie na minu: 0 b.',
+]
 
 // ── Level complete overlay ────────────────────────────────────────────────
 
