@@ -1,5 +1,5 @@
 import { CANVAS_W, CANVAS_H, ROWS, STATUS_ROWS, COLS, CELL, C } from './constants.ts'
-import { TIMER_LOW_MS } from './config.ts'
+import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS } from './config.ts'
 import type { GameState, AirplaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor } from 'zx-kit'
@@ -190,14 +190,47 @@ function renderGameOver(ctx: CanvasRenderingContext2D, state: GameState): void {
   }
 }
 
-function renderPaused(ctx: CanvasRenderingContext2D, state: GameState): void {
+// Paged pause screen: 0 controls · 1 gems · 2 scoring. Key labels come from the
+// CONTROLS single source; gem times and point values are read live from config,
+// so this help can never drift from the actual numbers.
+function renderPaused(ctx: CanvasRenderingContext2D, page: number): void {
   ctx.fillStyle = C.BLACK
-  ctx.globalAlpha = 0.6
+  ctx.globalAlpha = 0.85
   ctx.fillRect(0, 0, CANVAS_W, ROWS * CELL)
   ctx.globalAlpha = 1.0
-  if (state.blink) {
-    drawTextCentered(ctx, L.STR_PAUSED, Math.floor(ROWS / 2) * CELL, C.B_WHITE, C.BLACK)
+
+  drawTextCentered(ctx, L.STR_PAUSED, 1 * CELL, C.B_WHITE, C.BLACK)
+  drawTextCentered(ctx, `- ${L.STR_PAUSE_TITLES[page] ?? ''} -`, 3 * CELL, C.B_YELLOW, C.BLACK)
+
+  let y = 5 * CELL
+  if (page === 0) {
+    // Controls — engine-owned (arrows/F/P) and game-owned alike; skip title-only keys.
+    for (const c of CONTROLS) {
+      if (c.scope === 'title') continue
+      drawText(ctx, c.keys, 2 * CELL, y, C.B_CYAN, C.BLACK)
+      drawText(ctx, L.CONTROL_DESC[c.id] ?? c.id, 11 * CELL, y, C.B_WHITE, C.BLACK)
+      y += CELL
+    }
+  } else if (page === 1) {
+    // Gems — label in its own colour, live time bonus, special function.
+    for (const k of GEM_KINDS) {
+      const secs = Math.round((GEM_TIME_BONUS_MS[k.id] ?? 0) / 1000)
+      drawText(ctx, L.GEM_LABEL[k.id] ?? k.id, 2 * CELL, y, k.color, C.BLACK)
+      drawText(ctx, `+${secs}s`, 9 * CELL, y, C.B_WHITE, C.BLACK)
+      drawText(ctx, L.GEM_SPECIAL[k.id] ?? '', 14 * CELL, y, C.B_WHITE, C.BLACK)
+      y += CELL
+    }
+    y += CELL
+    drawText(ctx, L.STR_GEM_ALL(GEM_SCORE), 2 * CELL, y, C.B_GREEN, C.BLACK); y += CELL
+    drawText(ctx, L.STR_GEM_FULL, 2 * CELL, y, C.B_GREEN, C.BLACK)
+  } else {
+    for (const line of L.STR_SCORE_LINES(GEM_SCORE, GOLD_SCORE_BONUS)) {
+      drawText(ctx, line, 2 * CELL, y, C.B_WHITE, C.BLACK)
+      y += CELL
+    }
   }
+
+  drawTextCentered(ctx, L.STR_PAUSE_HINT, (ROWS - 2) * CELL, C.B_MAGENTA, C.BLACK)
 }
 
 function renderLevelComplete(ctx: CanvasRenderingContext2D, state: GameState): void {
@@ -433,7 +466,7 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
 
 // ─── Main render entry ────────────────────────────────────────────────────────
 
-export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState): void {
+export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState, pausePage = 0): void {
   // Clear
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
@@ -502,7 +535,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState): vo
   renderFlashOverlay(ctx, state)
 
   // Phase overlays
-  if (state.phase === 'playing' && state.runState === 'paused') renderPaused(ctx, state)
+  if (state.phase === 'playing' && state.runState === 'paused') renderPaused(ctx, pausePage)
   if (state.phase === 'gameover') renderGameOver(ctx, state)
   if (state.phase === 'levelcomplete') renderLevelComplete(ctx, state)
 
