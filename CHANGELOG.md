@@ -1,3 +1,10 @@
+# [0.37.0](https://github.com/zrebec/minefield/compare/v0.36.0...v0.37.0) (2026-06-21)
+
+
+### Features
+
+* **gems:** gold gem grants a score bonus on pickup ([ac7de38](https://github.com/zrebec/minefield/commit/ac7de389ca445c97dc03677fd69473b2a9ee4a0c))
+
 # [0.36.0](https://github.com/zrebec/minefield/compare/v0.35.0...v0.36.0) (2026-06-21)
 
 
