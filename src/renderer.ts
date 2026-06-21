@@ -15,11 +15,17 @@ import {
   LED_ON, LED_OFF,
 } from './sprites.ts'
 
-// The bottom HUD spans STATUS_ROWS rows. Its top row is reserved (left empty for
-// now); existing content lives in the bottom two rows, so STATUS_Y keeps its old
-// value (176) and none of the content drawing below needs to move.
-const STATUS_TOP = ROWS * CELL    // top of the HUD strip / reserved empty row (168)
-const STATUS_Y = STATUS_TOP + CELL  // first populated HUD row (176)
+// The bottom HUD spans STATUS_ROWS (6) rows below the playfield. One concern per
+// row keeps each readable on the narrow 256 px width. Rows are addressed as
+// STATUS_TOP + n*CELL:
+//   0 backpack · 1 timer · 2 score+detector · 3 mines+level · 4 day/night · 5 lives
+const STATUS_TOP = ROWS * CELL          // top of the HUD strip (first row: backpack)
+const ROW_BACKPACK = STATUS_TOP             // gem inventory (can fill the full width)
+// row 1 (STATUS_TOP + 1*CELL) is reserved for the countdown clock — added in step 2.
+const ROW_SCORE    = STATUS_TOP + 2 * CELL  // score (left) + mine detector / aircraft (right)
+const ROW_MINES    = STATUS_TOP + 3 * CELL  // remaining mines (left) + level/combo/idle (right)
+const ROW_CYCLE    = STATUS_TOP + 4 * CELL  // day/night counter
+const ROW_LIVES    = STATUS_TOP + 5 * CELL  // lives label + hearts (left) + random tag (right)
 
 function drawTextCentered(
   ctx: CanvasRenderingContext2D,
@@ -68,32 +74,34 @@ function renderAirplane(ctx: CanvasRenderingContext2D, plane: AirplaneState): vo
 // are ALWAYS green rings (never recolouring), so a full meter reads "all clear".
 // Each tile stays 2-colour (one ink on black). A separate cyan lamp lights for a
 // ranged BEACON broadcasting 2 cells out.
-const DETECTOR_COL = 12
+// Detector occupies columns DETECTOR_COL..DETECTOR_COL+7 — right-aligned on its
+// row, sitting to the right of the score.
+const DETECTOR_COL = 24
 
-function renderDetector(ctx: CanvasRenderingContext2D, adjacent: number, beacon: number): void {
-  drawText(ctx, '[', DETECTOR_COL * CELL, STATUS_Y, C.B_CYAN, C.BLACK)
+function renderDetector(ctx: CanvasRenderingContext2D, adjacent: number, beacon: number, y: number): void {
+  drawText(ctx, '[', DETECTOR_COL * CELL, y, C.B_CYAN, C.BLACK)
   const litInk = adjacent <= 2 ? C.B_YELLOW : C.B_RED
   for (let i = 0; i < 4; i++) {
     const x = (DETECTOR_COL + 1 + i) * CELL
-    if (i < adjacent) drawSprite(ctx, LED_ON, x, STATUS_Y, litInk, C.BLACK)
-    else drawSprite(ctx, LED_OFF, x, STATUS_Y, C.BLUE, C.BLACK)  // empty = green ring, always
+    if (i < adjacent) drawSprite(ctx, LED_ON, x, y, litInk, C.BLACK)
+    else drawSprite(ctx, LED_OFF, x, y, C.BLUE, C.BLACK)  // empty = green ring, always
   }
-  drawText(ctx, ']', (DETECTOR_COL + 5) * CELL, STATUS_Y, C.B_CYAN, C.BLACK)
+  drawText(ctx, ']', (DETECTOR_COL + 5) * CELL, y, C.B_CYAN, C.BLACK)
   // Separate beacon lamp, one cell after the bracket — cyan disc when broadcasting,
   // else the same green empty ring as the meter (consistent, no recolouring).
   const bx = (DETECTOR_COL + 7) * CELL
-  if (beacon > 0) drawSprite(ctx, LED_ON, bx, STATUS_Y, C.B_CYAN, C.BLACK)
-  else drawSprite(ctx, LED_OFF, bx, STATUS_Y, C.B_RED, C.BLACK)
+  if (beacon > 0) drawSprite(ctx, LED_ON, bx, y, C.B_CYAN, C.BLACK)
+  else drawSprite(ctx, LED_OFF, bx, y, C.B_RED, C.BLACK)
 }
 
-// Top HUD row = the player's backpack: one gem sprite per held item, grouped by
+// First HUD row = the player's backpack: one gem sprite per held item, grouped by
 // colour in GEM_KINDS order, left-to-right, capped at the row width.
 function renderInventory(ctx: CanvasRenderingContext2D, state: GameState): void {
   let slot = 0
   for (const kind of GEM_KINDS) {
     const n = state.inventory[kind.id] ?? 0
     for (let i = 0; i < n && slot < INVENTORY_CAP; i++, slot++) {
-      drawSprite(ctx, GEM, slot * CELL, STATUS_TOP, kind.color, C.BLACK)
+      drawSprite(ctx, GEM, slot * CELL, ROW_BACKPACK, kind.color, C.BLACK)
     }
   }
 }
@@ -101,49 +109,55 @@ function renderInventory(ctx: CanvasRenderingContext2D, state: GameState): void 
 function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void {
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, STATUS_TOP, CANVAS_W, STATUS_ROWS * CELL)
+
+  // H1 — backpack
   renderInventory(ctx, state)
 
-  // Random (R-rerolled) run flag on the top row — steady tag + blinking warning
-  // that this run never reaches the leaderboard. dropSeedBase===null ⇔ random.
-  if (state.dropSeedBase === null) {
-    const noScoreX = (COLS - L.STR_NO_SCORE.length) * CELL
-    const tagX = noScoreX - (L.STR_RANDOM_TAG.length + 1) * CELL
-    drawText(ctx, L.STR_RANDOM_TAG, tagX, STATUS_TOP, C.B_MAGENTA, C.BLACK)
-    if (state.blink) drawText(ctx, L.STR_NO_SCORE, noScoreX, STATUS_TOP, C.B_RED, C.BLACK)
-  }
+  // H2 (ROW_TIMER) — reserved for the countdown clock (added in step 2).
 
-  drawText(ctx, L.STR_SCORE(state.score), 0, STATUS_Y, C.B_WHITE, C.BLACK)
-  if (state.runState === 'idle') {
-    drawText(ctx, L.STR_IDLE, (COLS - L.STR_IDLE.length) * CELL, STATUS_Y, C.B_GREEN, C.BLACK)
-  } else if (state.comboCount >= 2) {
-    const comboStr = L.STR_COMBO(state.comboCount)
-    drawText(ctx, comboStr, (COLS - comboStr.length) * CELL, STATUS_Y, C.B_YELLOW, C.BLACK)
-  } else {
-    const lvlStr = L.STR_LEVEL(state.level + 1)
-    drawText(ctx, lvlStr, (COLS - lvlStr.length) * CELL, STATUS_Y, C.B_CYAN, C.BLACK)
-  }
-
-  drawText(ctx, L.STR_MINES(state.totalMines - state.explodedMines), 0, STATUS_Y + CELL, C.B_WHITE, C.BLACK)
-
-  const cycleStr = state.isNight ? L.STR_NIGHT(state.cycleSteps) : L.STR_DAY(state.cycleSteps)
-  const cycleInk = state.isNight ? C.B_CYAN : C.B_YELLOW
-  drawTextCentered(ctx, cycleStr, STATUS_Y + CELL, cycleInk, C.BLACK)
-
-  const livesLabel = L.STR_LIVES_LABEL
-  const livesX = (COLS - livesLabel.length - state.lives) * CELL
-  drawText(ctx, livesLabel, livesX, STATUS_Y + CELL, C.B_WHITE, C.BLACK)
-  for (let i = 0; i < state.lives; i++) {
-    drawSprite(ctx, HEART, livesX + (livesLabel.length + i) * CELL, STATUS_Y + CELL, C.B_RED, C.BLACK)
-  }
-
+  // H3 — score (left) + mine detector, or the aircraft warning in its place (right)
+  drawText(ctx, L.STR_SCORE(state.score), 0, ROW_SCORE, C.B_WHITE, C.BLACK)
   if (state.airplane && state.airplane.warningBlink) {
-    drawTextCentered(ctx, L.STR_AIRCRAFT, STATUS_Y, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, L.STR_AIRCRAFT, ROW_SCORE, C.B_YELLOW, C.BLACK)
   } else {
     renderDetector(
       ctx,
       countAdjacentMines(state.map, state.playerCol, state.playerRow),
       countBeaconSignals(state.map, state.playerCol, state.playerRow),
+      ROW_SCORE,
     )
+  }
+
+  // H4 — remaining mines (left) + level / combo / idle (right)
+  drawText(ctx, L.STR_MINES(state.totalMines - state.explodedMines), 0, ROW_MINES, C.B_WHITE, C.BLACK)
+  if (state.runState === 'idle') {
+    drawText(ctx, L.STR_IDLE, (COLS - L.STR_IDLE.length) * CELL, ROW_MINES, C.B_GREEN, C.BLACK)
+  } else if (state.comboCount >= 2) {
+    const comboStr = L.STR_COMBO(state.comboCount)
+    drawText(ctx, comboStr, (COLS - comboStr.length) * CELL, ROW_MINES, C.B_YELLOW, C.BLACK)
+  } else {
+    const lvlStr = L.STR_LEVEL(state.level + 1)
+    drawText(ctx, lvlStr, (COLS - lvlStr.length) * CELL, ROW_MINES, C.B_CYAN, C.BLACK)
+  }
+
+  // H5 — day / night counter (left)
+  const cycleStr = state.isNight ? L.STR_NIGHT(state.cycleSteps) : L.STR_DAY(state.cycleSteps)
+  const cycleInk = state.isNight ? C.B_CYAN : C.B_YELLOW
+  drawText(ctx, cycleStr, 0, ROW_CYCLE, cycleInk, C.BLACK)
+
+  // H6 — lives label + hearts (left) + random-run tag (right)
+  const livesLabel = L.STR_LIVES_LABEL
+  drawText(ctx, livesLabel, 0, ROW_LIVES, C.B_WHITE, C.BLACK)
+  for (let i = 0; i < state.lives; i++) {
+    drawSprite(ctx, HEART, (livesLabel.length + i) * CELL, ROW_LIVES, C.B_RED, C.BLACK)
+  }
+  // Random (R-rerolled) run flag — steady tag + blinking "off the leaderboard"
+  // warning. dropSeedBase===null ⇔ random.
+  if (state.dropSeedBase === null) {
+    const noScoreX = (COLS - L.STR_NO_SCORE.length) * CELL
+    const tagX = noScoreX - (L.STR_RANDOM_TAG.length + 1) * CELL
+    drawText(ctx, L.STR_RANDOM_TAG, tagX, ROW_LIVES, C.B_MAGENTA, C.BLACK)
+    if (state.blink) drawText(ctx, L.STR_NO_SCORE, noScoreX, ROW_LIVES, C.B_RED, C.BLACK)
   }
 }
 

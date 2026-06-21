@@ -226,7 +226,9 @@ export const saveProfile: SaveProfile<MinefieldSave> = createSaveProfile<Minefie
   // v3: playfield shrank 22→21 rows. A v2 map has one extra row, so loading it
   // into a 21-row world would misalign every cell — no migrate, old saves are
   // cleanly rejected (version_unsupported) rather than loaded half-broken.
-  version: 3,
+  // v4: HUD grew to 6 rows, so the playfield shrank 21→18. Same reasoning — a v3
+  // map has 3 extra rows and can't be realigned, so v3 saves are cleanly rejected.
+  version: 4,
   serialize: () => serializeState(getCurrentState()),
   deserialize: (data) => applyToState(getCurrentState(), data),
   // No migrate needed for v1 — add when the shape changes.
