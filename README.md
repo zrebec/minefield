@@ -79,7 +79,8 @@ LED for ranged (2-cell) mines — see [`docs/accessibility-detector.md`](docs/ac
 2. Move to reveal ground — visited cells take a contrasting trail colour (per terrain).
 3. **Win the level:** reach the **right edge** (`newCol >= COLS`).
 4. Stepping on a mine = explosion, flash, lose a life, respawn at the start.
-5. 0 lives = GAME OVER. On game over, saves are cleared (no save-scumming).
+5. **Beat the clock:** each level has a countdown (see Timer); reaching 0:00 ends the run.
+6. 0 lives **or** 0:00 = GAME OVER. On game over, saves are cleared (no save-scumming).
 
 ### Levels
 
@@ -93,16 +94,31 @@ LED for ranged (2-cell) mines — see [`docs/accessibility-detector.md`](docs/ac
 Terrain (grass / snow / dust) sets the background and trail colour. **Cluster** mines appear from
 level 2, **beacon** (ranged, cyan) mines from level 3. Building count rises per level.
 
+### Timer
+
+Each level starts with a **10:00** countdown (`TIMER_BASE_MS`). It ticks **only while you're moving**
+— idle scouting and pause freeze it — and **resets to the base every level** (leftover time is not
+carried over). Reaching **0:00 ends the run instantly**. Gems buy time back (below). The HUD clock
+turns **red and blinks under 1:00**. All timer values are tunable constants in `config.ts`.
+
+The timer is a deliberate counter to "cheese" — patiently stepping back and forth to re-sample the
+proximity count and triangulate every mine. With a clock running, you deduce the cells that matter
+and take calculated risks on the rest.
+
 ### Gems (12 per level: 3 red · 6 cyan · 1 gold · 2 green)
 
-| Gem | Effect |
-|-----|--------|
-| 🔴 red | **2 collected = +1 life** |
-| 🔵 cyan | **3 collected = permanently reveal one live mine** (seeded; visible even at night) |
-| 🟡 gold | rare; collect-only for now (planned: **score**, maybe **+time**) |
-| 🟢 green | collect-only for now (planned: **shield**) |
+Every gem grants **+1000 score** and a **colour-specific time bonus**. Red and cyan also have a
+special function; gold and green are collect-only for now (their special functions are planned).
 
-Inventory shows in the top HUD row (1:1 sprites, cap 32).
+| Gem | Time | Special |
+|-----|------|---------|
+| 🔵 cyan | +0:00 | **3 collected = permanently reveal one live mine** (seeded; visible even at night) |
+| 🟢 green | +0:05 | collect-only for now (planned: **shield**) |
+| 🔴 red | +0:10 | **2 collected = +1 life** |
+| 🟡 gold | +0:30 | rare; collect-only for now (planned: **score** bonus) |
+
+Rarer gems give more time (cyan is the most common, so it gives none). Inventory shows on the first
+HUD row (1:1 sprites, cap 32); a full backpack leaves a gem on the field — and grants no time.
 
 ### Aircraft
 
@@ -120,6 +136,11 @@ LFO-modulated for an authentic drone.
 - **Web Audio square wave** — warnings/fanfares via `playPattern`; aircraft uses an LFO drone.
 - **`setupCanvas(canvas, 4)`** — 256×192 game pixels → 1024×768, `ctx.scale(4,4)`; CSS handles
   responsive display. `curveDisplay()` adds CRT curvature; `drawScanlines()` the scanline overlay.
+- **6-row HUD** — the bottom 6 cell-rows are the HUD (playfield is the top 32×18), one concern per
+  row: backpack · timer · score+detector · mines+level · day/night · lives+random-tag.
+- **Save** — `zx-kit/save`, **version 4** (the v4 bump came with the 6-row HUD: playfield 21→18, so
+  v3 maps misalign and are cleanly rejected). Round-trips map, lives, score, inventory, revealed
+  mines, day/night, seed, **and the remaining time** — so a reload resumes exactly, not as a reset.
 - **Custom key-repeat + gamepad** via `zx-kit/input` (immediate → 150 ms delay → 80 ms repeat).
 - **TV border** via `document.body` background, state-driven (blue intro / black play / green level /
   red game over) + `flashBorder()` for explosions.

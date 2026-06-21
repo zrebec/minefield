@@ -38,12 +38,21 @@ sound (and a visual HUD detector) warns you of nearby mines; an aircraft periodi
 ## Game mechanics (as shipped — verify against `game.ts` / `player.ts`)
 
 ### Field & HUD
-- Playfield **32×21 cells**; the bottom **3 HUD rows** hold the inventory (top), then score/mines and
-  level/lives. Player starts at the left edge on a **seeded** start row.
+- Playfield **32×18 cells**; the bottom **6 HUD rows** (one concern each): backpack · timer ·
+  score+detector · mines+level · day/night · lives+random-tag. Player starts at the left edge on a
+  **seeded** start row. (`ROWS`/`STATUS_ROWS` in `constants.ts`; canvas height fixed at 192.)
 - `TileMap` (zx-kit) holds tiles `ground` / `mine` / `gem` / `visited` / `flag` / building tiles.
   `findById('mine')` returns non-detonated off-path mines (powers reveal-debug and planned replay).
 - **Win a level:** reach the right edge (`newCol >= COLS`). Step on a mine → explosion flash, lose a
-  life, respawn at start. 0 lives → GAME OVER (saves are deleted — no save-scumming).
+  life, respawn at start. 0 lives **or** the timer hitting 0:00 → GAME OVER (saves deleted — no scumming).
+
+### Timer (`tickTimer` in game.ts, ticked from main.ts)
+- `state.timeLeftMs` starts at `TIMER_BASE_MS` (10:00). `createGame` sets it, so it **resets every
+  level**; it is **not** reset on mine-death respawn (per-level, not per-life). No carry-over.
+- Ticks **only in `runState === 'running'`** (idle scout + pause freeze it). At 0 → `phase='gameover'`.
+- Persisted in saves (`timeLeftMs?`) and restored, so reload resumes the clock (not a reset).
+- HUD clock on the timer row; red + blinking under `TIMER_LOW_MS` (1:00). Purpose: counter to the
+  back-and-forth re-sample "cheese". All values tunable in `config.ts`.
 
 ### Daily vs Random (single source of truth: `state.dropSeedBase`)
 - **Daily** = seed `YYYY-MM-DD:Ln` → everyone gets the same field; scores count.
@@ -63,10 +72,13 @@ sound (and a visual HUD detector) warns you of nearby mines; an aircraft periodi
   visited cell — relevant to the cheese discussion in the SK doc §7).
 
 ### Gems (12 per level: 3 red · 6 cyan · 1 gold · 2 green; backpack cap 32)
+Every gem grants **+1000 score** (`GEM_SCORE`) and a **per-colour time bonus** (`GEM_TIME_BONUS_MS`
+map in config: cyan 0 · green 5s · red 10s · gold 30s — rarer = more). A full backpack leaves the gem
+on the field and grants nothing. On top of that, two colours have a special function:
 - 🔴 red — **2 = +1 life** (`RED_GEMS_PER_LIFE = 2`).
 - 🔵 cyan — **3 = permanently reveal one live mine** (`CYAN_GEMS_PER_REVEAL = 3`; seeded, night-visible).
-- 🟡 gold — rare (1/level), collect-only for now (planned: score, maybe +time).
-- 🟢 green — collect-only for now (planned: shield).
+- 🟡 gold — special **not yet implemented** (planned: a score bonus *above* the flat +1000).
+- 🟢 green — special **not yet implemented** (planned: shield — survive one blast without respawning).
 - Data-driven via `GEM_KINDS` (id, `C` colour, weight); exact quotas via largest-remainder.
 
 ### Buildings (replaced the old linear walls)
@@ -86,8 +98,10 @@ levels.** Full spec: `docs/buildings.md`.
   LED. Makes the game playable deaf. Spec: `docs/accessibility-detector.md`.
 - **Audio** (`audio.ts`) — square-wave warnings/fanfares via zx-kit `playPattern`; explosion noise;
   aircraft LFO drone; volume `+`/`-`.
-- **Save** (`save.ts` + zx-kit `save`) — version 3, 1 char/cell; `auto` slot (from L1 + at each level
-  start) + `manual` (`SHIFT+S`); auto-resume of an in-progress save on launch; cleared on game over.
+- **Save** (`save.ts` + zx-kit `save`) — **version 4**, 1 char/cell; `auto` slot (from L1 + at each
+  level start) + `manual` (`SHIFT+S`); auto-resume on launch; cleared on game over. v4 bump came with
+  the 6-row HUD (playfield 21→18 → v3 maps misalign, cleanly rejected). Persists `timeLeftMs?` (and
+  inventory/revealed mines) as optional fields, so reload resumes exactly.
 - **Levels:** L1 50 mines/3 lives · L2 80/3 · L3 100/2 · L4+ 110/2. Cluster mines from L2, beacon from L3.
 - **Input** (`input.ts` over zx-kit) — arrows (repeat 150 ms→80 ms) + full **gamepad**; `F` flag,
   `P` pause, `SHIFT+S` save, `+`/`-` volume.
@@ -155,8 +169,9 @@ timed input list** (a few bytes), **not** raw canvas frames.
   gets replay + sharing + verification for free. Open: extract to zx-kit later, or build it there and
   let minefield be the reference integration.
 
-> Tomorrow's work (per owner, 2026-06-20): **gems + timer together** (gems add time). The **timer must
-> be persisted** in auto/manual saves and restored on load — otherwise load acts as a timer reset.
+> **Done (2026-06-21):** the 6-row HUD, the per-level timer, and per-colour gem time bonuses all
+> shipped (timer is persisted + restored). **Still open:** the gem *special* functions for gold
+> (score bonus) and green (shield) — see the Gems section.
 
 ---
 
