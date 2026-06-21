@@ -85,9 +85,47 @@ export const STR_PRESS_ANY_KEY = 'PRESS ANY KEY'
 export const STR_SCORE_OVERLAY = (score: number) =>
   `SCORE: ${String(score).padStart(5, '0')}`
 
-// ── Pause overlay ─────────────────────────────────────────────────────────
+// ── Pause overlay (paged: controls / gems / scoring) ──────────────────────
 
 export const STR_PAUSED = '** PAUSED **'
+// Page titles (index = page). Hint line tells the player how to leaf/resume.
+export const STR_PAUSE_TITLES = ['CONTROLS', 'GEMS', 'SCORING']
+export const STR_PAUSE_HINT   = 'ARROWS: PAGE   P: RESUME'
+
+// Per-control description, keyed by CONTROLS id. The key label comes from
+// config (CONTROLS[].keys); this is just the wording.
+export const CONTROL_DESC: Record<string, string> = {
+  move:   'Move',
+  flag:   'Flag cell ahead',
+  pause:  'Pause / resume',
+  save:   'Manual save',
+  reveal: 'Reveal mines (when idle)',
+  fps:    'FPS / CPU overlay',
+  volume: 'Volume up / down',
+  start:  'Start daily run',
+  random: 'Start random run',
+}
+
+// Gem labels + special-function wording, keyed by gem id. Time bonus and point
+// values are read from config at render time (single source), not duplicated here.
+export const GEM_LABEL: Record<string, string> = { red: 'RED', cyan: 'CYAN', gold: 'GOLD', green: 'GREEN' }
+export const GEM_SPECIAL: Record<string, string> = {
+  red:   '2 = +1 life',
+  cyan:  '3 = reveal a mine',
+  gold:  'big points',
+  green: '(time only)',
+}
+export const STR_GEM_ALL  = (pts: number) => `Every gem: +${pts} pts`
+export const STR_GEM_FULL = 'Full bag: gem left on field'
+
+// Scoring page lines. Point values interpolated from config (single source).
+export const STR_SCORE_LINES = (gemPts: number, goldBonus: number): string[] => [
+  'Each new cell: base x level',
+  'Combo: chain cells, up to x2',
+  `Gem pickup: +${gemPts} (x combo)`,
+  `Gold gem: +${goldBonus} extra`,
+  'Stepping on a mine: 0 pts',
+]
 
 // ── Level-complete overlay ────────────────────────────────────────────────
 
