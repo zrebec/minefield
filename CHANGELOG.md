@@ -1,3 +1,19 @@
+# [0.38.0](https://github.com/zrebec/minefield/compare/v0.37.0...v0.38.0) (2026-06-21)
+
+
+### Bug Fixes
+
+* manually trigger semantic-release and deploy to GitHub Pages ([8542798](https://github.com/zrebec/minefield/commit/8542798c5dc76d0c6388aeab2adb4f1130369402))
+
+
+### Features
+
+* **config:** add CONTROLS list as the pause-help text source ([5bc6e5f](https://github.com/zrebec/minefield/commit/5bc6e5fbda81fbad41393c88c068af535b864e72))
+* **i18n:** English pause-screen strings ([b997352](https://github.com/zrebec/minefield/commit/b997352de031b0b31eff2c4109ac6b54dd76e92b))
+* **i18n:** Slovak pause-screen strings ([4d7e4a2](https://github.com/zrebec/minefield/commit/4d7e4a2b1aae4fb62b90e02d2d2dd9ff2359035c))
+* **pause:** leaf pause pages with arrows ([dec519f](https://github.com/zrebec/minefield/commit/dec519f381e4224846d31c0710afea7e465caf9a))
+* **pause:** render a paged pause screen ([99480d9](https://github.com/zrebec/minefield/commit/99480d950c94f28f218e9ac7f03a2779bec73f38))
+
 # [0.37.0](https://github.com/zrebec/minefield/compare/v0.36.0...v0.37.0) (2026-06-21)
 
 
