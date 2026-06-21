@@ -267,3 +267,32 @@ export const AIRPLANE_APPROACH_MS = 5000
 // Respawn restarts the day (new DAY_STEPS counter, isNight=false).
 export const DAY_STEPS = 15   // steps in daylight before night falls
 export const NIGHT_STEPS = 10 // steps at night before dawn
+
+// ── Controls (help-screen source) ─────────────────────────────────────────────
+//
+// A flat list of the game's controls, used to render the pause/help screen so the
+// help text lives in ONE place. It deliberately does NOT drive key matching — the
+// listeners in input.ts / main.ts match keys directly (matching every key through
+// this list would add indirection for no real gain at this size). The only cost:
+// if you rename a key, update both the listener and the `keys` label here.
+//
+// `keys`  — short display label (ROM-font safe ASCII).
+// `scope` — 'ingame' shows during play (pause screen), 'title' on the title only,
+//           'always' both.
+export interface ControlSpec {
+  id: string
+  keys: string
+  scope: 'ingame' | 'title' | 'always'
+}
+
+export const CONTROLS: ControlSpec[] = [
+  { id: 'move',    keys: 'ARROWS',  scope: 'ingame' },
+  { id: 'flag',    keys: 'F',       scope: 'ingame' },
+  { id: 'pause',   keys: 'P',       scope: 'ingame' },
+  { id: 'save',    keys: 'SHIFT+S', scope: 'ingame' },
+  { id: 'reveal',  keys: 'D',       scope: 'ingame' },
+  { id: 'fps',     keys: 'O',       scope: 'always' },
+  { id: 'volume',  keys: '+/-',     scope: 'always' },
+  { id: 'start',   keys: 'SPACE',   scope: 'title'  },
+  { id: 'random',  keys: 'R',       scope: 'title'  },
+]
