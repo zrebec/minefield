@@ -208,6 +208,17 @@ export const RED_GEMS_PER_LIFE = 2
 // often behind you — so it's a deceptive, not strictly useful, reward.
 export const CYAN_GEMS_PER_REVEAL = 3
 
+// ── Timer ─────────────────────────────────────────────────────────────────────
+
+// Per-level countdown budget. Resets to this at the start of every level (leftover
+// time is NOT carried over). Pressures the back-and-forth re-sampling ("cheese")
+// that would otherwise let a patient player triangulate the whole field risk-free.
+// Tunable — adjust after playtest.
+export const TIMER_BASE_MS = 600_000      // 10:00 starting budget per level
+
+// At or below this, the HUD clock turns red and blinks.
+export const TIMER_LOW_MS = 60_000        // 1:00 warning threshold
+
 // ── Combo system ──────────────────────────────────────────────────────────────
 
 // How long (ms) a combo remains active without stepping on a new cell

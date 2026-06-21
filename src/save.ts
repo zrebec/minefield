@@ -4,7 +4,7 @@
 
 import { createSaveProfile, createAnimation, createTileMap, type SaveProfile } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
-import GEM_COUNT, { START_ROW, WALK_FRAME_MS } from './config.ts'
+import GEM_COUNT, { START_ROW, WALK_FRAME_MS, TIMER_BASE_MS } from './config.ts'
 import { type GameState, type Dir, gemColor } from './game.ts'
 import {
   type TerrainType, type CellVariant, type BuildingPart,
@@ -48,6 +48,9 @@ export interface MinefieldSave {
   inventory?: Record<string, number>
   /** Mines revealed by the cyan-gem reward this level. Optional: older saves []. */
   revealedMines?: Array<{ col: number; row: number }>
+  /** Per-level countdown remaining (ms). Optional: saves written before the timer
+   *  lack it and resume at the full base budget (generous, never broken). */
+  timeLeftMs?: number
   cycleSteps: number
   isNight: boolean
   comboCount: number
@@ -148,6 +151,7 @@ function serializeState(state: GameState): MinefieldSave {
     gemsCollected: state.gemsCollected,
     inventory: state.inventory,
     revealedMines: state.revealedMines,
+    timeLeftMs: state.timeLeftMs,
     cycleSteps: state.cycleSteps,
     isNight: state.isNight,
     comboCount: state.comboCount,
@@ -172,6 +176,7 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.gemsCollected = data.gemsCollected
   target.inventory = data.inventory ?? {}
   target.revealedMines = data.revealedMines ?? []
+  target.timeLeftMs = data.timeLeftMs ?? TIMER_BASE_MS  // pre-timer saves resume at full base
   target.gemsTotal = GEM_COUNT
   target.cycleSteps = data.cycleSteps
   target.isNight = data.isNight

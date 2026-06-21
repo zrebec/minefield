@@ -44,6 +44,10 @@ export const STR_MINES = (remaining: number) =>
 export const STR_DAY   = (steps: number) => `DEN:${String(steps).padStart(2, '0')}`  // 6 znakov
 export const STR_NIGHT = (steps: number) => `NOC:${String(steps).padStart(2, '0')}`  // 6 znakov
 
+// Odpočet času, HUD riadok časovača (vľavo). 'CAS 10:00' = 9 znakov.
+export const STR_TIME = (ms: number) =>
+  `CAS ${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
+
 export const STR_LIVES_LABEL = 'ZIV:'                       // 4 znaky (skrátené aby srdcia ostali napravo)
 
 export const STR_AIRCRAFT = '** LIETADLO **'                // 14 znakov

@@ -1,4 +1,5 @@
 import { CANVAS_W, CANVAS_H, ROWS, STATUS_ROWS, COLS, CELL, C } from './constants.ts'
+import { TIMER_LOW_MS } from './config.ts'
 import type { GameState, AirplaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor } from 'zx-kit'
@@ -21,7 +22,7 @@ import {
 //   0 backpack · 1 timer · 2 score+detector · 3 mines+level · 4 day/night · 5 lives
 const STATUS_TOP = ROWS * CELL          // top of the HUD strip (first row: backpack)
 const ROW_BACKPACK = STATUS_TOP             // gem inventory (can fill the full width)
-// row 1 (STATUS_TOP + 1*CELL) is reserved for the countdown clock — added in step 2.
+const ROW_TIMER    = STATUS_TOP + 1 * CELL  // countdown clock (left)
 const ROW_SCORE    = STATUS_TOP + 2 * CELL  // score (left) + mine detector / aircraft (right)
 const ROW_MINES    = STATUS_TOP + 3 * CELL  // remaining mines (left) + level/combo/idle (right)
 const ROW_CYCLE    = STATUS_TOP + 4 * CELL  // day/night counter
@@ -113,7 +114,11 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
   // H1 — backpack
   renderInventory(ctx, state)
 
-  // H2 (ROW_TIMER) — reserved for the countdown clock (added in step 2).
+  // H2 — countdown clock (left). Steady white; red + blinking when low.
+  const lowTime = state.timeLeftMs <= TIMER_LOW_MS
+  if (!lowTime || state.blink) {
+    drawText(ctx, L.STR_TIME(state.timeLeftMs), 0, ROW_TIMER, lowTime ? C.B_RED : C.B_WHITE, C.BLACK)
+  }
 
   // H3 — score (left) + mine detector, or the aircraft warning in its place (right)
   drawText(ctx, L.STR_SCORE(state.score), 0, ROW_SCORE, C.B_WHITE, C.BLACK)

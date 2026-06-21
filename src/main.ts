@@ -1,8 +1,8 @@
 import { C, CANVAS_W, CELL, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
-import { createGame, dailySeed, type GameState, type GamePhase, type Dir } from './game.ts'
+import { createGame, dailySeed, tickTimer, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown, consumeManualSave, consumeRandomMap } from './input.ts'
-import { initAudio, stopAmbientSounds, playStartupJingle, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane } from './airplane.ts'
@@ -211,6 +211,7 @@ function gameLoop(timestamp: number): void {
       setBorderColor(C.BLACK)
 
     } else if (state.runState === 'running') {
+      tickTimer(state, dt)  // clock ticks only while actively running
       consumeDebug()  // drain — debug not available while running
       if (consumePause()) state.runState = 'paused'
 
@@ -289,6 +290,9 @@ function gameLoop(timestamp: number): void {
       }
     }
   }
+
+  // Play the game-over jingle once on entry (covers both a fatal step and timeout).
+  if (state.phase === 'gameover' && prevGamePhase !== 'gameover') playGameOver()
 
   prevGamePhase = state.phase
   renderFrame(ctx, state)

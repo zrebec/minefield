@@ -1,6 +1,6 @@
 import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
 import { COLS, ROWS, C, type SpectrumColor } from './constants.ts'
-import GEM_COUNT, { START_COL, SAFE_RADIUS, LEVEL_CONFIGS, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS } from './config.ts'
+import GEM_COUNT, { START_COL, SAFE_RADIUS, LEVEL_CONFIGS, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED,
   type CellVariant, type TerrainType,
@@ -131,6 +131,8 @@ export interface GameState {
   cycleSteps: number
   dropSeedBase: string | null
   airplanePassIndex: number
+  /** Per-level countdown budget in ms. Ticks only while running; 0 → game over. */
+  timeLeftMs: number
 }
 
 function cellVariant(col: number, row: number): CellVariant {
@@ -359,7 +361,18 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
     cycleSteps: DAY_STEPS,
     dropSeedBase: seed !== undefined ? String(seed) : null,
     airplanePassIndex: 0,
+    timeLeftMs: TIMER_BASE_MS,
   }
+}
+
+/**
+ * Counts the per-level timer down by `dtMs`. Call only while the run is active
+ * (`runState === 'running'`) so idle scouting and pause freeze the clock. When the
+ * budget hits 0 the run ends immediately (game over) — no respawn, no carry-over.
+ */
+export function tickTimer(state: GameState, dtMs: number): void {
+  state.timeLeftMs = Math.max(0, state.timeLeftMs - dtMs)
+  if (state.timeLeftMs === 0) state.phase = 'gameover'
 }
 
 export function addDropMinesInBand(state: GameState, count: number, minRow: number, maxRow: number): void {

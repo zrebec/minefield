@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, GEM_KINDS, type MineType } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, tickTimer, GEM_KINDS, type MineType } from './game.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
-import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT } from './config.ts'
+import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS } from './config.ts'
 import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
@@ -1114,5 +1114,35 @@ describe('fixObstacleTraps — building perimeter', () => {
     setMine(map, 5, 9)                          // only one flank — not a trap
     fixObstacleTraps(map, 'grass')
     expect(map.getTile(5, 9)?.id).toBe('mine')
+  })
+})
+
+// ── Timer ───────────────────────────────────────────────────────────────────────
+
+describe('timer', () => {
+  it('createGame starts every level at the base budget', () => {
+    expect(createGame(0).timeLeftMs).toBe(TIMER_BASE_MS)
+    expect(createGame(3).timeLeftMs).toBe(TIMER_BASE_MS)
+  })
+
+  it('tickTimer counts down by dt', () => {
+    const state = createGame(0)
+    tickTimer(state, 1000)
+    expect(state.timeLeftMs).toBe(TIMER_BASE_MS - 1000)
+    expect(state.phase).toBe('playing')
+  })
+
+  it('clamps at 0 (never negative) and ends the game when it runs out', () => {
+    const state = createGame(0)
+    tickTimer(state, TIMER_BASE_MS + 5000)   // overshoot
+    expect(state.timeLeftMs).toBe(0)
+    expect(state.phase).toBe('gameover')
+  })
+
+  it('does not end the game while time remains', () => {
+    const state = createGame(0)
+    tickTimer(state, TIMER_BASE_MS - 1)      // 1 ms left
+    expect(state.timeLeftMs).toBe(1)
+    expect(state.phase).toBe('playing')
   })
 })

@@ -63,6 +63,10 @@ export const STR_MINES = (remaining: number) =>
 export const STR_DAY   = (steps: number) => `DAY:${String(steps).padStart(2, '0')}`
 export const STR_NIGHT = (steps: number) => `NGT:${String(steps).padStart(2, '0')}`
 
+// Countdown clock, HUD timer row (left). 'TIME 10:00' = 10 chars.
+export const STR_TIME = (ms: number) =>
+  `TIME ${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
+
 // Lives label, followed by heart sprites. Length affects sprite x-position
 // — keep this short or hearts shift left.
 export const STR_LIVES_LABEL = 'LIVES:'
