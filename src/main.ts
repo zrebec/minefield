@@ -9,6 +9,7 @@ import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
 import { isHighScore, saveHighScore } from './assets/highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
+import { L } from './lang.ts'
 
 type AppPhase = 'intro' | 'ingame' | 'hiscore'
 
@@ -43,6 +44,10 @@ const VOL_BAR_Y = Math.floor(ROWS / 2) * CELL
 // Debug mode
 const dbg = createDebugMonitor({ targetFps: 60 })
 let showDebug = false
+
+// Pause screen paging (controls / gems / scoring); count from the i18n titles.
+const PAUSE_PAGES = L.STR_PAUSE_TITLES.length
+let pausePage = 0
 
 function volBar() {
   return {
@@ -213,7 +218,7 @@ function gameLoop(timestamp: number): void {
     } else if (state.runState === 'running') {
       tickTimer(state, dt)  // clock ticks only while actively running
       consumeDebug()  // drain — debug not available while running
-      if (consumePause()) state.runState = 'paused'
+      if (consumePause()) { state.runState = 'paused'; pausePage = 0 }
 
       if (state.comboTimer > 0) {
         state.comboTimer -= dt
@@ -231,10 +236,12 @@ function gameLoop(timestamp: number): void {
       setBorderColor(C.BLACK)
 
     } else {
-      // paused — drain all inputs except P
+      // paused — paged help screen; arrows leaf the pages, P resumes
       consumeDebug()
       if (consumePause()) state.runState = 'running'
-      tickMovement(dt, WALK_DURATION_MS)   // drain direction queue
+      const pdir = tickMovement(dt, WALK_DURATION_MS)
+      if (pdir === 'right' || pdir === 'down') pausePage = (pausePage + 1) % PAUSE_PAGES
+      else if (pdir === 'left' || pdir === 'up') pausePage = (pausePage + PAUSE_PAGES - 1) % PAUSE_PAGES
       consumeFlag()
     }
 
@@ -295,7 +302,7 @@ function gameLoop(timestamp: number): void {
   if (state.phase === 'gameover' && prevGamePhase !== 'gameover') playGameOver()
 
   prevGamePhase = state.phase
-  renderFrame(ctx, state)
+  renderFrame(ctx, state, pausePage)
   tickUI(dt); renderUI(ctx)
   finishFrame(ctx)
 }
