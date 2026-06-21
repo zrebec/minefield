@@ -1,397 +1,170 @@
-# CLAUDE.md — Minefield (ZX Spectrum Style)
+# CLAUDE.md — Minefield (ZX Spectrum Edition)
 
 > **Known issue:** `npm audit` flags 1 high vuln (**undici 6.26.0**) bundled inside the `npm` CLI (pulled by semantic-release) — **unfixable downstream, dev/CI-only, never shipped** (the game ships a static Vite bundle). Don't re-investigate (audit fix / `--force` / overrides / nuke all tried 2026-06-20). Full note: `docs/known-issues.md`.
 
-## Projekt
+Guidance for Claude Code when working in this repository. **The code and tests are the source of
+truth** — when this file disagrees with `src/`, the code wins (fix this file).
 
-Browserová hra inšpirovaná klasickými ZX Spectrum hrami typu "Minefield".
-Hráč sa pohybuje po minovom poli, zvuk ho varuje pred blízkosťou mín.
-Občas preletí lietadlo a pridá nové míny.
+## What this is
 
-**Stack**: Vanilla TypeScript + Vite + HTML5 Canvas + Web Audio API  
-**Výstup**: Single-page app, žiadne externé knižnice okrem Vite
+A browser game inspired by classic ZX Spectrum "minefield" titles. Cross a blind minefield left→right;
+sound (and a visual HUD detector) warns you of nearby mines; an aircraft periodically drops more.
+**Functionally complete and LIVE** on GitHub Pages. The deeper SK design/working doc is
+`retro/docs/sk/minefield.md`; this file is the in-repo agent doc.
 
----
-
-## ZX Spectrum autenticita — KRITICKÉ
-
-### Rozlíšenie a škálovanie
-- Interná hra beží na **256×192 pixelov** (originálne Spectrum rozlíšenie)
-- Canvas je vykreslený scaled **4×** → fyzická veľkosť 1024×768px
-- `imageSmoothingEnabled = false` — ŽIADNY anti-aliasing nikde
-- Všetky súradnice sú vždy násobky 8 (character grid)
-
-### Paleta — presne 15 farieb Spectrum
-```
-NORMAL:
-  BLACK   #000000
-  BLUE    #0000CD
-  RED     #CD0000
-  MAGENTA #CD00CD
-  GREEN   #00CD00
-  CYAN    #00CDCD
-  YELLOW  #CDCD00
-  WHITE   #CDCDCD
-
-BRIGHT:
-  BLACK   #000000  (rovnaká)
-  BLUE    #0000FF
-  RED     #FF0000
-  MAGENTA #FF00FF
-  GREEN   #00FF00
-  CYAN    #00FFFF
-  YELLOW  #FFFF00
-  WHITE   #FFFFFF
-```
-Tieto farby sa používajú VÝHRADNE. Žiadne iné hex hodnoty.
-
-### Color clash
-- Každý 8×8 blok má len 2 farby: INK a PAPER
-- Toto je nutné dodržať pre autentický look
-- Implementovať ako `ColorAttr` mapa paralelná s canvas
-
-### Font
-- Použiť **ZX Spectrum ROM font** — 8×8 pixel bitmap font
-- Font data zakódovať priamo v TypeScript ako `Uint8Array` (256 znakov × 8 bajtov)
-- Renderovať manuálne cez `putImageData`, nie cez CSS/HTML text
-- Includovať aspoň ASCII 32–127 (printable chars)
-
-### Sprite dizajn (8×8 px, Spectrum paleta)
-Všetky sprite-y definovať ako 8×8 pixel mapy v TypeScript:
-
-- **Hráč** – humanoidná figúrka, 4 smery (up/down/left/right variant)
-- **Míny** – kruhová s bodkami, klasický Spectrum look
-- **Explosion** – 2-frame animácia
-- **Lietadlo** – 16×8 alebo 8×8 sprite, jednoduchý siluetový tvar
-- **Flag** – označenie podozrivého políčka (voliteľné)
-- **Grass/Ground** – textúra pozadia (dve varianty pre šachovnicový vzor)
+- **Stack:** Vanilla TypeScript + Vite + HTML5 Canvas + Web Audio API, on **`zx-kit@^0.33.0`**.
+- **Release:** semantic-release on push to `main` (app pattern, `npmPublish: false`) → build → deploy.
+  234 tests (Vitest). Current version 0.31.x.
+- **Owner commits and releases.** Don't commit or bump without being asked.
 
 ---
 
-## Herná mechanika
+## ZX Spectrum authenticity — CRITICAL (eternal rules)
 
-### Grid
-- Hracia plocha: **32×22 buniek** (= 256×176 px, 2 riadky reserved pre status bar)
-- Každá bunka: `{ hasMine: boolean, flagged: boolean, visited: boolean }`
-- Hráč štartuje v strede, v okolí 3×3 od štartu ŽIADNE míny
-
-### Pohyb hráča
-- **Šípky** — pohyb o 1 bunku
-- Key repeat: prvý pohyb ihneď, ďalšie po 150ms delay, potom každých 80ms
-- Hráč sa môže pohybovať len na platné bunky (v rámci gridu)
-- Po každom pohybe: detekcia míny + zvukové varovanie
-
-### Míny — inicializácia
-- Počet mín: konfigurovateľné podľa levelu (default: 60 z 32×22 = ~8.5%)
-- Rozmiestnené náhodne, okrem štartovej zóny 3×3
-
-### Životný cyklus bunky
-```
-NENAVŠTÍVENÁ → hráč vstúpi → NAVŠTÍVENÁ
-NAVŠTÍVENÁ + mína → EXPLÓZIA → strata života
-```
-
-### Šliapnutie na mínu
-1. Flash efekt (blink celej obrazovky — biela/čierna, 3× za 200ms)
-2. Explosion sprite animácia na mieste míny
-3. Beep vzor: dlhý nízky tón (explózia sound)
-4. Strata 1 života
-5. Hráč sa teleportuje späť na štartovú pozíciu
-6. Míny zostávajú (okrem tej aktivovanej)
+- **Resolution:** game runs at **256×192**, canvas scaled **4×** (1024×768) via zx-kit `setupCanvas`;
+  `imageSmoothingEnabled = false`, no anti-aliasing anywhere. All coordinates are multiples of 8.
+- **Palette:** exactly the 15 Spectrum colours from `zx-kit` `C` (8 normal + 7 bright; bright black =
+  black). **No other hex values, ever.** Use `C.*`, never raw hex.
+- **Colour clash:** each 8×8 cell has one INK + one PAPER. Because the whole game is grid-aligned this
+  comes for free — stepping onto a cell flips the whole block. (zx-kit `attrscreen` not needed here.)
+- **Font:** the ZX ROM 8×8 bitmap font via `zx-kit/font`, drawn pixel-by-pixel (`fillRect`) — never
+  CSS fonts / `fillText`.
+- **What must NOT appear:** gradients, shadows, border-radius, modern fonts, smooth scaling, CSS
+  animation (all rendering is Canvas), external image assets (sprites are `Uint8Array` in `sprites.ts`),
+  any non-Spectrum colour, or any game framework (React/Pixi/Phaser). zx-kit is the only dependency.
 
 ---
 
-## Zvukový systém — Web Audio API
+## Game mechanics (as shipped — verify against `game.ts` / `player.ts`)
 
-### Základný princíp
-- `AudioContext` inicializovať na prvý user gesture (klik/klávesa)
-- Výhradne `OscillatorNode` s `type = "square"` — pravý Spectrum 1-bit zvuk
-- `GainNode` pre volume control a envelope
+### Field & HUD
+- Playfield **32×21 cells**; the bottom **3 HUD rows** hold the inventory (top), then score/mines and
+  level/lives. Player starts at the left edge on a **seeded** start row.
+- `TileMap` (zx-kit) holds tiles `ground` / `mine` / `gem` / `visited` / `flag` / building tiles.
+  `findById('mine')` returns non-detonated off-path mines (powers reveal-debug and planned replay).
+- **Win a level:** reach the right edge (`newCol >= COLS`). Step on a mine → explosion flash, lose a
+  life, respawn at start. 0 lives → GAME OVER (saves are deleted — no save-scumming).
 
-### Varovanie podľa blízkosti
+### Daily vs Random (single source of truth: `state.dropSeedBase`)
+- **Daily** = seed `YYYY-MM-DD:Ln` → everyone gets the same field; scores count.
+- **Random** = no seed → `dropSeedBase === null` → **never** written to the leaderboard (anti-cheat;
+  persisted in the save + re-synced on reload so save+reload can't launder a random score onto the board).
+- Chosen **only on the title**: `SPACE`/`ENTER`/`S` = daily, `R` = random. `R` is inert in-game.
 
-> **⚠️ ERRATA / SHOWSTOPPER (2026-06-15) — tento popis bol roky NESPRÁVNY.** Stálo tu „počítať míny v
-> okolí **3×3** od hráča (max 8 susedov)". To je **vecný nezmysel** — a presne to v dizajn-diskusii
-> spustilo falošný poplach, že hra „ráta diagonály". **Realita v kóde** (`game.ts → countWarningMines`,
-> a je to **otestované** v `game.test.ts`, vrátane testu *„beacon mine diagonally 2 away does NOT warn
-> (only cardinal)"*): počítajú sa **iba ORTOGONÁLNI susedia** (von Neumann). Hráč chodí len ortogonálne
-> (4 smery), takže diagonálna mína je neakčná → kód ju **správne ignoruje**. **Pravda je kód a testy,
-> nie tento dokument.**
+### Warning count — `countWarningMines`
+> **ERRATA (kept as a permanent warning).** This file once claimed mines are counted in a **3×3** area
+> (8 neighbours). That is wrong and once triggered a false "the game counts diagonals" alarm. **Reality
+> in code, and tested** (`game.test.ts`, incl. *"beacon mine diagonally 2 away does NOT warn"*):
+- **4 orthogonal neighbours, distance 1** — any mine type `+= 1` (max 4). The player only moves
+  orthogonally, so a diagonal mine is non-actionable → correctly ignored.
+- **+ `beacon` mines at orthogonal distance 2** (cyan, from level 3, `BEACON_MINE_RATIO`) — the *only*
+  reason the sum can exceed 4 (max `4 + 4 = 8`). Diagonal beacons do **not** count.
+- Returns `min(count, 8)`. The warning + detector fire **after every step** (incl. re-entering a
+  visited cell — relevant to the cheese discussion in the SK doc §7).
 
-Čo `countWarningMines` reálne robí:
+### Gems (12 per level: 3 red · 6 cyan · 1 gold · 2 green; backpack cap 32)
+- 🔴 red — **2 = +1 life** (`RED_GEMS_PER_LIFE = 2`).
+- 🔵 cyan — **3 = permanently reveal one live mine** (`CYAN_GEMS_PER_REVEAL = 3`; seeded, night-visible).
+- 🟡 gold — rare (1/level), collect-only for now (planned: score, maybe +time).
+- 🟢 green — collect-only for now (planned: shield).
+- Data-driven via `GEM_KINDS` (id, `C` colour, weight); exact quotas via largest-remainder.
 
-- **4 ortogonálni susedia, vzdialenosť 1** — každá mína (akýkoľvek typ) `+= 1` (max 4).
-- **+ míny typu `beacon`, vzdialenosť 2 ortogonálne** (cyan, od levelu 3, `BEACON_MINE_RATIO = 0.12`;
-  „vysielajú" o bunku ďalej; diagonálny beacon sa NERÁTA). **Toto — nie diagonály — je jediný dôvod,
-  prečo súčet vie ísť nad 4** (max `4 + 4 = 8`).
-- Vráti `min(count, 8)` → tabuľka 1–8 pipov nižšie sedí.
+### Buildings (replaced the old linear walls)
+High-angle **pseudo-3D buildings**: a roof footprint (2–8 tiles/dim, rolled independently) + 2 brick
+rows + 1 foundation row; the whole bounding box is **solid and mine-free**. Count rises per level.
+`fixWallTraps()` guarantees you never face *obstacle ahead + mines on both perpendicular sides* (you
+always keep at least one dodge besides backing up). **8 unit tests + a property test over 20 generated
+levels.** Full spec: `docs/buildings.md`.
 
-Hodnoty (count → zvuk):
+### Other systems
+- **Terrain** grass/snow/dust (L1 always grass) — sets background + trail colour. **Day/night** cycle
+  darkens ground+mine (gems/buildings stay visible).
+- **Aircraft** — per-level timing in `LEVEL_CONFIGS` (`acFirst*`/`acMin*`/`acMax*`); crosses in ~3 s,
+  drops `acMineDropMin..Max` mines on unvisited non-building cells; status bar blinks `** AIRCRAFT **`;
+  LFO-modulated engine drone.
+- **Detector** (HUD) — mirrors the audio: adjacent mines 0–4 (amber/red discs) + a separate cyan beacon
+  LED. Makes the game playable deaf. Spec: `docs/accessibility-detector.md`.
+- **Audio** (`audio.ts`) — square-wave warnings/fanfares via zx-kit `playPattern`; explosion noise;
+  aircraft LFO drone; volume `+`/`-`.
+- **Save** (`save.ts` + zx-kit `save`) — version 3, 1 char/cell; `auto` slot (from L1 + at each level
+  start) + `manual` (`SHIFT+S`); auto-resume of an in-progress save on launch; cleared on game over.
+- **Levels:** L1 50 mines/3 lives · L2 80/3 · L3 100/2 · L4+ 110/2. Cluster mines from L2, beacon from L3.
+- **Input** (`input.ts` over zx-kit) — arrows (repeat 150 ms→80 ms) + full **gamepad**; `F` flag,
+  `P` pause, `SHIFT+S` save, `+`/`-` volume.
+- **i18n** — all UI text in swappable EN/SK packs (`strings.ts` / `strings.sk.ts`).
+- **CRT** — `curveDisplay()` curvature + `drawScanlines()`.
 
-```
-0 mín  → ticho
-1 mínu → 880 Hz, 80ms, 1× pip
-2 míny → 740 Hz, 80ms, 2× pip (medzera 60ms)
-3 míny → 587 Hz, 100ms, 3× pip
-4 míny → 440 Hz, 120ms, 4× pip
-5 mín  → 330 Hz, 150ms, rýchly buzz
-6 mín  → 220 Hz, 200ms, pomalý buzz
-7–8 mín→ 110 Hz, 300ms, hrozivý hum
-```
-
-Každý pip: krátky `square` oscillator s attack/release 5ms (aby neboli kliknutia).
-Varovanie hrať IHNEĎ po každom pohybe, nie kontinuálne.
-
-### Lietadlo zvuk
-- Vyšší tón: 1200–1400 Hz, rýchly buzz pattern
-- Modulovať frekvenciu miernym LFO pre "motor" efekt
-- Trvanie: kým lietadlo prechádza cez obrazovku
-
-### Explózia
-- Noise-like efekt: rýchle prepínanie frekvencií 50–500 Hz náhodne
-- Trvanie: 500ms, klesajúca hlasitosť
-
-### Výhra / Prehra
-- Výhra (všetky míny označené alebo všetky bezpečné políčka navštívené):
-  `C4 → E4 → G4 → C5` — krátka fanfára, square wave
-- Prehra (0 životov):
-  `C4 → B3 → Bb3 → A3 → Ab3` — klesajúci motív, dlhý
-
----
-
-## Lietadlo event
-
-### Trigger
-- Náhodný interval: 45–90 sekúnd od posledného preletu
-- Prvý prelet: najskôr po 30 sekundách od štartu
-
-### Animácia
-- Sprite lieže z ľavého okraja na pravý (alebo opačne, náhodne)
-- Y pozícia: náhodná, v hornej tretine obrazovky
-- Rýchlosť: prechod cez 256px za 3 sekundy (reálny čas, nie game ticks)
-- Lietadlo je nad všetkými ostatnými prvkami (vykreslené naposled)
-
-### Efekt
-- Počas preletu: varovný text na status bare `** AIRCRAFT! **` (blikajúci)
-- Po prelete: pridať **5–10 nových mín** náhodne na nenavštívené bunky bez mín
-- Krátka pauza 1s pred pridaním mín (dramatický efekt)
+### Debug keys (two different things — don't conflate)
+- **`D`** = `state.debugMode` — **reveals all mines, idle only** (scout before you move; off once you
+  move; permanently off for the level once running). zx-kit `Ctrl+Shift+B` / gamepad **Y** map here too.
+- **`O`** = `showDebug` — toggles the **zx-kit `debug` FPS/CPU overlay** (`createDebugMonitor` /
+  `beginFrame` / `endFrame` / `sampleDebug` / `drawDebugOverlay`). Minefield is zx-kit's **first
+  `debug` consumer**. Shows FPS, frame ms, JS CPU load + custom fields (phase, run, level, mines).
+  Single-letter keys are used because browsers reserve `F3`/`Ctrl+Shift+B`/`F12`.
 
 ---
 
-## Status bar (spodok, 2 riadky = 16px)
+## Code structure
 
 ```
-SCORE:00000  LIVES:███    MINES:060  LEVEL:1
+src/
+├── config.ts      # all tunable params: LEVEL_CONFIGS, gems, buildings, timings
+├── constants.ts   # resolution + palette re-export from zx-kit
+├── font.ts        # ZX ROM font re-export
+├── sprites.ts     # all sprites as Uint8Array (8×8)
+├── audio.ts       # Web Audio: warnings, explosion, fanfare, aircraft, volume
+├── input.ts       # zx-kit input wrapper + game keys (D reveal, R random, SHIFT+S, +/-)
+├── game.ts        # GameState, TileMap, field/gem/building gen, daily seed, countWarningMines
+├── player.ts      # movement, collision, flag, respawn, scoring, gem pickup
+├── airplane.ts    # aircraft timer, animation, mine drop
+├── renderer.ts    # TileMap, sprites, HUD, detector, night, overlays
+├── save.ts        # zx-kit save profile wiring
+├── strings.ts / strings.sk.ts / lang.ts   # i18n packs
+└── main.ts        # game loop, phase switching, debug overlay (finishFrame helper)
 ```
 
-- `SCORE` — počet navštívených bezpečných buniek × level multiplier
-- `LIVES` — zobrazené ako blokové znaky (█ = život, · = stratený)
-- `MINES` — počet zostávajúcich neodhalených mín (odhadovaný)
-- Všetko renderované Spectrum fontom, INK=WHITE PAPER=BLACK
+`GamePhase = 'playing' | 'exploding' | 'levelcomplete' | 'gameover'`;
+`AppPhase = 'intro' | 'ingame' | 'hiscore'`.
+
+**Game loop note:** `gameLoop` is guard-clause style — `intro` and `hiscore` `return` early, `ingame`
+falls through. Each exit path schedules the next frame via the **`finishFrame(ctx)`** helper, which
+also runs `endFrame(dbg)` and draws the debug overlay (after `endFrame`, so the overlay's own draw cost
+is excluded from the CPU reading). `beginFrame(dbg, timestamp)` is at the top of the loop.
 
 ---
 
-## Levely
+## Planned features (NOT implemented — designs kept here)
 
-| Level | Mriežka | Mín | Lietadlo interval | Životov |
-|-------|---------|-----|-------------------|---------|
-| 1     | 32×22   | 60  | 45–90s            | 3       |
-| 2     | 32×22   | 80  | 30–60s            | 3       |
-| 3     | 32×22   | 100 | 20–45s            | 2       |
-| 4+    | 32×22   | 110 | 15–30s            | 2       |
+### Probe / stone (player aid)
+Throw a stone ahead to scout before entering. Direction = last move; distance = `player+3 .. edge`
+(random); reveals a 3×3 around the landing point; a mine there is shown but **does not detonate**.
+Reveal is **movement-triggered reset** (clears on any move; no timer) — state `probedCells: Set<string>`
+(`"col,row"`). Cost `500 × level`, deducted from score, never going negative; probed cells give no
+score (you weren't there). Open: throw sideways too? arc trajectory? key binding (TBD).
 
-Prechod na ďalší level: hráč navštívi všetky bezpečné políčka (alebo správne označí všetky míny).
+### Action Replay — KEY FEATURE (cross-cutting, planned)
+Record a run and replay it **fast**, **revealing the mines** (the Mined-Out reveal). The game is
+**fully deterministic from the seed** (terrain, mines, gems, aircraft, reveal), so a run = **seed +
+timed input list** (a few bytes), **not** raw canvas frames.
+- **Record:** log every input (direction, flag…) + step/time.
+- **Replay:** re-simulate from the same seed by feeding inputs (original or fast); render frames.
+- **Reveal:** we know the seed → draw mines visibly → "where the mines were".
+- **Three payoffs:** reveal (Mined-Out effect); **shareable** run (seed+inputs = short code/URL,
+  Wordle-style, pairs with daily); **server-less score verification / anti-cheat** (replay the run).
+- **zx-kit:** a deterministic input-recorder/replayer is a generic primitive — every seeded zx-kit game
+  gets replay + sharing + verification for free. Open: extract to zx-kit later, or build it there and
+  let minefield be the reference integration.
 
----
-
-## Intro obrazovka
-
-Spectrum-štýlová loading/title obrazovka:
-
-```
-████████████████████████████
-█                          █
-█   M I N E F I E L D     █
-█                          █
-█   ZX Spectrum Edition    █
-█                          █
-█   PRESS ANY KEY          █
-█                          █
-████████████████████████████
-```
-
-- Farby: CYAN INK na BLACK PAPER, border BLUE
-- Blikajúci `PRESS ANY KEY` (každých 500ms toggle)
-- Voliteľne: krátka loading bar animácia (Spectrum nostalgia)
+> Tomorrow's work (per owner, 2026-06-20): **gems + timer together** (gems add time). The **timer must
+> be persisted** in auto/manual saves and restored on load — otherwise load acts as a timer reset.
 
 ---
 
-## Technická štruktúra
-
-```
-minefield/
-├── index.html
-├── vite.config.ts
-├── tsconfig.json
-├── src/
-│   ├── main.ts          # Init, AudioContext unlock, game start
-│   ├── game.ts          # GameState, grid, level management
-│   ├── player.ts        # Pohyb, kolízie, lives
-│   ├── audio.ts         # Web Audio engine, všetky zvuky
-│   ├── renderer.ts      # Canvas, škálovanie, Spectrum paleta
-│   ├── font.ts          # ZX Spectrum ROM font data + renderText()
-│   ├── sprites.ts       # Všetky sprite dáta ako pixel arrays
-│   ├── airplane.ts      # Airplane event, timer, animácia
-│   ├── input.ts         # Keyboard handling, key repeat
-│   └── constants.ts     # SCALE=4, COLS=32, ROWS=22, farby, etc.
-```
-
-### Render loop
-```typescript
-// requestAnimationFrame loop
-// 1. Clear canvas
-// 2. Render ground/grid
-// 3. Render mines (len ak debug mode alebo explodovaná)
-// 4. Render player
-// 5. Render airplane (ak aktívne)
-// 6. Render status bar
-// 7. Render overlays (flash, game over, intro)
-```
-
-### GameState
-```typescript
-type GameState = 'intro' | 'playing' | 'exploding' | 'levelcomplete' | 'gameover'
-```
-
----
-
-## Hráčske pomôcky (player aids)
-
-### Probe — kameň (NEIMPLEMENTOVANÉ, pripravené na implementáciu)
-
-Hráč hodí kameň dopredu aby prieskumal terén pred vstupom. Inšpirácia: reálna technika na mínovom poli.
-
-**Klávesa**: TBD (napr. Space alebo Tab)
-
-**Mechanika hodu:**
-- Smer: smer posledného pohybu hráča
-- Vzdialenosť: `hráčova pozícia + 3` až okraj hernej plochy (random)
-- Odhalenie: 3×3 bunky okolo landing pointu
-- Mína v odhalené oblasti: iba vizuálne viditeľná, **NEDÉTONUJE**
-
-**Trvanie odhalenia:**
-- Dočasné — políčka sú viditeľné kým hráč urobí akýkoľvek pohyb
-- Akonáhle sa hráč pohne, odhalenie zmizne (hráč si musí zapamätať)
-- Žiadny timer — čisto pohybom-triggered reset
-
-**Implementácia (state):**
-```typescript
-probedCells: Set<string>  // cleared on any player move
-// key format: "col,row"
-```
-
-**Cena:**
-- Strhne sa zo skóre: `500 × level`
-- Hráč nemôže hodiť ak má menej skóre ako je cena (nejde do mínusu)
-
-| Level | Cena hoду |
-|-------|-----------|
-| 1     | 500       |
-| 2     | 1000      |
-| 3     | 1500      |
-| 4+    | 2000+     |
-
-**Vizuál probe-odhalených buniek**: odlíšiť od normálne navštívených (iná farba/vzor)
-**Skóre**: probe-revealed bunky nedávajú skóre — hráč tam fyzicky nebol
-
----
-
-## Action Replay — KĽÚČOVÁ FUNKCIA (plánovaná, cross-cutting)
-
-Nahraj celý priebeh hry a prehraj ho **zrýchlene**, pričom sa **odhalia míny** (presne ako v Mined-Out,
-kde sú míny počas hry neviditeľné a ukážu sa len v action replay). **Technicky to ide a je to elegantné —
-netreba nahrávať surové canvas snímky.**
-
-**Ako (deterministicky).** Hra je **plne deterministická zo seedu** (terén, míny, gemy, lietadlo, reveal —
-všetko seedované). Takže celý beh = **seed + zoznam vstupov (s časovaním)** — pár bajtov.
-- **Záznam:** loguj každý vstup (smer, flag, …) + krok/čas.
-- **Prehrávanie:** z toho istého seedu re-simuluj beh kŕmením vstupov (pôvodným alebo zrýchleným tempom),
-  renderuj snímky. Deterministicky → reprodukuje beh **presne**.
-- **Odhalenie mín:** v replayi poznáme seed → vykreslíme míny viditeľne (debug-štýl) → „kde boli míny".
-- **Zrýchlenie:** kŕm vstupy rýchlejšie / preskoč walk-tweeny.
-
-**Tri výplaty:** (1) **reveal** (Mined-Out efekt); (2) **zdieľanie** — seed+vstupy = krátky kód/URL →
-„pozri môj dnešný daily beh" (sociálne/súťažné, spája s daily seed); (3) **verifikácia skóre / anti-cheat**
-— skóre na rebríčku sa dá prehrať a overiť bez backendu (dopĺňa random-mode anti-cheat).
-
-**Brute-force alternatíva:** nahrávať surové canvas `ImageData` per snímka — dnešná RAM to dovolí, ale je
-to ťažké, nezdieľateľné a neoveriteľné → **input-replay je striktne lepší** pre seedovanú hru.
-
-**zx-kit:** deterministický **input-recorder/replayer** je generický primitív (každá seedovaná zx-kit hra
-dostane replay + zdieľanie + verifikáciu zadarmo). Open: extrahovať z minefieldu neskôr, alebo rovno do
-zx-kitu a minefield = plná integrácia.
-
----
-
-## Zvažované budúce funkcie (NEIMPLEMENTOVANÉ)
-
-> Hra je považovaná za funkčne kompletnú. Tieto funkcie sú zvažované, nie rozhodnuté.
-> ZX Spectrum filozofia: obtiažnosť cez brutalitu a nemožnosť save, nie feature bloat.
-
-### Save / High Score
-
-**High score table** (odporúčané ako Spectrum-autentické):
-- Uložiť top N skóre cez `localStorage`
-- Zobraziť na intro obrazovke alebo samostatnej obrazovke
-- Obsahuje: meno (3 písmená, Spectrum štýl), skóre, level dosiahnutý
-- Veľmi bežné na Spectrum — autentické
-
-**Mid-game save** (menej autentické, zvažované):
-- Uložiť celý `GameState` do `localStorage` (grid, pozícia, životy, skóre)
-- Problém: narúša Spectrum filozofiu "buď dobrý alebo začni odznova"
-- Ak sa implementuje: maximálne 1 save slot, žiadny "save scumming"
-
-### Probe / Digger (kameň na odhalenie mín)
-
-Pozri sekciu **Hráčske pomôcky** vyššie — celý dizajn je zdokumentovaný.
-
-Otvorené rozhodnutia pred implementáciou:
-- Smer hodiť: iba priamo pred hráčom, alebo aj do strán?
-- Curve/arc trajektória (komplexnejšie, menej Spectrum-like)
-- Klávesová skratka: TBD
-
----
-
-## Čo NESMIE byť
-
-- Žiadne gradienty, tiene, border-radius
-- Žiadne moderné fonty (Arial, sans-serif, atď.)
-- Žiadny smooth canvas scaling
-- Žiadne CSS animácie — všetko cez Canvas
-- Žiadne externé obrázky — všetky sprite-y sú pixel arrays v kóde
-- Žiadne knižnice okrem Vite (no React, no Pixi.js, no Phaser)
-- Žiadne farby mimo Spectrum palety
-
----
-
-## Vývojové príkazy
+## Dev commands
 
 ```bash
-npm create vite@latest minefield -- --template vanilla-ts
-cd minefield
 npm install
-npm run dev    # localhost:5173
+npm run dev    # http://localhost:5173
 npm run build  # dist/
+npm test       # Vitest (234 tests)
 ```
-
----
-
-## Priorita implementácie (fázy)
-
-1. **Canvas + paleta + font render** — statická obrazovka so Spectrum fontom
-2. **Grid + hráč sprite + pohyb šípkami**
-3. **Míny + detekcia + zvukový warning systém**
-4. **Explózia + životy + game over**
-5. **Status bar + score + levely**
-6. **Lietadlo event**
-7. **Intro obrazovka + polish**

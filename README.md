@@ -1,223 +1,181 @@
 # MINEFIELD — ZX Spectrum Edition
 
-> Retro browserová hra inšpirovaná klasickými ZX Spectrum hrami z 80. rokov.  
+> A retro browser game inspired by 1980s ZX Spectrum titles. Cross a blind minefield by **listening** —
+> the closer the mines, the more urgent the sound — backed by a visual danger detector for players
+> who can't (or don't want to) rely on audio.
 > Vanilla TypeScript · HTML5 Canvas · Web Audio API · [zx-kit](https://www.npmjs.com/package/zx-kit)
 
-![ZX Spectrum style screenshot placeholder](https://img.shields.io/badge/ZX_Spectrum-256×192-00CD00?style=flat-square&labelColor=000000)
+![ZX Spectrum 256×192](https://img.shields.io/badge/ZX_Spectrum-256×192-00CD00?style=flat-square&labelColor=000000)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.x-0000FF?style=flat-square&labelColor=000000)
 ![Vite](https://img.shields.io/badge/Vite-8.x-FFFF00?style=flat-square&labelColor=000000)
-![zx-kit](https://img.shields.io/badge/zx--kit-0.28.0-00CDCD?style=flat-square&labelColor=000000)
+![zx-kit](https://img.shields.io/badge/zx--kit-0.33-00CDCD?style=flat-square&labelColor=000000)
+
+**Live:** GitHub Pages · auto-released via semantic-release on push to `main`.
 
 ---
 
-## O hre
+## About
 
-Hráč sa ocitá na minovom poli a musí ho prekonať — prejsť z ľavého okraja na pravý.
-Míny nevidíš, ale *počuješ*: čím viac mín je v tvojom okolí, tým nižší a intenzívnejší
-je zvukový signál. Nájdi bezpečnú cestu, zanechávaj farebnú stopu a sleduj oblohu —
-každých pár desiatok sekúnd preletí lietadlo, ktoré zhodí nové míny.
+You're dropped on a minefield and have to cross it — left edge to right edge. You can't *see* the
+mines, you *hear* them: the more mines around you, the lower and more intense the warning after each
+step. A **visual detector** in the HUD mirrors that warning, so the game is fully playable without
+sound. Leave a coloured trail, collect gems, and watch the sky — every few dozen seconds an aircraft
+flies over and drops fresh mines.
 
-Pole nie je celkom otvorené: rozhadzujú sa po ňom **tehlové steny** — pevné prekážky,
-cez ktoré sa nedá prejsť. Musíš ich obísť. Stien je s každým levelom viac a sú dlhšie,
-takže z poľa sa postupne stáva nepravidelný labyrint. Pomáhajú aj v noci — steny
-zostávajú viditeľné, keď terén stmavne.
+The field isn't open: **pseudo-3D buildings** (high-angle roofs with brick fronts) are scattered
+across it as solid, mine-free obstacles you must go around. There are more of them each level, so
+the field gradually becomes an irregular maze. They stay visible at night when the terrain darkens.
 
-Každý level má náhodný **terén** — tráva (zelená), sneh (biela) alebo prach (žltá).
-Level 1 je vždy tráva, aby si spoznal základný vzhľad. Terén mení farbu pozadia
-aj farbu stochy — na tráve žltá, na snehu azúrová, na prachu biela.
+Two ways to play:
 
-Hra je zámerný hold éře ZX Spectra (1982): pixelová grafika bez anti-aliasingu,
-presná 15-farebná paleta, 8×8 bitmapový font priamo z ROM, štipľavý zvuk zo square
-wave oscilátora. Žiadne moderné efekty — len čistý kód a retro pocit.
+- **Daily** — the seed is the date, so everyone in the world plays the **same field** that day
+  (Wordle-style comparable scores). Scores count toward the leaderboard.
+- **Random** — a fresh field for practice; **never** written to the leaderboard.
+
+It's a deliberate homage to the ZX Spectrum (1982): pixel art with no anti-aliasing, the exact
+15-colour palette, the 8×8 ROM bitmap font, and biting 1-bit-flavoured square-wave sound.
 
 ---
 
-## Ovládanie
+## Controls
 
-| Kláves | Akcia |
-|--------|-------|
-| `←` `→` `↑` `↓` | Pohyb hráča (key-repeat po 150 ms, interval 80 ms) |
-| `F` | Označiť/odznačiť bunku **pred** hráčom ako podozrivú (vlajka) |
-| `P` | Pauza / pokračovanie |
-| `CTRL+SHIFT+B` | Debug mód — zobrazí všetky míny |
+| Key | Action |
+|-----|--------|
+| `←` `→` `↑` `↓` | Move (key-repeat: 150 ms delay, 80 ms interval). Also full **gamepad** support. |
+| `F` | Flag / unflag the cell **in front** of the player |
+| `P` | Pause / resume |
+| `SHIFT + S` | Manual save |
+| `D` | Debug: reveal all mines — **idle only** (scout before you start; off once you move) |
+| `O` | Toggle the **FPS / CPU debug overlay** (zx-kit `debug` module) |
+| `+` / `-` | Volume up / down |
 
-### Zvukové varovania (po každom kroku)
+**On the title screen:** `SPACE` / `ENTER` / `S` (or gamepad Start) = **daily** run · `R` = **random** run.
 
-| Počet susedných mín | Zvuk |
-|---------------------|------|
-| 0 | ticho |
+> Why `D` and `O`? Browsers reserve most "obvious" debug chords (`F12`, `Ctrl+Shift+B`, `F3`), so
+> game-local single letters are used instead. `D` reveals mines (a gameplay scouting aid, idle only);
+> `O` toggles the performance overlay (a dev aid, any time). zx-kit's `Ctrl+Shift+B` and gamepad **Y**
+> still map to the mine-reveal debug too.
+
+### Audio warning (after every step)
+
+| Adjacent mines | Sound |
+|----------------|-------|
+| 0 | silence |
 | 1 | 880 Hz · 1 pip |
-| 2 | 740 Hz · 2 pipy |
-| 3 | 587 Hz · 3 pipy |
-| 4 | 440 Hz · 4 pipy |
-| 5–6 | 330–220 Hz · rýchly buzz |
-| 7–8 | 110 Hz · hrozivý hum |
+| 2 | 740 Hz · 2 pips |
+| 3 | 587 Hz · 3 pips |
+| 4 | 440 Hz · 4 pips |
+| 5–6 | 330–220 Hz · fast buzz |
+| 7–8 | 110 Hz · ominous hum |
+
+The HUD detector splits this into **adjacent** mines (0–4, amber/red discs) plus a separate **beacon**
+LED for ranged (2-cell) mines — see [`docs/accessibility-detector.md`](docs/accessibility-detector.md).
 
 ---
 
-## Cieľ a herný cyklus
+## Goal and loop
 
-1. Hráč štartuje na **ľavom okraji** (stred výšky)
-2. Pohybom odhaľuje plochu — navštívené bunky sa zafarbujú kontrastnou farbou (stopa, farba závisí od terénu)
-3. **Výhra levelu**: dostať sa na pravý okraj poľa (stĺpec 31)
-4. Šliapnutie na mínu = explózia, flash, strata života, respawn na štarte
-5. 0 životov = GAME OVER
+1. Start at the **left edge** (seeded start row).
+2. Move to reveal ground — visited cells take a contrasting trail colour (per terrain).
+3. **Win the level:** reach the **right edge** (`newCol >= COLS`).
+4. Stepping on a mine = explosion, flash, lose a life, respawn at the start.
+5. 0 lives = GAME OVER. On game over, saves are cleared (no save-scumming).
 
-### Levely
+### Levels
 
-| Level | Mín | Steny | Životy | Terén | Prvé lietadlo | Interval lietadiel |
-|-------|-----|-------|--------|-------|---------------|-------------------|
-| 1 | 50 | 6–7 | 3 | vždy tráva | 15–30 s | 20–45 s |
-| 2 | 80 | 10–11 | 3 | náhodný | 12–20 s | 15–30 s |
-| 3 | 100 | 12–15 | 2 | náhodný | 10–15 s | 10–20 s |
-| 4+ | 110 | 16–18 | 2 | náhodný | 8–12 s | 8–15 s |
+| Level | Mines | Lives | Terrain | First aircraft | Aircraft interval |
+|-------|-------|-------|---------|----------------|-------------------|
+| 1 | 50 | 3 | always grass | 15–30 s | 20–45 s |
+| 2 | 80 | 3 | random | 12–20 s | 15–30 s |
+| 3 | 100 | 2 | random | 10–15 s | 10–20 s |
+| 4+ | 110 | 2 | random | 8–12 s | 8–15 s |
 
-Každá stena má náhodnú dĺžku **4–9 buniek** a náhodnú orientáciu (horizontálnu alebo
-vertikálnu). Stena sa môže dotknúť hornej či dolnej hrany ihriska, ale dve steny sa
-navzájom dotknúť nesmú a žiadna stena nepokrýva výstupný stĺpec. Generátor garantuje,
-že ku každej stene vedie aspoň jedna *bezpečná* prístupová strana — nikdy nenarazíš
-na konfiguráciu *stena vpredu + míny na oboch stranách* (vždy ti zostáva aspoň jeden
-úhybný smer okrem cúvania).
+Terrain (grass / snow / dust) sets the background and trail colour. **Cluster** mines appear from
+level 2, **beacon** (ranged, cyan) mines from level 3. Building count rises per level.
 
-### Lietadlo
+### Gems (12 per level: 3 red · 6 cyan · 1 gold · 2 green)
 
-Každých niekoľko desiatok sekúnd preletí lietadlo naprieč obrazovkou (3 sekundy).
-Po prelete zhodí **3–10 nových mín** na nenavštívené bunky (steny preskakuje).
-Status bar bliká varovaním `** AIRCRAFT **`. Zvuk lietadla je modulovaný LFO pre
-autentický "motor" efekt.
+| Gem | Effect |
+|-----|--------|
+| 🔴 red | **2 collected = +1 life** |
+| 🔵 cyan | **3 collected = permanently reveal one live mine** (seeded; visible even at night) |
+| 🟡 gold | rare; collect-only for now (planned: **score**, maybe **+time**) |
+| 🟢 green | collect-only for now (planned: **shield**) |
 
----
+Inventory shows in the top HUD row (1:1 sprites, cap 32).
 
-## Technologické výzvy
+### Aircraft
 
-### 1. ZX Spectrum color clash
-Najcharakteristickejší artefakt Spectra: každý **8×8 pixelový blok** môže mať
-len 2 farby (INK a PAPER). Hra toto dodržiava — každá bunka gridu má priradenú
-dvojicu farieb a sprite sa renderuje výhradne v týchto dvoch farbách. Keď hráč
-vstúpi na bunku, celý blok sa prepne na žltú/čiernu — presne ako na reálnom hardware.
-
-### 2. Bitmapový font z ROM
-ZX Spectrum ROM font je dodaný cez `zx-kit/font.ts` ako `Uint8Array`
-pre 96 tlačiteľných ASCII znakov × 8 bajtov. Každý bit v bajte = jeden pixel.
-Renderuje sa manuálne cez `fillRect(x, y, 1, 1)` — žiadne CSS fonty, žiadny `fillText`.
-
-### 3. Web Audio API — square wave
-Spectrum mal 1-bit zvuk: buď signál, alebo ticho. Emulujeme to cez `OscillatorNode`
-s `type = "square"`. Zvukové vzory (varovania, fanfáry) sa definujú cez `playPattern()`
-z `zx-kit` — sekvencia `Note[]` hodnôt `{ freq, dur }`. Zvuk lietadla používa LFO
-(12 Hz square oscillator → gain node → frequency param).
-
-### 4. Canvas škálovanie — setupCanvas + ctx.scale
-`setupCanvas(canvas, 4)` z `zx-kit` nastaví canvas na 1024×768 px (4× ZX Spectrum
-rozlíšenie 256×192) a aplikuje `ctx.scale(4, 4)`. Všetky následné kresliace volania
-používajú **herné pixelové súradnice** (0–255, 0–191) — transformácia prebehne
-automaticky. CSS `image-rendering: pixelated` zabezpečuje ostré pixely aj pri
-dodatočnom CSS škálovaní na menších obrazovkách.
-
-### 5. Key repeat systém
-Prehliadač má vlastný key-repeat, ale ten nie je spoľahlivý naprieč OS. Implementujeme
-vlastný (cez `zx-kit/input.ts`): prvý pohyb ihneď (immediate flag), potom delay 150 ms,
-potom repeat každých 80 ms. To dáva pocit správnej Spectrum odozvy.
-
-### 6. Bezel / border
-ZX Spectrum TV border je emulovaný cez `document.body.style.backgroundColor` —
-mení sa so stavom hry (modrá = intro, čierna = hra, flash explózie cez `flashBorder()`
-z `zx-kit`, zelená = level complete, červená = game over).
-
-### 7. TileMap z `zx-kit`
-Herné pole je sa vytvára pomocou `TileMap`
-cez `createTileMap(COLS, ROWS)`, ukladá doň ground/mine/gem/visited/flag/wall tile-y
-a renderer volá `state.map.render(ctx)`. Debug mód používa `findById('mine')`,
-takže míny sa dajú vykresliť bez ručného prechádzania celého poľa v rendereri.
-
-### 8. Tehlové steny a fix-trap pravidlo
-Steny sú obyčajné `Tile` objekty s `solid: true` — kolíziu rieši priamo
-`movePlayer()` jedným riadkom `if (tile.solid) return`. Žiadna druhá vrstva,
-žiadna mapa "obstacles" — tile sám vie či sa cezeň dá. Sprite je 8×8 bricks
-v `B_RED` ink na čiernom paperi, takže zostáva čitateľný na všetkých
-troch terénoch aj v nočnom móde (night overlay zatemňuje len `ground` a `mine`).
-
-Generátor je `placeWalls()` v `game.ts`: pre každý level vyberie z `WALL_COUNTS`
-náhodný počet, postupne hľadá voľné segmenty (4–9 buniek, h/v, mimo SAFE zóny,
-mimo posledného stĺpca, žiadne 4-adjacent dotyky s inou stenou). Mína sa nikdy
-neumiestni na stenu — `placeMines` / `placeGems` / `addDropMinesInBand` testujú
-`tile.id === 'ground'` ako *jedinú* validnú predlohu.
-
-Po umiestnení mín bežia ešte cez `fixWallTraps()` — pre každú stenu skontroluje
-4 prístupové bunky, a ak má niektorá BOTH kolmé bunky míny, jednu z nich nahradí
-ground tile. Garantuje, že hráč nikdy nestratí všetky úhybné smery (cúvnutie
-vždy ostáva, ale aspoň jeden bok je vždy bezpečný). Toto pravidlo má 8 unit testov
-plus property test, ktorý invariant overuje cez 20 náhodne vygenerovaných levelov.
+Every few dozen seconds an aircraft crosses the screen (~3 s) and drops **3–10 new mines** on
+unvisited, non-building cells. The status bar blinks `** AIRCRAFT **`; the engine sound is
+LFO-modulated for an authentic drone.
 
 ---
 
-## Architektúra kódu
+## Technical highlights
+
+- **Authentic colour clash** — each 8×8 cell has one ink + paper; stepping onto a cell flips the
+  whole block. Because everything is grid-aligned, clash works *for free* here.
+- **ROM bitmap font** — `zx-kit/font` 8×8 glyphs drawn pixel-by-pixel (no CSS fonts / `fillText`).
+- **Web Audio square wave** — warnings/fanfares via `playPattern`; aircraft uses an LFO drone.
+- **`setupCanvas(canvas, 4)`** — 256×192 game pixels → 1024×768, `ctx.scale(4,4)`; CSS handles
+  responsive display. `curveDisplay()` adds CRT curvature; `drawScanlines()` the scanline overlay.
+- **Custom key-repeat + gamepad** via `zx-kit/input` (immediate → 150 ms delay → 80 ms repeat).
+- **TV border** via `document.body` background, state-driven (blue intro / black play / green level /
+  red game over) + `flashBorder()` for explosions.
+- **TileMap** (`zx-kit`) holds ground/mine/gem/visited/flag/building tiles; `findById('mine')` powers
+  both the reveal debug and the planned Action Replay.
+- **Buildings & fix-trap rule** — high-angle buildings are solid, mine-free boxes (see
+  [`docs/buildings.md`](docs/buildings.md)); `fixWallTraps()` guarantees you never face
+  *obstacle ahead + mines on both sides* (8 unit tests + a property test across 20 generated levels).
+- **Debug overlay** — `zx-kit/debug` (`createDebugMonitor` / `beginFrame` / `endFrame` /
+  `sampleDebug` / `drawDebugOverlay`); toggled with `O`. Shows FPS, frame ms, JS CPU load, and
+  custom fields (phase, run state, level, mine count). Minefield is zx-kit's first `debug` consumer.
+
+---
+
+## Code architecture
 
 ```
 src/
-├── config.ts      ← VŠETKY herné parametre (laditeľné, hot-reload)
-├── constants.ts   ← Technické konštanty: rozlíšenie, re-export palety z zx-kit
-├── font.ts        ← Re-export ZX Spectrum ROM fontu z zx-kit
-├── sprites.ts     ← Všetky sprite-y ako Uint8Array (8×8 px)
-├── audio.ts       ← Web Audio engine: varovania, explózia, fanfára, lietadlo
-├── input.ts       ← Wrapper okolo zx-kit input (nastavenie key-repeat z config)
-├── game.ts        ← GameState, TileMap, mínové pole, createGame()
-├── player.ts      ← Pohyb, kolízia, flag, respawn, scoring
-├── airplane.ts    ← Airplane timer, animácia, mine drop
-├── renderer.ts    ← Canvas rendering: TileMap, sprites, status bar, overlays
-└── main.ts        ← Game loop (requestAnimationFrame), fázové prepínanie
+├── config.ts      ← all tunable game parameters (levels, gems, buildings, timings)
+├── constants.ts   ← technical constants: resolution, palette re-export from zx-kit
+├── font.ts        ← re-export of the ZX ROM font from zx-kit
+├── sprites.ts     ← all sprites as Uint8Array (8×8 px)
+├── audio.ts       ← Web Audio engine: warnings, explosion, fanfare, aircraft
+├── input.ts       ← wrapper over zx-kit input (key-repeat config + game keys)
+├── game.ts        ← GameState, TileMap, minefield/gem/building generation, daily seed
+├── player.ts      ← movement, collision, flag, respawn, scoring, gem pickup
+├── airplane.ts    ← aircraft timer, animation, mine drop
+├── renderer.ts    ← canvas rendering: TileMap, sprites, HUD, detector, overlays
+├── save.ts        ← zx-kit save profile wiring
+└── main.ts        ← game loop (requestAnimationFrame), phase switching, debug overlay
 ```
 
-**Závislosti:**
-- `zx-kit@^0.28.0` — ZX Spectrum primitívy (paleta, font, renderer helpers, audio, input, UI, TileMap, save profile)
-- Žiadne iné runtime závislosti — len Web Platform APIs
+**Dependencies:** `zx-kit@^0.33.0` only — everything else is the Web Platform.
 
-**Render order** (každý frame):
-1. Clear canvas
-2. TileMap cells (32×22) — každá bunka = paper fill + sprite v ink farbe
-3. Airplane (ak aktívne) — na vrchu gridu
-4. Status bar — SCORE / LVL / MINES / LIVES
-5. Flash overlay (pri explózii)
-6. Phase overlay (GAME OVER / LEVEL COMPLETE)
-
-**Spustenie lokálne:**
+**Local dev:**
 ```bash
 npm install
 npm run dev    # http://localhost:5173
-npm run build  # produkčný build → dist/
-npm test       # unit testy (Vitest)
+npm run build  # production build → dist/
+npm test       # unit tests (Vitest) — 234 tests
 ```
 
 ---
 
-## Možné ďalšie vylepšenia
+## Accessibility
 
-### Gameplay
-- **Radar**: malá mapa v rohu ukazujúca hustotu mín (bez konkrétnych pozícií)
-- **Power-upy**: lietadlo občas zhodí aj bonus (extra život, dočasné odhalenie mín)
-- **Denné/nočné cykly**: po niekoľkých leveloch sa prepne noc — tmavší kontrast, slabšie varovanie
-- **Fog of war**: nenavštívené bunky sú čiastočne skryté; postupne sa odkrývajú pri priblížení
-- **Míny s rôznymi polomerom varovania**: niektoré míny signalizujú len z 1 bunky (tiché), iné z 3 (hlučné)
-- **Multiplayer** (lokálny): dvaja hráči na jednej klávesnici, kto skôr prejde
+The game is audio-primary but **not** audio-only: the HUD detector mirrors every warning visually,
+so deaf players get the same information. Planned next: stereo/spatial warning (mine direction in the
+L/R channels), an ARIA live region + TTS for screen readers, and an exit beacon — an audio-first
+"playable blind" deductive traversal is an under-served niche. See `retro/docs/sk/minefield.md` §7.
 
-### Vizuál
-- **Väčší sprite lietadla**: 16×8 px (2 bunky šírky) pre lepšiu viditeľnosť
-- **Loading bar** na intro obrazovke (ZX Spectrum "loading" nostalgia)
-- **CRT scanline efekt**: polotransparentné vodorovné čiary cez canvas pre väčšiu autenticitu
-- **Blikajúci kurzor** na gem-och: gem-y pomaly blikajú pre lepšiu viditeľnosť
+## Known issues
 
-### Zvuk
-- **Melódie medzi levelmi**: krátka fanfára v ZX Spectrum štýle pri prechode levelu
-- **Dopplerov efekt** na lietadle: vyšší tón pri priblížení, nižší pri vzdialení
-- **Terénový zvuk**: jemne odlišný footstep na snehu vs. tráve vs. prachu
+`npm audit` reports a high `undici` advisory bundled inside the npm CLI (via semantic-release) — it is
+**unfixable downstream, dev/CI-only, and never shipped** to players. See [`docs/known-issues.md`](docs/known-issues.md).
 
-### Technické
-- **Service Worker + PWA**: hrateľné offline, pridateľné na plochu
-- **Touch ovládanie**: swipe gesty pre mobilné zariadenia
-- **Replay systém**: zaznamená vstupy, umožní si prezrieť cestu po dohrání
+## License
 
----
-
-## Licencia
-
-MIT — rob s tým čo chceš, Sinclair by bol hrdý. 🕹️
+MIT — do what you want, Sinclair would be proud. 🕹️
