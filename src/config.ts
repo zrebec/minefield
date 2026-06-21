@@ -208,6 +208,10 @@ export const RED_GEMS_PER_LIFE = 2
 // often behind you — so it's a deceptive, not strictly useful, reward.
 export const CYAN_GEMS_PER_REVEAL = 3
 
+// GOLD gem special: a juicy score bonus on pickup, on TOP of the flat GEM_SCORE
+// every gem grants. Gold is rare (1/level), so it stays special. Tunable.
+export const GOLD_SCORE_BONUS = 5000
+
 // ── Timer ─────────────────────────────────────────────────────────────────────
 
 // Per-level countdown budget. Resets to this at the start of every level (leftover

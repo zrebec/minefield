@@ -6,7 +6,7 @@ import {
   START_COL,
   SCORE_PER_CELL, SCORE_MULTIPLIERS,
   EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS,
-  COMBO_DURATION_MS, GEM_SCORE, GEM_TIME_BONUS_MS,
+  COMBO_DURATION_MS, GEM_SCORE, GEM_TIME_BONUS_MS, GOLD_SCORE_BONUS,
   DAY_STEPS, NIGHT_STEPS,
   WALK_DURATION_MS,
 } from './config.ts'
@@ -360,11 +360,20 @@ describe('movePlayer — gem collection', () => {
 
   it('grants no time when the backpack is full (gem not collected)', () => {
     const state = makeState(5, 5)
-    state.inventory = { gold: INVENTORY_CAP }        // full of a high-bonus colour
+    state.inventory = { red: INVENTORY_CAP }         // full of a high-bonus colour
     state.map.setTile(6, 5, makeTileGem('red', C.RED))
     const before = state.timeLeftMs
     step(state, 'right')
     expect(state.timeLeftMs).toBe(before)
+  })
+
+  it('gold grants its score bonus on top of the flat gem score', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileGem('gold', C.YELLOW))
+    step(state, 'right')
+    const cellScore = Math.round(SCORE_PER_CELL * SCORE_MULTIPLIERS[0] * 1.0)
+    const gemScore  = Math.round(GEM_SCORE * 1.0)
+    expect(state.score).toBe(cellScore + gemScore + GOLD_SCORE_BONUS)
   })
 
   it('converts every two red gems into an extra life (and consumes them)', () => {
