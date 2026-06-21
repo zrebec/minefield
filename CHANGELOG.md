@@ -1,3 +1,10 @@
+# [0.35.0](https://github.com/zrebec/minefield/compare/v0.34.0...v0.35.0) (2026-06-21)
+
+
+### Features
+
+* **timer:** gems grant time on pickup ([fb5e287](https://github.com/zrebec/minefield/commit/fb5e287ff47db8e2dc40bf3cf96798729ba43c44))
+
 # [0.34.0](https://github.com/zrebec/minefield/compare/v0.33.0...v0.34.0) (2026-06-21)
 
 
