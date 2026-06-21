@@ -1,3 +1,11 @@
+# [0.36.0](https://github.com/zrebec/minefield/compare/v0.35.0...v0.36.0) (2026-06-21)
+
+
+### Features
+
+* **timer:** per-colour gem time bonus ([f8988f6](https://github.com/zrebec/minefield/commit/f8988f651217d9b1d9fc992f8336cd5888ae1e45))
+* **timer:** per-colour gem time bonus ([29537fb](https://github.com/zrebec/minefield/commit/29537fb7b2c2005d9b156317ab998b41735d0e3e))
+
 # [0.35.0](https://github.com/zrebec/minefield/compare/v0.34.0...v0.35.0) (2026-06-21)
 
 
