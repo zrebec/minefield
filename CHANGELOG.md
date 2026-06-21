@@ -1,3 +1,10 @@
+# [0.34.0](https://github.com/zrebec/minefield/compare/v0.33.0...v0.34.0) (2026-06-21)
+
+
+### Features
+
+* **timer:** per-level countdown that runs out into game over ([f5981b9](https://github.com/zrebec/minefield/commit/f5981b93b6c217b2be64288e6e0e3ec2ab4799e0))
+
 # [0.33.0](https://github.com/zrebec/minefield/compare/v0.32.0...v0.33.0) (2026-06-21)
 
 
