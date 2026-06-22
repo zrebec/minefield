@@ -1,3 +1,10 @@
+# [0.40.0](https://github.com/zrebec/minefield/compare/v0.39.0...v0.40.0) (2026-06-22)
+
+
+### Features
+
+* **debug:** gate the D mine-reveal — disabled on daily, capped on random ([f2de4e7](https://github.com/zrebec/minefield/commit/f2de4e74f97b71fa45e01c1ed695468c19f6a663))
+
 # [0.39.0](https://github.com/zrebec/minefield/compare/v0.38.0...v0.39.0) (2026-06-22)
 
 
