@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, tickTimer, GEM_KINDS, type MineType } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, isFieldSolvable, tickTimer, GEM_KINDS, type MineType } from './game.ts'
+import { movePlayer } from './player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
-import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS } from './config.ts'
+import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS } from './config.ts'
 import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
@@ -891,7 +892,7 @@ describe('placeBuildings — placement & fairness', () => {
   it('never builds on the border ring (row 0, last row, col 0, exit col)', () => {
     for (let level = 0; level < 4; level++) {
       const map = emptyMap()
-      placeBuildings(map, level, createRng(1000 + level), START_ROW)
+      placeBuildings(map, level, createRng(1000 + level), START_ROW, 2)
       for (let c = 0; c < COLS; c++) {
         expect(map.getTile(c, 0)?.id).not.toBe('building')
         expect(map.getTile(c, ROWS - 1)?.id).not.toBe('building')
@@ -906,7 +907,7 @@ describe('placeBuildings — placement & fairness', () => {
   it('never blocks the start safe zone', () => {
     for (let s = 0; s < 20; s++) {
       const map = emptyMap()
-      placeBuildings(map, s % 4, createRng(7 + s), START_ROW)
+      placeBuildings(map, s % 4, createRng(7 + s), START_ROW, 2)
       for (let dr = -SAFE_RADIUS; dr <= SAFE_RADIUS; dr++) {
         for (let dc = -SAFE_RADIUS; dc <= SAFE_RADIUS; dc++) {
           const t = map.getTile(START_COL + dc, START_ROW + dr)
@@ -919,7 +920,7 @@ describe('placeBuildings — placement & fairness', () => {
   it('keeps at least one empty tile between any two buildings (no corner-touch)', () => {
     for (let s = 0; s < 10; s++) {
       const map = emptyMap()
-      const boxes = placeBuildings(map, 3, createRng(42 + s), START_ROW)
+      const boxes = placeBuildings(map, 3, createRng(42 + s), START_ROW, 2)
       for (let i = 0; i < boxes.length; i++) {
         for (let j = i + 1; j < boxes.length; j++) {
           const a = boxes[i], b = boxes[j]
@@ -935,7 +936,7 @@ describe('placeBuildings — placement & fairness', () => {
   it('places a genuinely big building (both roof dims ≥ BIG_ROOF_MIN) every two levels', () => {
     for (const level of [1, 3]) {       // odd 0-indexed levels = the guaranteed-big cadence
       const map = emptyMap()
-      const boxes = placeBuildings(map, level, createRng(99 + level), START_ROW)
+      const boxes = placeBuildings(map, level, createRng(99 + level), START_ROW, 2)
       const hasBig = boxes.some((b) => b.roofW >= BIG_ROOF_MIN && b.roofD >= BIG_ROOF_MIN)
       expect(hasBig).toBe(true)
     }
@@ -949,7 +950,7 @@ describe('placeBuildings — placement & fairness', () => {
       for (let c = 1; c < COLS - 1; c++) map.setTile(c, r, makeTileBuilding('brick'))
     }
     let boxes: BuildingBox[] = []
-    expect(() => { boxes = placeBuildings(map, 4, createRng(1), START_ROW) }).not.toThrow()
+    expect(() => { boxes = placeBuildings(map, 4, createRng(1), START_ROW, 2) }).not.toThrow()
     expect(boxes).toHaveLength(0)
   })
 
@@ -1144,5 +1145,158 @@ describe('timer', () => {
     tickTimer(state, TIMER_BASE_MS - 1)      // 1 ms left
     expect(state.timeLeftMs).toBe(1)
     expect(state.phase).toBe('playing')
+  })
+})
+
+// ── Perimeter fence ───────────────────────────────────────────────────────────
+
+describe('perimeter fence — structure', () => {
+  it('left column is fence except one walkable hole at startRow; right column fence except one hole at exitRow', () => {
+    for (let level = 0; level < 5; level++) {
+      const state = createGame(level, 0, `fence-struct-${level}`)
+      let leftHoles = 0, rightHoles = 0
+      for (let row = 0; row < ROWS; row++) {
+        const left = state.map.getTile(0, row)!
+        const right = state.map.getTile(COLS - 1, row)!
+        if (row === state.startRow) { expect(left.solid).toBe(false); leftHoles++ }
+        else { expect(left.id).toBe('fence'); expect(left.solid).toBe(true) }
+        if (row === state.exitRow) { expect(right.solid).toBe(false); rightHoles++ }
+        else { expect(right.id).toBe('fence'); expect(right.solid).toBe(true) }
+      }
+      expect(leftHoles).toBe(1)
+      expect(rightHoles).toBe(1)
+    }
+  })
+
+  it('exit row differs from entry row by at least MIN_ENTRY_EXIT_ROW_GAP (60 seeds)', () => {
+    for (let s = 0; s < 60; s++) {
+      const state = createGame(s % 5, 0, `gap-${s}`)
+      expect(Math.abs(state.exitRow - state.startRow)).toBeGreaterThanOrEqual(MIN_ENTRY_EXIT_ROW_GAP)
+    }
+  })
+})
+
+describe('perimeter fence — entry/exit safe guarantees (60 seeds × 5 levels)', () => {
+  it('the cell directly ahead of the entry hole (col 1, startRow) is never a mine or solid', () => {
+    for (let s = 0; s < 60; s++) {
+      for (let level = 0; level < 5; level++) {
+        const state = createGame(level, 0, `entry-${s}-${level}`)
+        const ahead = state.map.getTile(1, state.startRow)!
+        expect(ahead.id).not.toBe('mine')
+        expect(ahead.solid).toBe(false)
+      }
+    }
+  })
+
+  it('the exit safe zone holds no mines, and the approach (col COLS-2, exitRow) is walkable', () => {
+    for (let s = 0; s < 60; s++) {
+      for (let level = 0; level < 5; level++) {
+        const state = createGame(level, 0, `exit-${s}-${level}`)
+        for (let dr = -SAFE_RADIUS; dr <= SAFE_RADIUS; dr++) {
+          for (let dc = -SAFE_RADIUS; dc <= SAFE_RADIUS; dc++) {
+            const t = state.map.getTile(COLS - 1 + dc, state.exitRow + dr)
+            if (t) expect(t.id).not.toBe('mine')
+          }
+        }
+        const approach = state.map.getTile(COLS - 2, state.exitRow)!
+        expect(approach.id).not.toBe('mine')
+        expect(approach.solid).toBe(false)
+      }
+    }
+  })
+})
+
+describe('perimeter fence — solvability (BFS, large sample)', () => {
+  it('every seeded field has at least one safe entry→exit path (60 seeds × 5 levels = 300 fields)', () => {
+    for (let s = 0; s < 60; s++) {
+      for (let level = 0; level < 5; level++) {
+        const state = createGame(level, 0, `solve-${s}-${level}`)
+        expect(isFieldSolvable(state.map, state.startRow, state.exitRow)).toBe(true)
+      }
+    }
+  })
+
+  it('random (unseeded) fields are always solvable too (100 fields)', () => {
+    for (let i = 0; i < 100; i++) {
+      const state = createGame(i % 5, 0)   // no seed → fresh random field each call
+      expect(isFieldSolvable(state.map, state.startRow, state.exitRow)).toBe(true)
+    }
+  })
+
+  it('isFieldSolvable returns false when the exit hole is walled off by mines', () => {
+    // Hand-built unsolvable field: fence both columns, ground interior, then a full
+    // vertical mine wall in front of the exit column → no safe path can reach it.
+    const map = createTileMap(COLS, ROWS)
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) {
+        map.setTile(col, row, makeTileGround(cellVariant(col, row), 'grass'))
+      }
+    }
+    const startRow = 3, exitRow = 14
+    for (let row = 0; row < ROWS; row++) setMine(map, COLS - 2, row)  // wall before exit
+    expect(isFieldSolvable(map, startRow, exitRow)).toBe(false)
+  })
+})
+
+describe('perimeter fence — determinism', () => {
+  it('the same daily seed builds an identical field twice (map ids + startRow + exitRow)', () => {
+    for (let level = 0; level < 5; level++) {
+      const a = createGame(level, 0, `det-${level}`)
+      const b = createGame(level, 0, `det-${level}`)
+      expect(a.startRow).toBe(b.startRow)
+      expect(a.exitRow).toBe(b.exitRow)
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          expect(a.map.getTile(col, row)?.id).toBe(b.map.getTile(col, row)?.id)
+        }
+      }
+    }
+  })
+})
+
+describe('perimeter fence — movement funnel', () => {
+  it('the player cannot step up or down into the fence at the entry hole', () => {
+    // Find a seed whose startRow is interior so both up AND down hit the fence.
+    let state = createGame(0, 0, 'funnel-0')
+    let guard = 0
+    while ((state.startRow === 0 || state.startRow === ROWS - 1) && guard < 50) {
+      guard++
+      state = createGame(0, 0, `funnel-${guard}`)
+    }
+    const row0 = state.startRow
+    state.playerCol = START_COL
+    state.playerRow = row0
+    state.walkTween = null
+    movePlayer(state, 'up')
+    expect(state.walkTween).toBeNull()        // fence blocks
+    movePlayer(state, 'down')
+    expect(state.walkTween).toBeNull()        // fence blocks
+    expect(state.playerRow).toBe(row0)
+  })
+
+  it('the player CAN step right off the entry hole into the field', () => {
+    const state = createGame(0, 0, 'funnel-right')
+    state.playerCol = START_COL
+    state.playerRow = state.startRow
+    state.walkTween = null
+    movePlayer(state, 'right')
+    expect(state.walkTween).not.toBeNull()    // move started
+  })
+
+  it('the right edge can be crossed only at the exit row (fence blocks every other row)', () => {
+    const state = createGame(0, 0, 'funnel-exit')
+    const blockedRow = state.exitRow >= 2 ? state.exitRow - 2 : state.exitRow + 2
+    // A non-exit row: moving right into the fence does nothing.
+    state.playerCol = COLS - 2
+    state.playerRow = blockedRow
+    state.walkTween = null
+    movePlayer(state, 'right')
+    expect(state.walkTween).toBeNull()
+    // The exit row: stepping right enters the walkable hole.
+    state.playerCol = COLS - 2
+    state.playerRow = state.exitRow
+    state.walkTween = null
+    movePlayer(state, 'right')
+    expect(state.walkTween).not.toBeNull()
   })
 })

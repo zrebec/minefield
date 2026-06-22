@@ -8,7 +8,7 @@
 ![ZX Spectrum 256×192](https://img.shields.io/badge/ZX_Spectrum-256×192-00CD00?style=flat-square&labelColor=000000)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.x-0000FF?style=flat-square&labelColor=000000)
 ![Vite](https://img.shields.io/badge/Vite-8.x-FFFF00?style=flat-square&labelColor=000000)
-![zx-kit](https://img.shields.io/badge/zx--kit-0.33-00CDCD?style=flat-square&labelColor=000000)
+![zx-kit](https://img.shields.io/badge/zx--kit-0.34-00CDCD?style=flat-square&labelColor=000000)
 
 **Live:** GitHub Pages · auto-released via semantic-release on push to `main`.
 
@@ -16,15 +16,24 @@
 
 ## About
 
-You're dropped on a minefield and have to cross it — left edge to right edge. You can't *see* the
-mines, you *hear* them: the more mines around you, the lower and more intense the warning after each
-step. A **visual detector** in the HUD mirrors that warning, so the game is fully playable without
-sound. Leave a coloured trail, collect gems, and watch the sky — every few dozen seconds an aircraft
-flies over and drops fresh mines.
+You're dropped into a **fenced** minefield and have to cross it — in through a gap in the left fence,
+out through the **exit gap** in the right. You can't *see* the mines, you *hear* them: the more mines
+around you, the lower and more intense the warning after each step. A **visual detector** in the HUD
+mirrors that warning, so the game is fully playable without sound. Leave a coloured trail, collect
+gems, and watch the sky — every few dozen seconds an aircraft flies over and drops fresh mines.
 
 The field isn't open: **pseudo-3D buildings** (high-angle roofs with brick fronts) are scattered
 across it as solid, mine-free obstacles you must go around. There are more of them each level, so
 the field gradually becomes an irregular maze. They stay visible at night when the terrain darkens.
+
+**The field is fenced in.** A solid perimeter wall runs down the left and right edges, each with a
+single gap: the **entry** (your seeded start row) and the **exit** (a different seeded row, kept at
+least a few rows apart, so there's never a straight line across). The exit is the only way out — you
+have to *find a route* to it, not just walk right. Crucially, **every field is generated so that at
+least one safe path from entry to exit always exists**: the generator reserves a safe zone around
+both gaps and then proves a full safe route with a flood-fill, deterministically regenerating (per
+seed) on the rare board where one is missing. A daily field is therefore **always winnable from the
+start** — the challenge is finding the path, not getting handed an impossible board.
 
 Two ways to play:
 
@@ -75,10 +84,12 @@ LED for ranged (2-cell) mines — see [`docs/accessibility-detector.md`](docs/ac
 
 ## Goal and loop
 
-1. Start at the **left edge** (seeded start row).
+1. Enter through the **gap in the left fence** (seeded entry row).
 2. Move to reveal ground — visited cells take a contrasting trail colour (per terrain).
-3. **Win the level:** reach the **right edge** (`newCol >= COLS`).
-4. Stepping on a mine = explosion, flash, lose a life, respawn at the start.
+3. **Win the level:** find and step through the **gap in the right fence** (a different, seeded exit
+   row) to cross the right edge (`newCol >= COLS`). The exit is the only crossing — the rest of the
+   right wall is solid. At least one safe entry→exit route is **guaranteed** at generation time.
+4. Stepping on a mine = explosion, flash, lose a life, respawn at the entry.
 5. **Beat the clock:** each level has a countdown (see Timer); reaching 0:00 ends the run.
 6. 0 lives **or** 0:00 = GAME OVER. On game over, saves are cleared (no save-scumming).
 
@@ -138,17 +149,24 @@ LFO-modulated for an authentic drone.
   responsive display. `curveDisplay()` adds CRT curvature; `drawScanlines()` the scanline overlay.
 - **6-row HUD** — the bottom 6 cell-rows are the HUD (playfield is the top 32×18), one concern per
   row: backpack · timer · score+detector · mines+level · day/night · lives+random-tag.
-- **Save** — `zx-kit/save`, **version 4** (the v4 bump came with the 6-row HUD: playfield 21→18, so
-  v3 maps misalign and are cleanly rejected). Round-trips map, lives, score, inventory, revealed
-  mines, day/night, seed, **and the remaining time** — so a reload resumes exactly, not as a reset.
+- **Save** — `zx-kit/save`, **version 5** (the v4→v5 bump came with the perimeter fence: a v4 map has
+  open edge columns and no exit gap, so its semantics no longer match — it's cleanly rejected and the
+  game falls back to the title screen). Round-trips map, lives, score, inventory, revealed mines,
+  day/night, seed, the **exit row**, **and the remaining time** — so a reload resumes exactly.
 - **Custom key-repeat + gamepad** via `zx-kit/input` (immediate → 150 ms delay → 80 ms repeat).
 - **TV border** via `document.body` background, state-driven (blue intro / black play / green level /
   red game over) + `flashBorder()` for explosions.
 - **TileMap** (`zx-kit`) holds ground/mine/gem/visited/flag/building tiles; `findById('mine')` powers
   both the reveal debug and the planned Action Replay.
 - **Buildings & fix-trap rule** — high-angle buildings are solid, mine-free boxes (see
-  [`docs/buildings.md`](docs/buildings.md)); `fixWallTraps()` guarantees you never face
-  *obstacle ahead + mines on both sides* (8 unit tests + a property test across 20 generated levels).
+  [`docs/buildings.md`](docs/buildings.md)); `fixObstacleTraps()` guarantees you never face
+  *obstacle ahead + mines on both sides* around any solid obstacle — buildings **and the fence**.
+- **Perimeter fence & guaranteed solvability** — a solid wall encloses the left/right edges with one
+  entry gap (start row) and one exit gap (a seeded row kept ≥ `MIN_ENTRY_EXIT_ROW_GAP` apart). The
+  generator reserves a safe zone around both gaps, then a flood-fill (`isFieldSolvable`) proves a full
+  safe entry→exit route, deterministically regenerating per seed if a board ever seals the exit off —
+  so every daily field is winnable from the start. Covered by a large solvability test (300 seeded
+  fields + 100 random) plus structure/determinism/movement-funnel tests.
 - **Debug overlay** — `zx-kit/debug` (`createDebugMonitor` / `beginFrame` / `endFrame` /
   `sampleDebug` / `drawDebugOverlay`); toggled with `O`. Shows FPS, frame ms, JS CPU load, and
   custom fields (phase, run state, level, mine count). Minefield is zx-kit's first `debug` consumer.
@@ -173,14 +191,14 @@ src/
 └── main.ts        ← game loop (requestAnimationFrame), phase switching, debug overlay
 ```
 
-**Dependencies:** `zx-kit@^0.33.0` only — everything else is the Web Platform.
+**Dependencies:** `zx-kit@^0.34.0` only — everything else is the Web Platform.
 
 **Local dev:**
 ```bash
 npm install
 npm run dev    # http://localhost:5173
 npm run build  # production build → dist/
-npm test       # unit tests (Vitest) — 234 tests
+npm test       # unit tests (Vitest) — 256 tests
 ```
 
 ---

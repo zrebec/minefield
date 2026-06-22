@@ -1,8 +1,8 @@
 import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
 import { COLS, ROWS, C, type SpectrumColor } from './constants.ts'
-import GEM_COUNT, { START_COL, SAFE_RADIUS, LEVEL_CONFIGS, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS } from './config.ts'
+import GEM_COUNT, { START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS } from './config.ts'
 import {
-  makeTileGround, makeTileMine, makeTileGem, makeTileVisited, TILE_EXPLODED,
+  makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileFence, TILE_EXPLODED,
   type CellVariant, type TerrainType,
 } from './sprites.ts'
 import { placeBuildings } from './buildings.ts'
@@ -99,8 +99,13 @@ export interface GameState {
   score: number
   playerCol: number
   playerRow: number
-  /** Seeded vertical spawn row (0..ROWS-1); also the respawn target. */
+  /** Seeded vertical spawn row (0..ROWS-1); also the respawn target. Doubles as
+   *  the entry-hole row in the left perimeter fence. */
   startRow: number
+  /** Seeded exit-hole row in the right perimeter fence (0..ROWS-1); the only row
+   *  where the player can cross the right edge to win. Kept ≥ MIN_ENTRY_EXIT_ROW_GAP
+   *  away from startRow. */
+  exitRow: number
   playerDir: Dir
   walkTween: Tween | null
   walkAnim: Animation
@@ -154,7 +159,7 @@ function randomInt(rng: Rng, min: number, max: number): number {
   return rng.range(min, max + 1)
 }
 
-function placeMines(map: TileMap, count: number, safeCol: number, safeRow: number, level: number, terrain: TerrainType, rng: Rng): void {
+function placeMines(map: TileMap, count: number, safeCol: number, safeRow: number, exitRow: number, level: number, terrain: TerrainType, rng: Rng): void {
   const clusterRatio = level >= CLUSTER_MINE_LEVEL ? CLUSTER_MINE_RATIO : 0
   const beaconRatio = level >= BEACON_MINE_LEVEL ? BEACON_MINE_RATIO : 0
   let placed = 0
@@ -163,8 +168,14 @@ function placeMines(map: TileMap, count: number, safeCol: number, safeRow: numbe
     attempts++
     const col = randomInt(rng, 0, COLS - 1)
     const row = randomInt(rng, 0, ROWS - 1)
+    // Perimeter fence columns are stamped solid later — never spend a mine there.
+    if (col === 0 || col === COLS - 1) continue
+    // Entry safe zone (around the spawn / entry hole).
     if (Math.abs(col - safeCol) <= SAFE_RADIUS && Math.abs(row - safeRow) <= SAFE_RADIUS) continue
-    if (col === COLS - 1) continue
+    // Exit safe zone (around the exit hole) — mirror of the entry guarantee, so the
+    // approach to the exit can never be a forced mine. This is the canonical rule:
+    // skip the attempt without counting it (count stays exact, field stays seeded).
+    if (Math.abs(col - (COLS - 1)) <= SAFE_RADIUS && Math.abs(row - exitRow) <= SAFE_RADIUS) continue
     if (map.getTile(col, row)?.id !== 'ground') continue
     const r = rng.next()
     const mineType: MineType = r < clusterRatio ? 'cluster'
@@ -185,10 +196,14 @@ function placeMines(map: TileMap, count: number, safeCol: number, safeRow: numbe
 // dense building perimeter, so we repeat until a full pass changes nothing.
 // Termination is guaranteed — every change removes exactly one mine.
 export function fixObstacleTraps(map: TileMap, terrain: TerrainType): void {
+  // Every solid obstacle — buildings AND the perimeter fence — can form the
+  // "mine on each side of a walkable approach" trap. The obstacle set never changes
+  // here (we only relocate mines to ground), so compute it once.
+  const obstacles = [...map.findById('building'), ...map.findById('fence')]
   let changed = true
   while (changed) {
     changed = false
-    for (const { x, y } of map.findById('building')) {
+    for (const { x, y } of obstacles) {
       for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const ac = x + dc, ar = y + dr
         const approach = map.getTile(ac, ar)
@@ -222,6 +237,97 @@ function placeGems(map: TileMap, count: number, safeCol: number, safeRow: number
     map.setTile(col, row, makeTileGem(id, gemColor(id)))
     placed++
   }
+}
+
+// Stamp the left/right perimeter fence. Column 0 and the last column become solid
+// fence, except the single entry hole (0, startRow) and exit hole (COLS-1, exitRow),
+// which stay walkable ground. The solid walls funnel both entry and the right-edge
+// win through exactly one row each. Stamp AFTER mines/gems, BEFORE de-trapping.
+function stampFence(map: TileMap, startRow: number, exitRow: number, terrain: TerrainType): void {
+  for (let row = 0; row < ROWS; row++) {
+    map.setTile(0, row, row === startRow
+      ? makeTileGround(cellVariant(0, row), terrain)
+      : makeTileFence())
+    map.setTile(COLS - 1, row, row === exitRow
+      ? makeTileGround(cellVariant(COLS - 1, row), terrain)
+      : makeTileFence())
+  }
+}
+
+// Pick the exit-hole row: at least MIN_ENTRY_EXIT_ROW_GAP rows from the entry
+// (startRow), drawn from the seeded RNG so it is reproducible. The candidate set is
+// never empty while MIN_ENTRY_EXIT_ROW_GAP < ROWS.
+function pickExitRow(rng: Rng, startRow: number): number {
+  const valid: number[] = []
+  for (let r = 0; r < ROWS; r++) {
+    if (Math.abs(r - startRow) >= MIN_ENTRY_EXIT_ROW_GAP) valid.push(r)
+  }
+  return valid[randomInt(rng, 0, valid.length - 1)]
+}
+
+// Pure flood-fill: from the entry hole (col 0, startRow), can the player reach the
+// exit hole (col COLS-1, exitRow) stepping only on SAFE cells? Safe = on the map,
+// not solid (fence/building), not a mine. Orthogonal moves only — matches the
+// player. Side-effect-free → used both as the generation guard and directly in
+// tests to prove "at least one safe path exists".
+export function isFieldSolvable(map: TileMap, startRow: number, exitRow: number): boolean {
+  const key = (c: number, r: number): number => r * COLS + c
+  const safe = (c: number, r: number): boolean => {
+    if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false
+    const t = map.getTile(c, r)
+    return !!t && !t.solid && t.id !== 'mine'
+  }
+  if (!safe(START_COL, startRow)) return false
+  const seen = new Set<number>([key(START_COL, startRow)])
+  const queue: Array<[number, number]> = [[START_COL, startRow]]
+  // Index-pointer dequeue (O(n), no Array.shift reallocations).
+  for (let head = 0; head < queue.length; head++) {
+    const [c, r] = queue[head]
+    if (c === COLS - 1 && r === exitRow) return true
+    for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nc = c + dc, nr = r + dr
+      if (seen.has(key(nc, nr)) || !safe(nc, nr)) continue
+      seen.add(key(nc, nr))
+      queue.push([nc, nr])
+    }
+  }
+  return false
+}
+
+// Deterministic cap on solvability retries. Local entry/exit safe zones make the
+// first attempt succeed almost always (mine density is far below the 2-D
+// percolation threshold), so retries are rare; the cap just bounds the
+// astronomically unlikely worst case.
+const MAX_FIELD_ATTEMPTS = 64
+
+interface BuiltField {
+  map: TileMap
+  startRow: number
+  exitRow: number
+  terrain: TerrainType
+  firstAcMs: number
+}
+
+// Builds one complete field from a single seeded RNG stream. Pulled out of
+// createGame so the solvability guard can rebuild deterministically from a derived
+// seed when a field happens to seal the exit off.
+function buildField(seed: string | number, level: number, cfg: LevelConfig): BuiltField {
+  const rng = createRng(seed)
+  // Drawn first so buildings, mines and gems carve their safe zones around them.
+  const startRow = randomInt(rng, 0, ROWS - 1)
+  const exitRow = pickExitRow(rng, startRow)
+  // Level 0 is always grass so the player learns the default look first.
+  const terrain: TerrainType = level === 0 ? 'grass' : rng.pick(TERRAIN_TYPES)
+  const map = buildMap(terrain)
+  placeBuildings(map, level, rng, startRow, exitRow)
+  placeMines(map, cfg.mines, START_COL, startRow, exitRow, level, terrain, rng)
+  placeGems(map, GEM_COUNT, START_COL, startRow, rng)
+  stampFence(map, startRow, exitRow, terrain)
+  map.setTile(START_COL, startRow, makeTileVisited(cellVariant(START_COL, startRow), terrain))
+  // De-trap LAST, on the final board incl. the fence perimeter, to a fixed point.
+  fixObstacleTraps(map, terrain)
+  const firstAcMs = rng.float(cfg.acFirstMs, cfg.acFirstMaxMs)
+  return { map, startRow, exitRow, terrain, firstAcMs }
 }
 
 // Mines in the 4 orthogonal neighbours at distance 1 (any type) — the cells the
@@ -305,24 +411,18 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
   const cfg = LEVEL_CONFIGS[Math.min(level, LEVEL_CONFIGS.length - 1)]
   // Field generation is seeded: pass a `seed` (e.g. dailySeed(level)) for a reproducible
   // daily field; omit it (tests / free play) to get a fresh field each call.
-  const rng = createRng(seed ?? randomSeed())
-  // Vertical start height varies per seed: same seed ⇒ same row for everyone
-  // (fair), no seed ⇒ random like the rest of the field. Drawn first so the
-  // buildings, mines and gems all carve their safe zone around the chosen row.
-  const startRow = randomInt(rng, 0, ROWS - 1)
-  // Level 0 is always grass so the player learns the default look first
-  const terrain: TerrainType = level === 0
-    ? 'grass'
-    : rng.pick(TERRAIN_TYPES)
-  const map = buildMap(terrain)
-  placeBuildings(map, level, rng, startRow)
-  placeMines(map, cfg.mines, START_COL, startRow, level, terrain, rng)
-  placeGems(map, GEM_COUNT, START_COL, startRow, rng)
-  map.setTile(START_COL, startRow, makeTileVisited(cellVariant(START_COL, startRow), terrain))
-  // De-trap LAST, on the final board (gems are walkable too), to a fixed point.
-  fixObstacleTraps(map, terrain)
-
-  const firstAcMs = rng.float(cfg.acFirstMs, cfg.acFirstMaxMs)
+  const baseSeed = seed ?? randomSeed()
+  // Solvability guard: build the field, then prove a safe entry→exit path exists
+  // (BFS). If a field happens to seal the exit off, rebuild from a derived seed —
+  // still fully reproducible per daily seed. The local entry/exit safe zones make
+  // the first attempt succeed almost always, so this rarely loops.
+  let field = buildField(baseSeed, level, cfg)
+  for (let attempt = 1;
+    attempt < MAX_FIELD_ATTEMPTS && !isFieldSolvable(field.map, field.startRow, field.exitRow);
+    attempt++) {
+    field = buildField(`${baseSeed}:r${attempt}`, level, cfg)
+  }
+  const { map, startRow, exitRow, terrain, firstAcMs } = field
 
   return {
     phase: 'playing',
@@ -334,6 +434,7 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
     playerCol: START_COL,
     playerRow: startRow,
     startRow,
+    exitRow,
     playerDir: 'right',
     walkTween: null,
     walkAnim: createAnimation(2, WALK_FRAME_MS, { loop: true }),
@@ -387,6 +488,9 @@ export function addDropMinesInBand(state: GameState, count: number, minRow: numb
     attempts++
     const col = randomInt(rng, 0, COLS - 2)
     const row = randomInt(rng, minRow, maxRow)
+    // Never let an airdrop seal the exit: keep the exit safe zone clear (fence
+    // columns are already skipped by the ground-only check below).
+    if (Math.abs(col - (COLS - 1)) <= SAFE_RADIUS && Math.abs(row - state.exitRow) <= SAFE_RADIUS) continue
     const tile = state.map.getTile(col, row)
     if (tile?.id !== 'ground') continue
     state.map.setTile(col, row, makeTileMine('normal', cellVariant(col, row), state.terrain))

@@ -41,7 +41,14 @@ export const START_ROW = 11
 
 // Safe-zone radius around start position (no mines).
 // 1 = 3×3 around player, 2 = 5×5 around player
+// Applied around BOTH the entry hole (col 0, startRow) and the exit hole
+// (col COLS-1, exitRow) so neither can be sealed by a mine or building.
 export const SAFE_RADIUS = 1
+
+// Minimum vertical distance between the entry hole (startRow) and the exit hole
+// (exitRow). Forces a non-trivial traversal (no straight horizontal run) and a
+// longer mandatory path. Must stay < ROWS so a valid exit row always exists.
+export const MIN_ENTRY_EXIT_ROW_GAP = 6
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
 

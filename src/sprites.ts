@@ -295,6 +295,19 @@ export const LED_OFF = new Uint8Array([
   0x3C, // ..####..
 ])
 
+// Perimeter fence — a chain-link mesh that tiles seamlessly (X diagonals).
+// Placeholder art: owner is art director and may refine the look later.
+const FENCE = new Uint8Array([
+  0x81, // #......#
+  0x42, // .#....#.
+  0x24, // ..#..#..
+  0x18, // ...##...
+  0x18, // ...##...
+  0x24, // ..#..#..
+  0x42, // .#....#.
+  0x81, // #......#
+])
+
 // ─── Tile factories ───────────────────────────────────────────────────────────
 // variant 'a' = (col+row)%2===0, 'b' = odd — encodes checkerboard parity
 
@@ -424,5 +437,20 @@ export const TILE_EXPLODED: Tile = {
   paper: C.BLACK,
   solid: false,
   id: 'exploded',
+}
+
+// Perimeter fence cell. Like a building, `solid: true` blocks movement and — since
+// mines/airplane drops only target `ground` — stays mine-free for free. Distinct
+// `id`/sprite so it reads as a fence (not a building), survives the night overlay
+// (only ground/mine are blacked out), and is de-trapped by fixObstacleTraps. The
+// perimeter is structural, so it is uniform (no terrain/variant).
+export function makeTileFence(): Tile {
+  return {
+    sprite: FENCE,
+    ink: C.WHITE,
+    paper: C.BLACK,
+    solid: true,
+    id: 'fence',
+  }
 }
 

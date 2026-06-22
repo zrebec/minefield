@@ -2,14 +2,14 @@
 // serialization. The map is encoded as one char per cell (see CELL_CODES) so
 // the payload is small and human-readable when inspected in DevTools.
 
-import { createSaveProfile, createAnimation, createTileMap, type SaveProfile } from 'zx-kit'
+import { createSaveProfile, createAnimation, createTileMap, type TileMap, type SaveProfile } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
 import GEM_COUNT, { START_ROW, WALK_FRAME_MS, TIMER_BASE_MS } from './config.ts'
 import { type GameState, type Dir, gemColor } from './game.ts'
 import {
   type TerrainType, type CellVariant, type BuildingPart,
   makeTileGround, makeTileVisited, makeTileMine, makeTileGem,
-  makeTileBuilding, makeTileFlag, TILE_EXPLODED,
+  makeTileBuilding, makeTileFlag, makeTileFence, TILE_EXPLODED,
 } from './sprites.ts'
 
 // Building parts ↔ save chars (none collide with the mine/flag/terrain codes below).
@@ -41,6 +41,9 @@ export interface MinefieldSave {
    *  feature lack it and default to the old fixed START_ROW (exactly where
    *  those games spawned), so they stay loadable without a version bump. */
   startRow?: number
+  /** Seeded exit-hole row in the right fence. Optional: older saves derive it from
+   *  the map (the single non-solid cell in the last column). */
+  exitRow?: number
   totalMines: number
   explodedMines: number
   gemsCollected: number
@@ -69,12 +72,23 @@ function cellVariant(col: number, row: number): CellVariant {
   return (col + row) % 2 === 0 ? 'a' : 'b'
 }
 
+// The exit hole is the single non-solid cell in the last column. Fallback for any
+// (older / hand-edited) save that lacks an explicit exitRow.
+function deriveExitRow(map: TileMap): number {
+  for (let row = 0; row < ROWS; row++) {
+    const t = map.getTile(COLS - 1, row)
+    if (t && !t.solid) return row
+  }
+  return START_ROW
+}
+
 function encodeCell(state: GameState, col: number, row: number): string {
   const tile = state.map.getTile(col, row)
   if (!tile) return '_'
   switch (tile.id) {
     case 'ground': return '.'
     case 'visited': return 'V'
+    case 'fence': return '#'
     case 'building': return BUILDING_PART_CHAR[tile.metadata?.part as BuildingPart] ?? '_'
     case 'gem': return GEM_GROUND_CHAR[(tile.metadata?.gemKind as string) ?? 'cyan'] ?? '2'
     case 'exploded': return 'X'
@@ -111,6 +125,7 @@ function placeFromChar(
   if (gemFlag) { target.map.setTile(col, row, makeTileFlag('gem', undefined, variant, gemFlag)); return }
   switch (ch) {
     case '.': target.map.setTile(col, row, makeTileGround(variant, t)); return
+    case '#': target.map.setTile(col, row, makeTileFence()); return
     case 'V': target.map.setTile(col, row, makeTileVisited(variant, t)); return
     case 'G': target.map.setTile(col, row, makeTileGem()); return
     case 'X': target.map.setTile(col, row, TILE_EXPLODED); return
@@ -146,6 +161,7 @@ function serializeState(state: GameState): MinefieldSave {
     playerRow: state.playerRow,
     playerDir: state.playerDir,
     startRow: state.startRow,
+    exitRow: state.exitRow,
     totalMines: state.totalMines,
     explodedMines: state.explodedMines,
     gemsCollected: state.gemsCollected,
@@ -196,6 +212,8 @@ function applyToState(target: GameState, data: MinefieldSave): void {
       placeFromChar(target, col, row, line[col] ?? '_')
     }
   }
+  // Exit-hole row: explicit when present, else derived from the loaded fence.
+  target.exitRow = data.exitRow ?? deriveExitRow(target.map)
 
   // Transient state — resume in idle so player has a beat to orient
   target.phase = 'playing'
@@ -233,7 +251,10 @@ export const saveProfile: SaveProfile<MinefieldSave> = createSaveProfile<Minefie
   // cleanly rejected (version_unsupported) rather than loaded half-broken.
   // v4: HUD grew to 6 rows, so the playfield shrank 21→18. Same reasoning — a v3
   // map has 3 extra rows and can't be realigned, so v3 saves are cleanly rejected.
-  version: 4,
+  // v5: perimeter fence (left/right walls + one entry hole and one exit hole). A v4
+  // map has open edge columns and no exit hole, so its semantics no longer match —
+  // cleanly rejected (version_unsupported); the game then falls back to the title.
+  version: 5,
   serialize: () => serializeState(getCurrentState()),
   deserialize: (data) => applyToState(getCurrentState(), data),
   // No migrate needed for v1 — add when the shape changes.
