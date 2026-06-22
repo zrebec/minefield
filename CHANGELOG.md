@@ -1,3 +1,10 @@
+## [0.40.1](https://github.com/zrebec/minefield/compare/v0.40.0...v0.40.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* random revealch changed to reveal mines in random mode ([4854953](https://github.com/zrebec/minefield/commit/4854953d290d65ff9c55cee01bea2ef700c36acd))
+
 # [0.40.0](https://github.com/zrebec/minefield/compare/v0.39.0...v0.40.0) (2026-06-22)
 
 
