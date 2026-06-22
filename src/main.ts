@@ -1,9 +1,9 @@
-import { C, CANVAS_W, CELL, COLS, ROWS } from './constants.ts'
+import { C, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
 import { createGame, dailySeed, tickTimer, type GameState, type GamePhase, type Dir } from './game.ts'
-import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeVolUp, consumeVolDown, consumeManualSave, consumeRandomMap } from './input.ts'
-import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, increaseVolume, decreaseVolume, getMasterVolume } from './audio.ts'
-import { flashBorder, setupCanvas, curveDisplay, drawProgressBar, tickUI, renderUI, resetUI, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
+import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap } from './input.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver } from './audio.ts'
+import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
@@ -37,10 +37,6 @@ let padLetterIdx = 0
 let startKeyPending = false
 let startRandomPending = false
 
-const VOL_BAR_W = 10 * CELL  // 10 chars × 8 px
-const VOL_BAR_X = (CANVAS_W - VOL_BAR_W) / 2
-const VOL_BAR_Y = Math.floor(ROWS / 2) * CELL
-
 // Debug mode
 const dbg = createDebugMonitor({ targetFps: 60 })
 let showDebug = false
@@ -48,20 +44,6 @@ let showDebug = false
 // Pause screen paging (controls / gems / scoring); count from the i18n titles.
 const PAUSE_PAGES = L.STR_PAUSE_TITLES.length
 let pausePage = 0
-
-function volBar() {
-  return {
-    id: 'volume',
-    x: VOL_BAR_X,
-    y: VOL_BAR_Y,
-    width: VOL_BAR_W,
-    value: getMasterVolume(),
-    ink: C.B_GREEN,
-    paper: C.BLACK,
-    border: { style: 'solid' as const },
-    visibilityLength: 1500,
-  }
-}
 
 // Intro attract-mode cycling
 const INTRO_PAGE_MS = 3000
@@ -88,13 +70,16 @@ function enterHiScore(): void {
   hiName = []
   hiCursor = 0
   padLetterIdx = 0
-  resetInput(); resetUI()
+  resetInput()
   appPhase = 'hiscore'
   flashBorder(C.B_WHITE, 2, 80, C.B_CYAN)
 }
 
 function finishFrame(ctx: CanvasRenderingContext2D): void {
   endFrame(dbg)
+  // Built-in volume HUD: +/- keys are wired by initInput(); this auto-shows the
+  // bar ~1.5 s after a change and hides itself. Defaults match the old volBar().
+  drawVolumeBar(ctx)
   if (showDebug) {
     drawDebugOverlay(ctx, sampleDebug(dbg, {
       app: appPhase,
@@ -113,10 +98,6 @@ function gameLoop(timestamp: number): void {
   const dt = Math.min(timestamp - lastTime, 100)
   lastTime = timestamp
   const ctx = getCtx()
-
-  // Global volume control — drawProgressBar registers state; renderUI redraws after world render
-  if (consumeVolUp()) { increaseVolume(); drawProgressBar(ctx, volBar()) }
-  if (consumeVolDown()) { decreaseVolume(); drawProgressBar(ctx, volBar()) }
 
   const blink = tickBlinker(blinker, dt)
 
@@ -143,12 +124,11 @@ function gameLoop(timestamp: number): void {
       writeSave(saveProfile, 'auto')   // make the run resumable from level 1
       introPage = 0
       introPageTimer = INTRO_PAGE_MS
-      resetInput(); resetUI()
+      resetInput()
       appPhase = 'ingame'
       setBorderColor(C.BLACK)
     }
     renderIntro(ctx, blink, introPage)
-    tickUI(dt); renderUI(ctx)
     finishFrame(ctx)
     return
   }
@@ -162,12 +142,12 @@ function gameLoop(timestamp: number): void {
       } else if (key === 'ENTER') {
         if (hiCursor >= 1) {
           saveHighScore({ name: hiName.join('').padEnd(3, ' '), score: state.score, level: state.level + 1 })
-          resetInput(); resetUI()
+          resetInput()
           appPhase = 'intro'
           setBorderColor(C.B_BLUE)
         }
       } else if (key === 'ESC') {
-        resetInput(); resetUI()
+        resetInput()
         appPhase = 'intro'
         setBorderColor(C.B_BLUE)
       } else if (hiCursor < 3) {
@@ -190,7 +170,6 @@ function gameLoop(timestamp: number): void {
     consumeFlag(); consumeDebug()  // drain unused gamepad buttons
 
     renderHiScoreEntry(ctx, hiName, hiCursor, blink, PAD_LETTERS[padLetterIdx])
-    tickUI(dt); renderUI(ctx)
     finishFrame(ctx)
     return
   }
@@ -264,7 +243,7 @@ function gameLoop(timestamp: number): void {
 
   } else if (state.phase === 'levelcomplete') {
     setBorderColor(C.B_GREEN)
-    resetInput(); resetUI()
+    resetInput()
     state.levelCompleteTimer -= dt
     if (state.levelCompleteTimer <= 0) {
       const prevScore = state.score
@@ -281,7 +260,7 @@ function gameLoop(timestamp: number): void {
     setBorderColor(C.B_RED)
     tickMovement(dt)  // keep gamepad polled
     if (consumeAnyKey()) {
-      resetInput(); resetUI()
+      resetInput()
       initAudioOnce()
       stopAmbientSounds()
       // No save scumming — saves are cleared on game over (Spectrum philosophy)
@@ -303,7 +282,6 @@ function gameLoop(timestamp: number): void {
 
   prevGamePhase = state.phase
   renderFrame(ctx, state, pausePage)
-  tickUI(dt); renderUI(ctx)
   finishFrame(ctx)
 }
 

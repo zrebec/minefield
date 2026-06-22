@@ -6,13 +6,8 @@ import {
   getAudioContext,
   getMasterGain,
   playPattern,
-  increaseVolume,
-  decreaseVolume,
-  getMasterVolume,
   type Note,
 } from 'zx-kit'
-
-export { increaseVolume, decreaseVolume, getMasterVolume }
 
 export { resumeAudio }
 
