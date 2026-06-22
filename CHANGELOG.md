@@ -1,3 +1,10 @@
+# [0.39.0](https://github.com/zrebec/minefield/compare/v0.38.0...v0.39.0) (2026-06-22)
+
+
+### Features
+
+* **game:** fenced field with one entry/exit gap and guaranteed solvability ([492d878](https://github.com/zrebec/minefield/commit/492d8781ce8a051326db743cce763d4e9502e95e))
+
 # [0.38.0](https://github.com/zrebec/minefield/compare/v0.37.0...v0.38.0) (2026-06-21)
 
 
