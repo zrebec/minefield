@@ -2,6 +2,15 @@
 
 > **Known issue:** `npm audit` flags 1 high vuln (**undici 6.26.0**) bundled inside the `npm` CLI (pulled by semantic-release) — **unfixable downstream, dev/CI-only, never shipped** (the game ships a static Vite bundle). Don't re-investigate (audit fix / `--force` / overrides / nuke all tried 2026-06-20). Full note: `docs/known-issues.md`.
 
+> **⚠️ Open P0 (potential showstopper) — airdrop can break solvability mid-run (2026-06-22).** The
+> perimeter fence guarantees a safe entry→exit path **at generation** (`isFieldSolvable` BFS + deterministic
+> regeneration), but the **aircraft can drop a mine mid-run that seals the only safe route** → the field
+> becomes unsolvable during play. The airdrop today only protects the exit *mouth*, not the interior route.
+> Owner hit this live ("always solvable at the start, but I didn't always get through"). Fix direction:
+> re-check `isFieldSolvable` after each drop and discard any drop that seals the field (same mechanism we
+> already have, applied at runtime; drops are seeded → deterministic). Full analysis + proposal:
+> `retro/docs/sk/minefield.md` §6 (chrobák) + §7 (návrh). **Address before further field work.**
+
 Guidance for Claude Code when working in this repository. **The code and tests are the source of
 truth** — when this file disagrees with `src/`, the code wins (fix this file).
 
@@ -39,12 +48,20 @@ sound (and a visual HUD detector) warns you of nearby mines; an aircraft periodi
 
 ### Field & HUD
 - Playfield **32×18 cells**; the bottom **6 HUD rows** (one concern each): backpack · timer ·
-  score+detector · mines+level · day/night · lives+random-tag. Player starts at the left edge on a
-  **seeded** start row. (`ROWS`/`STATUS_ROWS` in `constants.ts`; canvas height fixed at 192.)
-- `TileMap` (zx-kit) holds tiles `ground` / `mine` / `gem` / `visited` / `flag` / building tiles.
+  score+detector · mines+level · day/night · lives+random-tag. (`ROWS`/`STATUS_ROWS` in `constants.ts`;
+  canvas height fixed at 192.)
+- **Perimeter fence (2026-06-22):** a solid `fence` wall runs down col 0 and the last col, each with ONE
+  walkable gap — the **entry** (seeded `startRow`, where the player spawns) and the **exit** (seeded
+  `exitRow`, kept ≥ `MIN_ENTRY_EXIT_ROW_GAP` away → no straight line). The player must *find a route* across.
+- `TileMap` (zx-kit) holds tiles `ground` / `mine` / `gem` / `visited` / `flag` / `fence` / building tiles.
   `findById('mine')` returns non-detonated off-path mines (powers reveal-debug and planned replay).
-- **Win a level:** reach the right edge (`newCol >= COLS`). Step on a mine → explosion flash, lose a
-  life, respawn at start. 0 lives **or** the timer hitting 0:00 → GAME OVER (saves deleted — no scumming).
+- **Win a level:** reach the right edge (`newCol >= COLS`). The right wall is solid except `exitRow`, so
+  `movePlayer` funnels the crossing through the exit gap (win logic unchanged). Step on a mine → explosion
+  flash, lose a life, **respawn at the entry**. 0 lives **or** 0:00 → GAME OVER (saves deleted — no scumming).
+- **Guaranteed solvable at generation:** `createGame` reserves a SAFE_RADIUS box around **both** gaps
+  (entry pre-existed; exit mirrors it), `fixObstacleTraps` de-traps buildings + fence, and `isFieldSolvable`
+  (BFS) proves a full entry→exit path, regenerating deterministically (`<seed>:r<n>`) if a board seals the
+  exit. **Generation-time only — NOT during play (see the P0 at top).** Test: 300 seeded + 100 random fields.
 
 ### Timer (`tickTimer` in game.ts, ticked from main.ts)
 - `state.timeLeftMs` starts at `TIMER_BASE_MS` (10:00). `createGame` sets it, so it **resets every
@@ -84,24 +101,26 @@ on the field and grants nothing. On top of that, two colours have a special func
 ### Buildings (replaced the old linear walls)
 High-angle **pseudo-3D buildings**: a roof footprint (2–8 tiles/dim, rolled independently) + 2 brick
 rows + 1 foundation row; the whole bounding box is **solid and mine-free**. Count rises per level.
-`fixWallTraps()` guarantees you never face *obstacle ahead + mines on both perpendicular sides* (you
-always keep at least one dodge besides backing up). **8 unit tests + a property test over 20 generated
-levels.** Full spec: `docs/buildings.md`.
+`fixObstacleTraps()` guarantees you never face *obstacle ahead + mines on both perpendicular sides*
+around **any solid obstacle — buildings AND the fence** (you always keep at least one dodge besides
+backing up). **Property tests over generated levels.** Full spec: `docs/buildings.md`.
 
 ### Other systems
 - **Terrain** grass/snow/dust (L1 always grass) — sets background + trail colour. **Day/night** cycle
   darkens ground+mine (gems/buildings stay visible).
 - **Aircraft** — per-level timing in `LEVEL_CONFIGS` (`acFirst*`/`acMin*`/`acMax*`); crosses in ~3 s,
-  drops `acMineDropMin..Max` mines on unvisited non-building cells; status bar blinks `** AIRCRAFT **`;
-  LFO-modulated engine drone.
+  drops `acMineDropMin..Max` mines on unvisited non-building cells. It **skips the exit safe zone** (can't
+  seal the exit mouth) but **can still seal the interior route** → the **P0 at top**. Status bar blinks
+  `** AIRCRAFT **`; LFO-modulated engine drone.
 - **Detector** (HUD) — mirrors the audio: adjacent mines 0–4 (amber/red discs) + a separate cyan beacon
   LED. Makes the game playable deaf. Spec: `docs/accessibility-detector.md`.
 - **Audio** (`audio.ts`) — square-wave warnings/fanfares via zx-kit `playPattern`; explosion noise;
   aircraft LFO drone; volume `+`/`-`.
-- **Save** (`save.ts` + zx-kit `save`) — **version 4**, 1 char/cell; `auto` slot (from L1 + at each
-  level start) + `manual` (`SHIFT+S`); auto-resume on launch; cleared on game over. v4 bump came with
-  the 6-row HUD (playfield 21→18 → v3 maps misalign, cleanly rejected). Persists `timeLeftMs?` (and
-  inventory/revealed mines) as optional fields, so reload resumes exactly.
+- **Save** (`save.ts` + zx-kit `save`) — **version 5**, 1 char/cell (`#` = fence); `auto` slot (from L1 +
+  at each level start) + `manual` (`SHIFT+S`); auto-resume on launch; cleared on game over. The v4→v5 bump
+  came with the perimeter fence (a v4 map has open edge columns + no exit gap → cleanly rejected → falls
+  back to the title screen). Persists `exitRow`, `timeLeftMs?` (and inventory/revealed mines), so reload
+  resumes exactly.
 - **Levels:** L1 50 mines/3 lives · L2 80/3 · L3 100/2 · L4+ 110/2. Cluster mines from L2, beacon from L3.
 - **Input** (`input.ts` over zx-kit) — arrows (repeat 150 ms→80 ms) + full **gamepad**; `F` flag,
   `P` pause, `SHIFT+S` save, `+`/`-` volume.
@@ -111,6 +130,11 @@ levels.** Full spec: `docs/buildings.md`.
 ### Debug keys (two different things — don't conflate)
 - **`D`** = `state.debugMode` — **reveals all mines, idle only** (scout before you move; off once you
   move; permanently off for the level once running). zx-kit `Ctrl+Shift+B` / gamepad **Y** map here too.
+  **Budget-gated (`tryToggleReveal`, 2026-06-22):** revealing every mine would leak a **scored daily**
+  solution, so daily gets `DAILY_REVEAL_LIMIT = 0` (the key does nothing); random/practice gets
+  `RANDOM_REVEAL_LIMIT = 5` per level (`null` = unlimited). Turning the reveal OFF is free; each ON
+  consumes one. (Screenshots can't be technically blocked — a canvas has no DRM/secure path like
+  YouTube's EME video — so we protect daily fairness at the source instead. SK doc §6/§7.)
 - **`O`** = `showDebug` — toggles the **zx-kit `debug` FPS/CPU overlay** (`createDebugMonitor` /
   `beginFrame` / `endFrame` / `sampleDebug` / `drawDebugOverlay`). Minefield is zx-kit's **first
   `debug` consumer**. Shows FPS, frame ms, JS CPU load + custom fields (phase, run, level, mines).

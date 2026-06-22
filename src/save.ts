@@ -227,6 +227,7 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.flashTimer = 0
   target.flashOn = false
   target.debugMode = false
+  target.revealsUsed = 0
   target.levelCompleteTimer = 0
   target.blink = true
   target.blinkTimer = 500

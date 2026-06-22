@@ -50,6 +50,15 @@ export const SAFE_RADIUS = 1
 // longer mandatory path. Must stay < ROWS so a valid exit row always exists.
 export const MIN_ENTRY_EXIT_ROW_GAP = 6
 
+// Debug mine-reveal (`D` key) budget per level, by run mode. `D` reveals EVERY mine
+// position, so on a SCORED daily field it would leak the solution — daily gets 0
+// (the key does nothing). Random/practice is unscored, so it gets a finite scouting
+// allowance. `null` = unlimited. NB: 0 means "none" and `null` means "infinite" —
+// we deliberately do NOT overload 0 as "infinite", because daily legitimately needs
+// exactly 0, and `null` avoids any `NaN`/`Infinity` arithmetic.
+export const DAILY_REVEAL_LIMIT: number | null = 0
+export const RANDOM_REVEAL_LIMIT: number | null = 2
+
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
 // Points awarded per newly visited cell (before level multiplier)
@@ -231,10 +240,10 @@ export const TIMER_BASE_MS = 600_000      // 10:00 starting budget per level
 // most common → 0). Tunable per kind; a missing kind grants 0. Full-clear total
 // at these values: cyan 6×0 + green 2×5s + red 3×10s + gold 1×30s = +70s/level.
 export const GEM_TIME_BONUS_MS: Record<string, number> = {
-  cyan:  0,
+  cyan: 0,
   green: 5_000,
-  red:   10_000,
-  gold:  30_000,
+  red: 10_000,
+  gold: 30_000,
 }
 
 // At or below this, the HUD clock turns red and blinks.
@@ -293,13 +302,13 @@ export interface ControlSpec {
 }
 
 export const CONTROLS: ControlSpec[] = [
-  { id: 'move',    keys: 'ARROWS',  scope: 'ingame' },
-  { id: 'flag',    keys: 'F',       scope: 'ingame' },
-  { id: 'pause',   keys: 'P',       scope: 'ingame' },
-  { id: 'save',    keys: 'SHIFT+S', scope: 'ingame' },
-  { id: 'reveal',  keys: 'D',       scope: 'ingame' },
-  { id: 'fps',     keys: 'O',       scope: 'always' },
-  { id: 'volume',  keys: '+/-',     scope: 'always' },
-  { id: 'start',   keys: 'SPACE',   scope: 'title'  },
-  { id: 'random',  keys: 'R',       scope: 'title'  },
+  { id: 'move', keys: 'ARROWS', scope: 'ingame' },
+  { id: 'flag', keys: 'F', scope: 'ingame' },
+  { id: 'pause', keys: 'P', scope: 'ingame' },
+  { id: 'save', keys: 'SHIFT+S', scope: 'ingame' },
+  { id: 'reveal', keys: 'D', scope: 'ingame' },
+  { id: 'fps', keys: 'O', scope: 'always' },
+  { id: 'volume', keys: '+/-', scope: 'always' },
+  { id: 'start', keys: 'SPACE', scope: 'title' },
+  { id: 'random', keys: 'R', scope: 'title' },
 ]

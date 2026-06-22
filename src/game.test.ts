@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, isFieldSolvable, tickTimer, GEM_KINDS, type MineType } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, isFieldSolvable, tryToggleReveal, tickTimer, GEM_KINDS, type MineType } from './game.ts'
 import { movePlayer } from './player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
-import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS } from './config.ts'
+import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS } from './config.ts'
 import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
@@ -1251,6 +1251,44 @@ describe('perimeter fence — determinism', () => {
         }
       }
     }
+  })
+})
+
+describe('debug mine-reveal budget (tryToggleReveal)', () => {
+  it('daily mode: D does nothing — reveal never turns on, however many presses', () => {
+    expect(DAILY_REVEAL_LIMIT).toBe(0)
+    const s = createGame(0, 0, 'reveal-daily')   // seeded → daily
+    expect(s.dropSeedBase).not.toBeNull()
+    for (let i = 0; i < 10; i++) tryToggleReveal(s)
+    expect(s.debugMode).toBe(false)
+    expect(s.revealsUsed).toBe(0)
+  })
+
+  it('random mode: each ON consumes one reveal, OFF is free, blocked after the limit', () => {
+    const s = createGame(0)            // no seed → random/practice
+    expect(s.dropSeedBase).toBeNull()
+    expect(typeof RANDOM_REVEAL_LIMIT).toBe('number')   // current default is finite
+    const limit = RANDOM_REVEAL_LIMIT as number
+    for (let i = 0; i < limit; i++) {
+      tryToggleReveal(s)                       // ON — consumes one
+      expect(s.debugMode).toBe(true)
+      expect(s.revealsUsed).toBe(i + 1)
+      tryToggleReveal(s)                       // OFF — free
+      expect(s.debugMode).toBe(false)
+      expect(s.revealsUsed).toBe(i + 1)        // off did not consume
+    }
+    tryToggleReveal(s)                         // budget spent → no-op
+    expect(s.debugMode).toBe(false)
+    expect(s.revealsUsed).toBe(limit)
+  })
+
+  it('createGame resets the reveal budget each level', () => {
+    const s = createGame(0)
+    tryToggleReveal(s)
+    expect(s.revealsUsed).toBe(1)
+    const next = createGame(1, s.score)        // new level
+    expect(next.revealsUsed).toBe(0)
+    expect(next.debugMode).toBe(false)
   })
 })
 

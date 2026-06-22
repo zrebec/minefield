@@ -1,6 +1,6 @@
 import { C, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
-import { createGame, dailySeed, tickTimer, type GameState, type GamePhase, type Dir } from './game.ts'
+import { createGame, dailySeed, tickTimer, tryToggleReveal, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
@@ -182,8 +182,9 @@ function gameLoop(timestamp: number): void {
     consumeRandomMap()
 
     if (state.runState === 'idle') {
-      // Debug available only in idle — scout before starting
-      if (consumeDebug()) state.debugMode = !state.debugMode
+      // Debug reveal available only in idle — scout before starting. Budget-gated:
+      // disabled on the scored daily, finite on random/practice (see tryToggleReveal).
+      if (consumeDebug()) tryToggleReveal(state)
       consumePause()  // drain P — can't pause before starting
       const dir = tickMovement(dt, WALK_DURATION_MS)
       if (dir) {

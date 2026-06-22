@@ -1,6 +1,6 @@
 import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
 import { COLS, ROWS, C, type SpectrumColor } from './constants.ts'
-import GEM_COUNT, { START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS } from './config.ts'
+import GEM_COUNT, { START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileFence, TILE_EXPLODED,
   type CellVariant, type TerrainType,
@@ -113,6 +113,9 @@ export interface GameState {
   flashTimer: number
   flashOn: boolean
   debugMode: boolean
+  /** How many times the `D` mine-reveal has been turned ON this level (budget gate;
+   *  daily = 0, random = RANDOM_REVEAL_LIMIT). Reset per level by createGame. */
+  revealsUsed: number
   airplane: AirplaneState | null
   nextAircraftMs: number
   blink: boolean
@@ -442,6 +445,7 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
     flashTimer: 0,
     flashOn: false,
     debugMode: false,
+    revealsUsed: 0,
     airplane: null,
     nextAircraftMs: firstAcMs,
     blink: true,
@@ -464,6 +468,21 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
     airplanePassIndex: 0,
     timeLeftMs: TIMER_BASE_MS,
   }
+}
+
+/**
+ * Toggles the debug mine-reveal (`D`), respecting the per-mode budget. Turning the
+ * reveal OFF is always free; turning it ON consumes one reveal and is blocked once
+ * the budget is spent. Daily fields get DAILY_REVEAL_LIMIT (0 → the key does nothing,
+ * because revealing every mine would leak the scored daily solution); random/practice
+ * gets RANDOM_REVEAL_LIMIT (`null` = unlimited). Call only while idle (scout phase).
+ */
+export function tryToggleReveal(state: GameState): void {
+  if (state.debugMode) { state.debugMode = false; return }   // turning off is free
+  const limit = state.dropSeedBase === null ? RANDOM_REVEAL_LIMIT : DAILY_REVEAL_LIMIT
+  if (limit !== null && state.revealsUsed >= limit) return    // budget spent → no-op
+  state.debugMode = true
+  state.revealsUsed++
 }
 
 /**

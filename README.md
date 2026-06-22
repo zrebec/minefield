@@ -54,7 +54,7 @@ It's a deliberate homage to the ZX Spectrum (1982): pixel art with no anti-alias
 | `F` | Flag / unflag the cell **in front** of the player |
 | `P` | Pause / resume |
 | `SHIFT + S` | Manual save |
-| `D` | Debug: reveal all mines — **idle only** (scout before you start; off once you move) |
+| `D` | Debug: reveal all mines — **idle only** (scout before you start; off once you move). **Disabled on the daily** (it would leak the scored solution); on **random/practice** it's capped (5 per level). |
 | `O` | Toggle the **FPS / CPU debug overlay** (zx-kit `debug` module) |
 | `+` / `-` | Volume up / down |
 
