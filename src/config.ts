@@ -57,7 +57,7 @@ export const MIN_ENTRY_EXIT_ROW_GAP = 6
 // we deliberately do NOT overload 0 as "infinite", because daily legitimately needs
 // exactly 0, and `null` avoids any `NaN`/`Infinity` arithmetic.
 export const DAILY_REVEAL_LIMIT: number | null = 0
-export const RANDOM_REVEAL_LIMIT: number | null = 2
+export const RANDOM_REVEAL_LIMIT: number | null = 1
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
