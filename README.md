@@ -12,6 +12,32 @@
 
 **Live:** GitHub Pages · auto-released via semantic-release on push to `main`.
 
+## Screenshots
+
+<p align="center">
+  <a href="docs/img/intro.png"><img src="docs/img/intro.png" alt="Title / intro screen" width="48%"></a>
+  <a href="docs/img/play.png"><img src="docs/img/play.png" alt="Mid-game: coloured trail, gems, HUD detector" width="48%"></a>
+</p>
+
+<p align="center">
+  <a href="https://zrebec.github.io/minefield/">Play</a> ·
+  <a href="ROADMAP.md">Roadmap</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="docs/known-issues.md">Known issues</a>
+</p>
+
+## At a Glance
+
+| Property | Value |
+|---|---|
+| Status | Playable · **LIVE** · stabilising toward 1.0 |
+| Runtime | Browser game (static Vite bundle) |
+| Stack | TypeScript · Vite · Canvas · Web Audio · zx-kit |
+| Native resolution | 256×192 (integer ×4) |
+| Runtime dependencies | `zx-kit` only |
+| Tests | 266 (Vitest) |
+| Last verified | 2026-06-23 |
+
 ---
 
 ## About
@@ -120,15 +146,15 @@ and take calculated risks on the rest.
 
 ### Gems (12 per level: 3 red · 6 cyan · 1 gold · 2 green)
 
-Every gem grants **+1000 score** and a **colour-specific time bonus**. Red and cyan also have a
-special function; gold and green are collect-only for now (their special functions are planned).
+Every gem grants **+1000 score** and a **colour-specific time bonus**. Red, cyan and gold also have a
+special function; green is collect-only for now (its special is an open design decision — see the roadmap).
 
 | Gem | Time | Special |
 |-----|------|---------|
 | 🔵 cyan | +0:00 | **3 collected = permanently reveal one live mine** (seeded; visible even at night) |
-| 🟢 green | +0:05 | collect-only for now (planned: **shield**) |
+| 🟢 green | +0:05 | collect-only for now (special undecided — see [Roadmap](ROADMAP.md)) |
 | 🔴 red | +0:10 | **2 collected = +1 life** |
-| 🟡 gold | +0:30 | rare; collect-only for now (planned: **score** bonus) |
+| 🟡 gold | +0:30 | rare; **+5000 score bonus** on top of the flat +1000 |
 
 Rarer gems give more time (cyan is the most common, so it gives none). Inventory shows on the first
 HUD row (1:1 sprites, cap 32); a full backpack leaves a gem on the field — and grants no time.
@@ -201,10 +227,44 @@ src/
 **Local dev:**
 ```bash
 npm install
-npm run dev    # http://localhost:5173
-npm run build  # production build → dist/
-npm test       # unit tests (Vitest) — 256 tests
+npm run dev      # http://localhost:5173
+npm run build    # production build → dist/
+npm test         # unit tests (Vitest) — 266 tests
+npm run capture  # refresh docs/img screenshots (Playwright)
 ```
+
+---
+
+## zx-kit Features Used
+
+| zx-kit module | How Minefield uses it |
+|---|---|
+| `renderer` / `font` | canvas setup (×4), ROM bitmap font, sprites, scanlines, CRT curvature |
+| `tilemap` | the playfield (ground/mine/gem/visited/flag/fence/building tiles) |
+| `audio` | square-wave warnings/fanfares, aircraft drone; built-in `+`/`-` volume + HUD bar |
+| `input` | key-repeat + gamepad; built-in `+`/`-` volume keys |
+| `save` | typed save/load with versioning (v5) |
+| `rng` | seeded `mulberry32` for the daily field and airplane behaviour |
+| `debug` | FPS/CPU overlay (Minefield is zx-kit's first `debug` consumer) |
+
+## Current State
+
+| Area | State | Notes |
+|---|---|---|
+| Core loop | Complete | cross → levels → highscore → save |
+| Fence + solvability | Complete | winnable under all circumstances (generation + airdrop guard) |
+| Save / load | Complete | version 5; auto-resume; cleared on game over |
+| Tests | 266 | seeded solvability + property tests |
+| Accessibility | Partial | visual detector done; stereo/TTS planned (Roadmap) |
+| Visuals | Readable | screenshots may be refreshed to show the fence |
+
+## Related Links
+
+- [AGENTS.md](AGENTS.md) — permanent agent rules
+- [CLAUDE.md](CLAUDE.md) — execution guide / architecture
+- [ROADMAP.md](ROADMAP.md) — live backlog
+- [Known issues](docs/known-issues.md)
+- [zx-kit](https://www.npmjs.com/package/zx-kit)
 
 ---
 

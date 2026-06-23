@@ -6,7 +6,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-AGENTS.md
 docs/*.sk.md
 
 node_modules
