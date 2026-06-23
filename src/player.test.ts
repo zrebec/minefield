@@ -575,6 +575,18 @@ describe('respawnPlayer', () => {
     expect(state.walkTween).toBeNull()
     expect(state.bufferedDir).toBeNull()
   })
+
+  it('resets the score combo on death, but leaves the gem backpack intact', () => {
+    const state = makeState()
+    state.lives = 3
+    state.comboCount = 7
+    state.comboTimer = 1000
+    state.inventory = { cyan: 2 }
+    respawnPlayer(state)
+    expect(state.comboCount).toBe(0)              // combo (score multiplier) broken by death
+    expect(state.comboTimer).toBe(0)
+    expect(state.inventory).toEqual({ cyan: 2 })  // backpack untouched — gems stay collected
+  })
 })
 
 // ── day/night cycle ───────────────────────────────────────────────────────────

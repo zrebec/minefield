@@ -167,6 +167,11 @@ export function respawnPlayer(state: GameState): void {
   state.phase = state.lives <= 0 ? 'gameover' : 'playing'
   state.isNight = false
   state.cycleSteps = DAY_STEPS
+  // Death breaks the score combo (the streak of safe steps), the score multiplier
+  // resets to 1×. The gem backpack (inventory) is untouched — gems already collected
+  // stay collected.
+  state.comboCount = 0
+  state.comboTimer = 0
 }
 
 // Flag the cell directly in front of the player (in the direction they're facing)
