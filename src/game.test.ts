@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, isFieldSolvable, tryToggleReveal, tickTimer, GEM_KINDS, type MineType } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, isFieldSolvable, tryToggleReveal, tickTimer, GEM_KINDS, type MineType, type GameState } from './game.ts'
 import { movePlayer } from './player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS } from './config.ts'
-import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, TILE_EXPLODED, type TerrainType } from './sprites.ts'
+import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, makeTileFence, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
 
@@ -1336,5 +1336,89 @@ describe('perimeter fence — movement funnel', () => {
     state.walkTween = null
     movePlayer(state, 'right')
     expect(state.walkTween).not.toBeNull()
+  })
+})
+
+// ── Airplane drops — BFS solvability guard ────────────────────────────────────
+
+// Minimal state for addDropMinesInBand (only the fields it touches).
+function dropState(map: TileMap, startRow: number, exitRow: number, seed: string | null): GameState {
+  return {
+    map, startRow, exitRow, terrain: 'grass',
+    dropSeedBase: seed, airplanePassIndex: 0,
+    totalMines: 0, droppedMines: [], dropFlashTimer: 0,
+  } as unknown as GameState
+}
+
+describe('airplane drops — solvability guard', () => {
+  it('the field stays solvable after repeated airplane drops (40 seeds × 8 passes)', () => {
+    for (let s = 0; s < 40; s++) {
+      const state = createGame(s % 5, 0, `air-${s}`)
+      for (let pass = 0; pass < 8; pass++) {
+        addDropMinesInBand(state, 8, 1, 16)   // wide band → many chances to seal
+        state.airplanePassIndex++              // each pass has its own drop seed
+        expect(isFieldSolvable(state.map, state.startRow, state.exitRow)).toBe(true)
+      }
+    }
+  })
+
+  it('refuses every drop that would seal the only corridor (places 0)', () => {
+    // All-ground field, then mine every row except a single horizontal corridor at R.
+    // The corridor (row R) is the ONLY safe path → any mine on it seals the field.
+    const map = createTileMap(COLS, ROWS)
+    const R = 8
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) map.setTile(col, row, makeTileGround(cellVariant(col, row), 'grass'))
+    }
+    for (let row = 0; row < ROWS; row++) {
+      if (row !== R) for (let col = 1; col <= COLS - 2; col++) setMine(map, col, row)
+      // Fence the edges, gap at R (entry + exit on the corridor row).
+      map.setTile(0, row, row === R ? makeTileGround(cellVariant(0, row), 'grass') : makeTileFence())
+      map.setTile(COLS - 1, row, row === R ? makeTileGround(cellVariant(COLS - 1, row), 'grass') : makeTileFence())
+    }
+    const state = dropState(map, R, R, 'guard')
+    expect(isFieldSolvable(map, R, R)).toBe(true)   // corridor open
+    addDropMinesInBand(state, 20, R, R)             // try hard to drop on the corridor
+    expect(isFieldSolvable(map, R, R)).toBe(true)   // guard kept it open
+    let placed = 0
+    for (let col = 1; col <= COLS - 2; col++) if (map.getTile(col, R)?.id === 'mine') placed++
+    expect(placed).toBe(0)
+    expect(state.totalMines).toBe(0)
+  })
+
+  it('drops are deterministic for the same seed (daily stays comparable)', () => {
+    const a = createGame(2, 0, 'air-det')
+    const b = createGame(2, 0, 'air-det')
+    for (let pass = 0; pass < 5; pass++) {
+      addDropMinesInBand(a, 8, 1, 16); a.airplanePassIndex++
+      addDropMinesInBand(b, 8, 1, 16); b.airplanePassIndex++
+    }
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) {
+        expect(a.map.getTile(col, row)?.id).toBe(b.map.getTile(col, row)?.id)
+      }
+    }
+    expect(a.totalMines).toBe(b.totalMines)
+  })
+
+  it('concentrates drops toward the exit side (forward bias)', () => {
+    // Open all-ground field (resets keep it open) → isolate the column distribution.
+    const map = createTileMap(COLS, ROWS)
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) map.setTile(col, row, makeTileGround(cellVariant(col, row), 'grass'))
+    }
+    const state = dropState(map, 8, 2, 'bias')
+    const cols: number[] = []
+    for (let pass = 0; pass < 30; pass++) {
+      state.airplanePassIndex = pass
+      state.droppedMines = []
+      addDropMinesInBand(state, 6, 5, 12)
+      for (const d of state.droppedMines) {
+        cols.push(d.col)
+        map.setTile(d.col, d.row, makeTileGround(cellVariant(d.col, d.row), 'grass'))  // reset → keep open
+      }
+    }
+    const mean = cols.reduce((acc, c) => acc + c, 0) / cols.length
+    expect(mean).toBeGreaterThan((COLS - 2) / 2)   // skewed past the midpoint toward the exit
   })
 })

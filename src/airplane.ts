@@ -1,5 +1,5 @@
 import { CANVAS_W, CELL, ROWS } from './constants.ts'
-import { LEVEL_CONFIGS, AIRPLANE_CROSS_MS, AIRPLANE_APPROACH_MS } from './config.ts'
+import { LEVEL_CONFIGS, AIRPLANE_CROSS_MS, AIRPLANE_APPROACH_MS, AIRPLANE_ROW_MIN, AIRPLANE_ROW_MAX } from './config.ts'
 import { type GameState, addDropMinesInBand } from './game.ts'
 import { createRng } from 'zx-kit'
 import { startAirplane, stopAmbientSounds, startApproachSound, isApproachSoundActive } from './audio.ts'
@@ -65,11 +65,11 @@ function spawnAirplane(state: GameState): void {
   if (state.dropSeedBase !== null) {
     const rng = createRng(`${state.dropSeedBase}:pass${state.airplanePassIndex}`)
     goRight = rng.chance(0.5)
-    yRow = rng.int(ROWS - 2)
+    yRow = rng.range(AIRPLANE_ROW_MIN, AIRPLANE_ROW_MAX + 1)
     scheduledDropCount = rng.range(cfg.acMineDropMin, cfg.acMineDropMax + 1)
   } else {
     goRight = Math.random() > 0.5
-    yRow = Math.floor(Math.random() * (ROWS - 2))
+    yRow = AIRPLANE_ROW_MIN + Math.floor(Math.random() * (AIRPLANE_ROW_MAX - AIRPLANE_ROW_MIN + 1))
     scheduledDropCount = cfg.acMineDropMin + Math.floor(Math.random() * (cfg.acMineDropMax - cfg.acMineDropMin + 1))
   }
   dropScheduled = false

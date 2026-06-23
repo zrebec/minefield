@@ -278,7 +278,11 @@ export function isFieldSolvable(map: TileMap, startRow: number, exitRow: number)
   const safe = (c: number, r: number): boolean => {
     if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false
     const t = map.getTile(c, r)
-    return !!t && !t.solid && t.id !== 'mine'
+    if (!t || t.solid || t.id === 'mine') return false
+    // A flagged mine is still a mine underneath → impassable. (At generation there
+    // are no flags, so this never triggers there; it matters for the runtime guard.)
+    if (t.id === 'flag' && t.metadata?.underneath === 'mine') return false
+    return true
   }
   if (!safe(START_COL, startRow)) return false
   const seen = new Set<number>([key(START_COL, startRow)])
@@ -505,14 +509,27 @@ export function addDropMinesInBand(state: GameState, count: number, minRow: numb
   let attempts = 0
   while (dropped.length < count && attempts < count * 20) {
     attempts++
-    const col = randomInt(rng, 0, COLS - 2)
+    // Forward bias: max of two draws skews the column toward the exit side (higher
+    // cols), so the plane concentrates mines AHEAD, not behind the player. Seeded, so
+    // it stays player-independent → the daily field is identical for everyone.
+    const col = Math.max(randomInt(rng, 0, COLS - 2), randomInt(rng, 0, COLS - 2))
     const row = randomInt(rng, minRow, maxRow)
     // Never let an airdrop seal the exit: keep the exit safe zone clear (fence
     // columns are already skipped by the ground-only check below).
     if (Math.abs(col - (COLS - 1)) <= SAFE_RADIUS && Math.abs(row - state.exitRow) <= SAFE_RADIUS) continue
     const tile = state.map.getTile(col, row)
     if (tile?.id !== 'ground') continue
+    // Solvability guard: tentatively drop, then keep the mine ONLY if a safe entry→exit
+    // path still exists. Mines never land on the player's `visited` trail, so entry→exit
+    // solvability ⇒ the player can always win (retreat along the safe trail to the entry,
+    // then take the guaranteed path). entry→exit is player-independent, so the daily
+    // field stays deterministic. If this drop would seal the field, revert it and skip —
+    // a pass can legitimately place fewer mines than `count`, even 0.
     state.map.setTile(col, row, makeTileMine('normal', cellVariant(col, row), state.terrain))
+    if (!isFieldSolvable(state.map, state.startRow, state.exitRow)) {
+      state.map.setTile(col, row, makeTileGround(cellVariant(col, row), state.terrain))
+      continue
+    }
     state.totalMines++
     dropped.push({ col, row })
   }

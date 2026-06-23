@@ -172,6 +172,13 @@ export const BUILDING_GAP = 1
 // Time for an airplane to cross the screen (ms)
 export const AIRPLANE_CROSS_MS = 3000
 
+// Flight-row band (0-indexed, inclusive): the plane flies somewhere in [MIN, MAX]
+// and scatters its drops in a small band below that row. Kept off the very top/
+// bottom edges to leave room for the future top/bottom fence (row 0 and the last
+// rows). With ROWS = 18 this is 1..14.
+export const AIRPLANE_ROW_MIN = 1
+export const AIRPLANE_ROW_MAX = 14
+
 // ── Audio ─────────────────────────────────────────────────────────────────────
 
 // Master volume (0.0 – 1.0)
