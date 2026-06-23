@@ -58,6 +58,9 @@ export interface MinefieldSave {
   isNight: boolean
   comboCount: number
   nextAircraftMs: number
+  /** Seeded airplane pass counter — drives the `:pass`/`:drop`/`:next` seeds.
+   *  Optional: saves written before it was persisted resume at 0 (old behaviour). */
+  airplanePassIndex?: number
   /** Field seed base: a string for daily runs, null for a random (R-rerolled)
    *  run. Persisted so a resumed random run stays random (and off the
    *  leaderboard). Optional: older saves lack it and resume as daily. */
@@ -172,6 +175,7 @@ function serializeState(state: GameState): MinefieldSave {
     isNight: state.isNight,
     comboCount: state.comboCount,
     nextAircraftMs: state.nextAircraftMs,
+    airplanePassIndex: state.airplanePassIndex,
     dropSeedBase: state.dropSeedBase,
     map,
   }
@@ -199,6 +203,7 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.comboCount = data.comboCount
   target.comboTimer = 0
   target.nextAircraftMs = data.nextAircraftMs
+  target.airplanePassIndex = data.airplanePassIndex ?? 0
   // null is meaningful (random run) so check presence, not truthiness; absent in
   // older saves → keep the daily seed the fresh game was created with.
   if (data.dropSeedBase !== undefined) target.dropSeedBase = data.dropSeedBase
