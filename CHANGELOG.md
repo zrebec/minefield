@@ -1,3 +1,10 @@
+# [0.41.0](https://github.com/zrebec/minefield/compare/v0.40.1...v0.41.0) (2026-06-23)
+
+
+### Features
+
+* **airplane:** BFS solvability guard before each drop + forward bias ([a331557](https://github.com/zrebec/minefield/commit/a3315574163f6720a0cc7b3f30321a9ac9616508))
+
 ## [0.40.1](https://github.com/zrebec/minefield/compare/v0.40.0...v0.40.1) (2026-06-22)
 
 
