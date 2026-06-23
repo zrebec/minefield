@@ -2,14 +2,14 @@
 
 > **Known issue:** `npm audit` flags 1 high vuln (**undici 6.26.0**) bundled inside the `npm` CLI (pulled by semantic-release) — **unfixable downstream, dev/CI-only, never shipped** (the game ships a static Vite bundle). Don't re-investigate (audit fix / `--force` / overrides / nuke all tried 2026-06-20). Full note: `docs/known-issues.md`.
 
-> **⚠️ Open P0 (potential showstopper) — airdrop can break solvability mid-run (2026-06-22).** The
-> perimeter fence guarantees a safe entry→exit path **at generation** (`isFieldSolvable` BFS + deterministic
-> regeneration), but the **aircraft can drop a mine mid-run that seals the only safe route** → the field
-> becomes unsolvable during play. The airdrop today only protects the exit *mouth*, not the interior route.
-> Owner hit this live ("always solvable at the start, but I didn't always get through"). Fix direction:
-> re-check `isFieldSolvable` after each drop and discard any drop that seals the field (same mechanism we
-> already have, applied at runtime; drops are seeded → deterministic). Full analysis + proposal:
-> `retro/docs/sk/minefield.md` §6 (chrobák) + §7 (návrh). **Address before further field work.**
+> **✅ Resolved (2026-06-23) — the field is traversable under all circumstances.** Former P0: an airdrop
+> could seal the only safe route mid-run. **Fixed:** every airdrop now runs `isFieldSolvable` (entry→exit)
+> on the tentative board and **discards any mine that would seal the field** (`addDropMinesInBand`); a pass
+> can place 0 mines. Determinism holds (the guard is entry→exit, player-independent) and the guarantee
+> holds because mines never land on the player's `visited` trail (so they can always retreat to the entry
+> and take the guaranteed path). Drops are also forward-biased and the flight band is rows 1..14. Regression:
+> "solvable after 40 seeds × 8 passes" + "guard refuses every sealing drop". Analysis: `retro/docs/sk/minefield.md`
+> §6/§7.
 
 Guidance for Claude Code when working in this repository. **The code and tests are the source of
 truth** — when this file disagrees with `src/`, the code wins (fix this file).
@@ -58,10 +58,11 @@ sound (and a visual HUD detector) warns you of nearby mines; an aircraft periodi
 - **Win a level:** reach the right edge (`newCol >= COLS`). The right wall is solid except `exitRow`, so
   `movePlayer` funnels the crossing through the exit gap (win logic unchanged). Step on a mine → explosion
   flash, lose a life, **respawn at the entry**. 0 lives **or** 0:00 → GAME OVER (saves deleted — no scumming).
-- **Guaranteed solvable at generation:** `createGame` reserves a SAFE_RADIUS box around **both** gaps
-  (entry pre-existed; exit mirrors it), `fixObstacleTraps` de-traps buildings + fence, and `isFieldSolvable`
-  (BFS) proves a full entry→exit path, regenerating deterministically (`<seed>:r<n>`) if a board seals the
-  exit. **Generation-time only — NOT during play (see the P0 at top).** Test: 300 seeded + 100 random fields.
+- **Guaranteed solvable — generation AND runtime:** `createGame` reserves a SAFE_RADIUS box around **both**
+  gaps (entry pre-existed; exit mirrors it), `fixObstacleTraps` de-traps buildings + fence, and
+  `isFieldSolvable` (BFS) proves a full entry→exit path, regenerating deterministically (`<seed>:r<n>`) if a
+  board seals the exit. **At runtime the airplane is guarded too** (see Aircraft) — so the field stays
+  winnable under all circumstances. Test: 300 seeded + 100 random fields; 40 seeds × 8 airplane passes.
 
 ### Timer (`tickTimer` in game.ts, ticked from main.ts)
 - `state.timeLeftMs` starts at `TIMER_BASE_MS` (10:00). `createGame` sets it, so it **resets every
@@ -108,10 +109,11 @@ backing up). **Property tests over generated levels.** Full spec: `docs/building
 ### Other systems
 - **Terrain** grass/snow/dust (L1 always grass) — sets background + trail colour. **Day/night** cycle
   darkens ground+mine (gems/buildings stay visible).
-- **Aircraft** — per-level timing in `LEVEL_CONFIGS` (`acFirst*`/`acMin*`/`acMax*`); crosses in ~3 s,
-  drops `acMineDropMin..Max` mines on unvisited non-building cells. It **skips the exit safe zone** (can't
-  seal the exit mouth) but **can still seal the interior route** → the **P0 at top**. Status bar blinks
-  `** AIRCRAFT **`; LFO-modulated engine drone.
+- **Aircraft** — per-level timing in `LEVEL_CONFIGS` (`acFirst*`/`acMin*`/`acMax*`); crosses in ~3 s, flies
+  rows `AIRPLANE_ROW_MIN..MAX` (1..14), drops `acMineDropMin..Max` mines on unvisited non-building cells.
+  **Solvability-guarded** (`addDropMinesInBand`): each drop is kept only if `isFieldSolvable` still holds —
+  any mine that would seal the field is discarded (a pass can place 0). Columns are **forward-biased**
+  (`max` of two seeded draws) toward the exit side. Status bar blinks `** AIRCRAFT **`; LFO engine drone.
 - **Detector** (HUD) — mirrors the audio: adjacent mines 0–4 (amber/red discs) + a separate cyan beacon
   LED. Makes the game playable deaf. Spec: `docs/accessibility-detector.md`.
 - **Audio** (`audio.ts`) — square-wave warnings/fanfares via zx-kit `playPattern`; explosion noise;

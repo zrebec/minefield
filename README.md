@@ -29,11 +29,12 @@ the field gradually becomes an irregular maze. They stay visible at night when t
 **The field is fenced in.** A solid perimeter wall runs down the left and right edges, each with a
 single gap: the **entry** (your seeded start row) and the **exit** (a different seeded row, kept at
 least a few rows apart, so there's never a straight line across). The exit is the only way out — you
-have to *find a route* to it, not just walk right. Crucially, **every field is generated so that at
-least one safe path from entry to exit always exists**: the generator reserves a safe zone around
-both gaps and then proves a full safe route with a flood-fill, deterministically regenerating (per
-seed) on the rare board where one is missing. A daily field is therefore **always winnable from the
-start** — the challenge is finding the path, not getting handed an impossible board.
+have to *find a route* to it, not just walk right. Crucially, **the field is traversable under all
+circumstances**: at generation a flood-fill proves a full safe entry→exit route (regenerating
+deterministically on the rare board that lacks one), and **the aircraft can never seal it either** —
+every airdrop is checked and any mine that would cut the last safe route is discarded. A field is
+therefore **always winnable** — the challenge is finding the path, not getting handed (or dropped) an
+impossible board.
 
 Two ways to play:
 
@@ -88,7 +89,8 @@ LED for ranged (2-cell) mines — see [`docs/accessibility-detector.md`](docs/ac
 2. Move to reveal ground — visited cells take a contrasting trail colour (per terrain).
 3. **Win the level:** find and step through the **gap in the right fence** (a different, seeded exit
    row) to cross the right edge (`newCol >= COLS`). The exit is the only crossing — the rest of the
-   right wall is solid. At least one safe entry→exit route is **guaranteed** at generation time.
+   right wall is solid. A safe entry→exit route is **always guaranteed** — at generation and after every
+   airdrop.
 4. Stepping on a mine = explosion, flash, lose a life, respawn at the entry.
 5. **Beat the clock:** each level has a countdown (see Timer); reaching 0:00 ends the run.
 6. 0 lives **or** 0:00 = GAME OVER. On game over, saves are cleared (no save-scumming).
@@ -161,12 +163,15 @@ LFO-modulated for an authentic drone.
 - **Buildings & fix-trap rule** — high-angle buildings are solid, mine-free boxes (see
   [`docs/buildings.md`](docs/buildings.md)); `fixObstacleTraps()` guarantees you never face
   *obstacle ahead + mines on both sides* around any solid obstacle — buildings **and the fence**.
-- **Perimeter fence & guaranteed solvability** — a solid wall encloses the left/right edges with one
-  entry gap (start row) and one exit gap (a seeded row kept ≥ `MIN_ENTRY_EXIT_ROW_GAP` apart). The
-  generator reserves a safe zone around both gaps, then a flood-fill (`isFieldSolvable`) proves a full
-  safe entry→exit route, deterministically regenerating per seed if a board ever seals the exit off —
-  so every daily field is winnable from the start. Covered by a large solvability test (300 seeded
-  fields + 100 random) plus structure/determinism/movement-funnel tests.
+- **Perimeter fence & always-guaranteed solvability** — a solid wall encloses the left/right edges with
+  one entry gap (start row) and one exit gap (a seeded row kept ≥ `MIN_ENTRY_EXIT_ROW_GAP` apart). At
+  **generation** a flood-fill (`isFieldSolvable`) proves a full safe entry→exit route, deterministically
+  regenerating per seed if a board ever seals the exit off. At **runtime**, the **aircraft is guarded
+  too**: every airdrop runs the same flood-fill and discards any mine that would cut the last safe route
+  (the drop just doesn't happen — a pass can place 0 mines). Combined with the invariant that mines never
+  land on the player's `visited` trail, the field is winnable under all circumstances. Covered by
+  solvability tests (300 seeded + 100 random fields; 40 seeds × 8 airplane passes) plus
+  structure/determinism/movement-funnel tests.
 - **Debug overlay** — `zx-kit/debug` (`createDebugMonitor` / `beginFrame` / `endFrame` /
   `sampleDebug` / `drawDebugOverlay`); toggled with `O`. Shows FPS, frame ms, JS CPU load, and
   custom fields (phase, run state, level, mine count). Minefield is zx-kit's first `debug` consumer.
