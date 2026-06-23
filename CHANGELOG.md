@@ -1,3 +1,10 @@
+## [0.41.1](https://github.com/zrebec/minefield/compare/v0.41.0...v0.41.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **player:** reset the score combo on death ([0fe5b3b](https://github.com/zrebec/minefield/commit/0fe5b3b25cce31bfa6c6cb4036555bce93e6c6ff))
+
 # [0.41.0](https://github.com/zrebec/minefield/compare/v0.40.1...v0.41.0) (2026-06-23)
 
 
