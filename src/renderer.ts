@@ -45,7 +45,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, state: GameState): void {
 
   if (state.phase === 'exploding') {
     const frame = state.flashTimer > 300 ? EXPLOSION_1 : EXPLOSION_2
-    drawSprite(ctx, frame, x, y, C.B_YELLOW, C.B_RED)
+    drawSprite(ctx, frame, x, y, C.B_MAGENTA, C.BLACK)  // deadly bloom
     return
   }
 
@@ -54,7 +54,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, state: GameState): void {
     : state.playerDir === 'up' ? (f ? PLAYER_UP_B : PLAYER_UP_A)
       : state.playerDir === 'down' ? (f ? PLAYER_DOWN_B : PLAYER_DOWN_A)
         : (f ? PLAYER_RIGHT_B : PLAYER_RIGHT_A)
-  drawSprite(ctx, sprite, x, y, C.B_WHITE, C.BLACK)
+  drawSprite(ctx, sprite, x, y, C.B_YELLOW, C.BLACK)  // firefly glow
 }
 
 // ─── Airplane rendering ───────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ function renderAirplane(ctx: CanvasRenderingContext2D, plane: AirplaneState): vo
   const x = Math.floor(plane.x)
   const y = plane.y
   const sprite = plane.dir === -1 ? AIRPLANE_LEFT : AIRPLANE_RIGHT
-  drawSprite(ctx, sprite, x, y, C.B_WHITE, C.BLACK)
+  drawSprite(ctx, sprite, x, y, C.B_CYAN, C.BLACK)  // pale moth
 }
 
 // ─── Status bar ───────────────────────────────────────────────────────────────

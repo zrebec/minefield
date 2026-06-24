@@ -6,90 +6,67 @@ export type { Tile }
 
 export type TerrainType = 'grass' | 'snow' | 'dust'
 
-// Ink colours for checkerboard variants a/b per terrain
+// GARDEN OF LIGHT — bioluminescent night palette. The three "terrains" become
+// three glowing garden moods (sparse ground specks read as faint spores on black):
+//   grass → glade (green glow) · snow → frost garden (cyan) · dust → ember/fungal (magenta)
 const TERRAIN_INK: Record<TerrainType, [SpectrumColor, SpectrumColor]> = {
-  grass: [C.B_GREEN,  C.GREEN ],
-  snow:  [C.B_WHITE,  C.WHITE ],
-  dust:  [C.B_YELLOW, C.YELLOW],
+  grass: [C.B_GREEN,   C.GREEN  ],  // glade
+  snow:  [C.B_CYAN,    C.CYAN   ],  // frost garden
+  dust:  [C.B_MAGENTA, C.MAGENTA],  // ember / fungal garden
 }
 
-// Visited-path ink per terrain — chosen for maximum contrast on that background
+// Visited-path ink — the light-spirit leaves a warm glowing trail (reads on all moods).
 const TERRAIN_VISITED_INK: Record<TerrainType, SpectrumColor> = {
   grass: C.B_YELLOW,
-  snow:  C.B_CYAN,
-  dust:  C.B_WHITE,
+  snow:  C.B_YELLOW,
+  dust:  C.B_YELLOW,
 }
 
 // All sprites: 8×8 pixels, each byte = one row, bit7 = leftmost pixel
 
-// Player walk frames — A: legs apart, B: legs together
-// RIGHT / LEFT (side view, symmetric — LEFT is mirrored at module init)
-export const PLAYER_RIGHT_A = new Uint8Array([
-  0x18, // ...##...  head
-  0x3C, // ..####..
-  0x18, // ...##...  neck
-  0x7E, // .######.  arms
-  0x18, // ...##...  torso
-  0x3C, // ..####..  hips
-  0x24, // ..#..#..  legs apart
-  0x66, // .##..##.  boots
-])
-export const PLAYER_RIGHT_B = new Uint8Array([
-  0x18, // ...##...  head
-  0x3C, // ..####..
-  0x18, // ...##...  neck
-  0x7E, // .######.  arms
-  0x18, // ...##...  torso
-  0x3C, // ..####..  hips
-  0x18, // ...##...  legs together
-  0x3C, // ..####..  boots
-])
-export const PLAYER_LEFT_A = mirrorSprite(PLAYER_RIGHT_A)
-export const PLAYER_LEFT_B = mirrorSprite(PLAYER_RIGHT_B)
-
-// UP: back of head (no face)
-export const PLAYER_UP_A = new Uint8Array([
-  0x3C, // ..####..  back of head
-  0x7E, // .######.
-  0x18, // ...##...  neck
-  0x7E, // .######.  arms
-  0x18, // ...##...  back
-  0x3C, // ..####..  hips
-  0x24, // ..#..#..  legs apart
-  0x66, // .##..##.  boots
-])
-export const PLAYER_UP_B = new Uint8Array([
-  0x3C, 0x7E, 0x18, 0x7E, 0x18, 0x3C,
-  0x18, // ...##...  legs together
-  0x3C, // ..####..  boots
-])
-
-// DOWN: front face (dot eyes visible)
-export const PLAYER_DOWN_A = new Uint8Array([
-  0x3C, // ..####..  head
-  0x7E, // .######.
-  0x42, // .#....#.  eyes
-  0x7E, // .######.  arms
-  0x18, // ...##...  torso
-  0x3C, // ..####..  hips
-  0x24, // ..#..#..  legs apart
-  0x66, // .##..##.  boots
-])
-export const PLAYER_DOWN_B = new Uint8Array([
-  0x3C, 0x7E, 0x42, 0x7E, 0x18, 0x3C,
-  0x18, // ...##...  legs together
-  0x3C, // ..####..  boots
-])
-
-// Mine — circular body with spikes
-export const MINE = new Uint8Array([
+// GARDEN OF LIGHT — the player is a firefly / light-spirit. No fixed facing: it
+// flutters (A = wings raised, B = wings lowered), reused for all four directions.
+const FIREFLY_A = new Uint8Array([
   0x00, // ........
-  0x54, // .#.#.#..  spikes
-  0x38, // ..###...  top arc
-  0xFE, // #######.  body
-  0xFE, // #######.
-  0x38, // ..###...  bottom arc
-  0x54, // .#.#.#..  spikes
+  0x42, // .#....#.  wing tips raised
+  0x24, // ..#..#..  wings
+  0x18, // ...##...  glow core
+  0x3C, // ..####..  body glow
+  0x18, // ...##...
+  0x18, // ...##...  tail spark
+  0x00, // ........
+])
+const FIREFLY_B = new Uint8Array([
+  0x00, // ........
+  0x00, // ........
+  0x24, // ..#..#..  wings level
+  0x18, // ...##...  glow core
+  0x3C, // ..####..  body glow
+  0x42, // .#....#.  wing tips lowered
+  0x18, // ...##...  tail spark
+  0x00, // ........
+])
+export const PLAYER_RIGHT_A = FIREFLY_A
+export const PLAYER_RIGHT_B = FIREFLY_B
+export const PLAYER_LEFT_A = FIREFLY_A
+export const PLAYER_LEFT_B = FIREFLY_B
+
+// All four directions reuse the firefly flutter (a light-spirit has no facing).
+export const PLAYER_UP_A = FIREFLY_A
+export const PLAYER_UP_B = FIREFLY_B
+export const PLAYER_DOWN_A = FIREFLY_A
+export const PLAYER_DOWN_B = FIREFLY_B
+
+// "Mine" — a dormant thorn-seed / spore (Garden of Light). Looks asleep; blooms
+// deadly on touch. Mostly hidden as ground; shown on reveal/debug.
+export const MINE = new Uint8Array([
+  0x18, // ...##...  sprout
+  0x18, // ...##...
+  0x24, // ..#..#..  thorns
+  0x5A, // .#.##.#.  thorny pod
+  0x5A, // .#.##.#.
+  0x24, // ..#..#..  thorns
+  0x42, // .#....#.  roots
   0x00, // ........
 ])
 
@@ -117,15 +94,16 @@ export const EXPLOSION_2 = new Uint8Array([
   0x81, // #......#
 ])
 
-// Airplane — simple silhouette
+// "Airplane" — a moth (Garden of Light): the night-sower that scatters spores.
+// Symmetric wings; AIRPLANE_LEFT is its mirror (same shape, kept for the renderer).
 export const AIRPLANE_RIGHT = new Uint8Array([
   0x00, // ........
-  0x04, // .....#..  tail fin
-  0x06, // .....##.
-  0xFF, // ########  fuselage
-  0xFF, // ########
-  0x1E, // ...####.  wing
-  0x04, // .....#..
+  0x66, // .##..##.  antennae / wing tips
+  0xFF, // ########  upper wings spread
+  0x7E, // .######.
+  0x18, // ...##...  body
+  0x3C, // ..####..  lower wings
+  0x66, // .##..##.  wing tips
   0x00, // ........
 ])
 export const AIRPLANE_LEFT = mirrorSprite(AIRPLANE_RIGHT)
@@ -154,27 +132,28 @@ export const FLAG = new Uint8Array([
   0x00, // ........
 ])
 
-// Ground texture A (checkerboard variant 1)
+// GARDEN OF LIGHT ground — SPARSE glowing spores on near-black night soil. Few lit
+// pixels per cell so the field reads dark and the firefly/gems/trail glow against it.
 export const GROUND_A = new Uint8Array([
-  0x55, // .#.#.#.#
   0x00, // ........
-  0x55, // .#.#.#.#
+  0x20, // ..#.....  spore
   0x00, // ........
-  0x55, // .#.#.#.#
   0x00, // ........
-  0x55, // .#.#.#.#
+  0x00, // ........
+  0x02, // ......#.  spore
+  0x00, // ........
   0x00, // ........
 ])
 
-// Ground texture B (checkerboard variant 2, offset)
+// Ground texture B (offset spores)
 export const GROUND_B = new Uint8Array([
-  0xAA, // #.#.#.#.
   0x00, // ........
-  0xAA, // #.#.#.#.
   0x00, // ........
-  0xAA, // #.#.#.#.
   0x00, // ........
-  0xAA, // #.#.#.#.
+  0x08, // ....#...  spore
+  0x00, // ........
+  0x00, // ........
+  0x40, // .#......  spore
   0x00, // ........
 ])
 
@@ -393,19 +372,21 @@ const BUILDING_SPRITE: Record<Exclude<BuildingPart, 'roof'>, Uint8Array> = {
   chimney: BUILDING_CHIMNEY,
 }
 
+// GARDEN OF LIGHT — "buildings" become mossy glowing stones/thickets: grey stone
+// roof, mossy-green face, glowing cyan hollows where the lit windows were.
 const BUILDING_INK: Record<BuildingPart, SpectrumColor> = {
-  roof: C.WHITE,      // grey (dithered)
+  roof: C.WHITE,       // grey stone (dithered)
   eave: C.WHITE,
-  brick: C.B_RED,     // bright front
-  side: C.RED,        // dark edge → 3D
-  window: C.B_YELLOW, // lit panes
-  concrete: C.WHITE,  // white footing
+  brick: C.GREEN,      // moss face
+  side: C.B_GREEN,     // bright moss edge
+  window: C.B_CYAN,    // glowing hollows
+  concrete: C.WHITE,   // pale stone footing
   chimney: C.WHITE,
 }
 
-// Window panes glow yellow over a brick-red frame; everything else is on black.
+// The glowing hollows shine cyan over the dark moss; everything else is on black.
 const BUILDING_PAPER: Partial<Record<BuildingPart, SpectrumColor>> = {
-  window: C.B_RED,
+  window: C.GREEN,
 }
 
 // Deterministic per-cell roof shade — a pure function of position, so the same
@@ -431,9 +412,10 @@ export function makeTileBuilding(part: BuildingPart, col = 0, row = 0): Tile {
   }
 }
 
+// A deadly bloom where a spore opened (Garden of Light) — magenta flower burst.
 export const TILE_EXPLODED: Tile = {
   sprite: EXPLOSION_2,
-  ink: C.B_YELLOW,
+  ink: C.B_MAGENTA,
   paper: C.BLACK,
   solid: false,
   id: 'exploded',
@@ -447,7 +429,7 @@ export const TILE_EXPLODED: Tile = {
 export function makeTileFence(): Tile {
   return {
     sprite: FENCE,
-    ink: C.WHITE,
+    ink: C.B_GREEN,   // glowing hedge / thicket wall (Garden of Light)
     paper: C.BLACK,
     solid: true,
     id: 'fence',
