@@ -1,3 +1,16 @@
+# [0.42.0](https://github.com/zrebec/minefield/compare/v0.41.1...v0.42.0) (2026-06-25)
+
+
+### Bug Fixes
+
+* **input:** calmer key-repeat ([c270d6c](https://github.com/zrebec/minefield/commit/c270d6c9ee4c965fa7bd202dc9ae9ad6111e5ed1))
+
+
+### Features
+
+* **audio:** AY intro underscore + typewriter tick ([b3c310d](https://github.com/zrebec/minefield/commit/b3c310db3207d2af9fd7cc8ee0925fa069fc1c55))
+* **intro:** "The Strip" narrative intro + hand-drawn opening ([2046504](https://github.com/zrebec/minefield/commit/2046504b7cc379813c9e7b188021d9d7f1daf0d9))
+
 ## [0.41.1](https://github.com/zrebec/minefield/compare/v0.41.0...v0.41.1) (2026-06-23)
 
 
