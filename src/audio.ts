@@ -6,7 +6,10 @@ import {
   getAudioContext,
   getMasterGain,
   playPattern,
+  seq,
+  playAYLoop,
   type Note,
+  type LoopHandle,
 } from 'zx-kit'
 
 export { resumeAudio }
@@ -28,7 +31,7 @@ const STARTUP_JINGLE: Note[] = [
   { freq: 523, dur: 120 },  // C5
   { freq: 622, dur: 120 },  // Eb5
   { freq: 740, dur: 300 },  // F#5 — peak, held
-  { freq: 0,   dur: 200 },  // silence — tension
+  { freq: 0, dur: 200 },  // silence — tension
   // Minor second trill — dissonant, unsettling
   { freq: 440, dur: 70 },
   { freq: 466, dur: 70 },
@@ -37,12 +40,12 @@ const STARTUP_JINGLE: Note[] = [
   { freq: 440, dur: 70 },
   { freq: 466, dur: 70 },
   { freq: 440, dur: 70 },
-  { freq: 0,   dur: 250 },  // silence — hold tension
+  { freq: 0, dur: 250 },  // silence — hold tension
   // Final tritone stab — diabolus in musica
   { freq: 196, dur: 120 },  // G3
-  { freq: 0,   dur: 60  },
+  { freq: 0, dur: 60 },
   { freq: 131, dur: 120 },  // C3
-  { freq: 0,   dur: 60  },
+  { freq: 0, dur: 60 },
   { freq: 185, dur: 700 },  // F#3 — tritone from C, ominous end
 ]
 
@@ -63,14 +66,14 @@ export function playWarning(mineCount: number): void {
   lastWarnTime = now
 
   const configs: [number, number, number, number][] = [
-    [880,  80,  1, 60],
-    [740,  80,  2, 60],
-    [587, 100,  3, 55],
-    [440, 120,  4, 50],
-    [330, 150,  5, 40],
-    [220, 200,  6, 40],
-    [110, 300,  3, 30],
-    [110, 300,  4, 25],
+    [250, 20, 1, 60],
+    [740, 80, 2, 60],
+    [587, 100, 3, 55],
+    [440, 120, 4, 50],
+    [330, 150, 5, 40],
+    [220, 200, 6, 40],
+    [110, 300, 3, 30],
+    [110, 300, 4, 25],
   ]
   const [freq, dur, pips, gap] = configs[Math.min(mineCount, 8) - 1]
   const notes: Note[] = []
@@ -174,11 +177,11 @@ export function isAmbientSoundActive(): boolean {
 
 export function playFootstep(terrain: TerrainType = 'grass'): void {
   const patterns: Record<TerrainType, Note[]> = {
-    grass: [{ freq: 85,  dur: 28 }],
+    grass: [{ freq: 65, dur: 15 }],
     // double-crunch — two short low pulses, muffled by snow
-    snow:  [{ freq: 60,  dur: 20 }, { freq: 0, dur: 10 }, { freq: 55, dur: 14 }],
+    snow: [{ freq: 60, dur: 20 }, { freq: 0, dur: 10 }, { freq: 55, dur: 14 }],
     // single sharp tap — dry, higher pitch
-    dust:  [{ freq: 140, dur: 16 }],
+    dust: [{ freq: 140, dur: 16 }],
   }
   playPattern(patterns[terrain])
 }
@@ -232,5 +235,33 @@ export function stopAmbientSounds(): void {
   airplaneOsc = null
   airplaneLfo = null
   airplaneGain = null
+}
+
+// ── Story intro audio ("The Strip") ────────────────────────────────────────
+// The intro is the only place the kit's AY chip is used (everything else is the
+// beeper). A somber, sparse minor loop underscores the typewriter story; a dry
+// per-character tick is the "key strike". Both are NEW sounds — nothing existing
+// is touched. Tune freely by ear.
+
+let introMusic: LoopHandle | null = null
+
+// A4-minor lament (channel A) over a slow A2/E2 drone (channel B), ~5.8 s loop.
+export function startIntroMusic(): void {
+  if (introMusic) return
+  introMusic = playAYLoop({
+    a: seq('A4:900 r:300 C5:600 B4:600 A4:900 r:300 E4:1200 r:1000'),
+    b: seq('A2:2900 E2:2900'),
+  })
+}
+
+export function stopIntroMusic(): void {
+  introMusic?.stop()
+  introMusic = null
+}
+
+// One short, dry beeper tick per typed character — a typewriter "clack", not a
+// pitched note (kept high + brief so it sits over the AY without clashing).
+export function playTypeClick(): void {
+  playPattern([{ freq: 1760, dur: 6 }])
 }
 
