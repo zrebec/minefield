@@ -135,7 +135,7 @@ export const STR_GOAL       = 'PREJDI POLE!'                // 12 znakov
 
 export const STR_AUDIO_HINT = 'KLIK/TAP PRE ZVUK'           // 17 znakov
 
-export const STR_START_HINT = 'SPACE = DENNY    R = NAHODNY' // 28 znakov
+export const STR_START_HINT = 'SPACE=DENNY R=NAHODNY I=INTRO' // 29 znakov; I = prehrať intro
 
 // ── Príbehové intro ("The Strip") ──────────────────────────────────────────
 // Bez diakritiky (ROM font), každý riadok ≤ 30 znakov, '-' namiesto pomlčky.

@@ -5,9 +5,12 @@ import {
   createStoryState,
   stepStory,
   renderStoryCard,
+  introDue,
   MS_PER_CHAR,
   CARD_HOLD_MS,
 } from './intro.ts'
+
+const DAY = 86_400_000
 
 // zx-kit draws pixel-by-pixel via fillStyle + fillRect; a recording stub is
 // enough to prove renderStoryCard runs end-to-end without a real canvas.
@@ -109,5 +112,27 @@ describe('renderStoryCard — smoke', () => {
     const ctx = makeMockCtx()
     expect(() => renderStoryCard(ctx, 0, 0, false)).not.toThrow()
     expect(() => renderStoryCard(ctx, 0, 9999, true)).not.toThrow()
+  })
+})
+
+describe('introDue — when the intro pre-rolls', () => {
+  const now = 1_000 * DAY
+
+  it('is due when never seen (no record)', () => {
+    expect(introDue(null, now, 1, 1)).toBe(true)
+  })
+
+  it('is due when the content version changed (refreshed)', () => {
+    expect(introDue({ v: 1, t: now }, now, 2, 30)).toBe(true)
+  })
+
+  it('is NOT due within the revalidate window', () => {
+    expect(introDue({ v: 1, t: now - 0.5 * DAY }, now, 1, 1)).toBe(false)   // <1 day, daily window
+    expect(introDue({ v: 1, t: now - 10 * DAY }, now, 1, 30)).toBe(false)   // <30 days, monthly window
+  })
+
+  it('is due once the window has elapsed', () => {
+    expect(introDue({ v: 1, t: now - 1 * DAY }, now, 1, 1)).toBe(true)      // exactly 1 day, daily
+    expect(introDue({ v: 1, t: now - 31 * DAY }, now, 1, 30)).toBe(true)    // past 30 days, monthly
   })
 })

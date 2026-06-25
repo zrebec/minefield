@@ -13,6 +13,7 @@
 
 import { drawText, drawSprite, drawChar, drawShade, DITHER } from 'zx-kit'
 import { CANVAS_W, CANVAS_H, CELL, COLS, C } from './constants.ts'
+import { INTRO_VERSION, INTRO_REVALIDATE_DAYS } from './config.ts'
 import { L } from './lang.ts'
 import { PLAYER_RIGHT_A, AIRPLANE_RIGHT, MINE, GEM } from './sprites.ts'
 
@@ -72,6 +73,51 @@ export function stepStory(
     if (s.card >= cards.length) s.finished = true
   }
   return s
+}
+
+// ── "Seen" gate (localStorage) ─────────────────────────────────────────────
+// The intro plays once per mode-start when "due": never seen, the content version
+// changed (refreshed), or the last view is older than the revalidate window. The
+// `I` key on the title replays it on demand regardless of this gate.
+
+const INTRO_SEEN_KEY = 'minefield_intro'
+
+interface IntroSeen { v: number; t: number }  // content version + last-seen timestamp (ms)
+
+/** Pure due-check — exported for tests; no I/O. */
+export function introDue(
+  record: IntroSeen | null,
+  now: number,
+  version: number,
+  revalidateDays: number,
+): boolean {
+  if (!record) return true
+  if (record.v !== version) return true
+  return now - record.t >= revalidateDays * 86_400_000
+}
+
+function readIntroSeen(): IntroSeen | null {
+  try {
+    const raw = localStorage.getItem(INTRO_SEEN_KEY)
+    if (!raw) return null
+    const o: unknown = JSON.parse(raw)
+    if (o && typeof o === 'object'
+      && typeof (o as IntroSeen).v === 'number'
+      && typeof (o as IntroSeen).t === 'number') return o as IntroSeen
+    return null
+  } catch { return null }
+}
+
+/** Should the intro pre-roll on this mode start? */
+export function isIntroDue(): boolean {
+  return introDue(readIntroSeen(), Date.now(), INTRO_VERSION, INTRO_REVALIDATE_DAYS)
+}
+
+/** Record the intro as seen (on finish OR skip) — silences it for the window. */
+export function markIntroSeen(): void {
+  try {
+    localStorage.setItem(INTRO_SEEN_KEY, JSON.stringify({ v: INTRO_VERSION, t: Date.now() }))
+  } catch { /* storage unavailable → intro simply re-shows, harmless */ }
 }
 
 const TEXT_X = 2 * CELL    // left margin of the typed text block

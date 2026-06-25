@@ -179,8 +179,8 @@ export const STR_GOAL       = 'CROSS THE FIELD!'       // 16 chars
 // Audio unlock prompt — appears under the controls list. 25 chars.
 export const STR_AUDIO_HINT = 'CLICK/TAP TO ENABLE SOUND'
 
-// "Press to start" banner — blinks. 29 chars.
-export const STR_START_HINT = 'SPACE = DAILY    R = RANDOM'
+// "Press to start" banner — blinks. ≤ 32 chars. `I` replays the story intro.
+export const STR_START_HINT = 'SPACE=DAILY  R=RANDOM  I=INTRO'
 
 // ── Story intro ("The Strip") ──────────────────────────────────────────────
 // Played once on cold load before the title (see intro.ts / main.ts 'story'

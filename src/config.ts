@@ -20,6 +20,17 @@
  */
 export const LANGUAGE_CODE: 'sk' | null = null
 
+// ── Story intro ───────────────────────────────────────────────────────────────
+
+// Bump whenever the intro content changes — forces it to re-show even for players
+// who already saw the old one (a versioned "what's new" gate).
+export const INTRO_VERSION = 1
+
+// How long a "seen" mark stays valid before the intro re-shows on the next mode
+// start (days). **1 = daily** while we keep iterating pre-1.0; set to ~30 (monthly)
+// at v1.0. Replaying with `I` from the title is always available regardless.
+export const INTRO_REVALIDATE_DAYS = 1
+
 // ── Input ─────────────────────────────────────────────────────────────────────
 
 // Initial delay before key-repeat starts (ms) — how long after first press
