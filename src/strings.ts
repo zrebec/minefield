@@ -152,8 +152,9 @@ export const STR_HISCORE_HINT_KEYBOARD  = 'KEYBOARD: TYPE LETTERS'
 // ── Intro / title screen ──────────────────────────────────────────────────
 
 // Game title — uses single-spaced letters for the retro spread effect.
-// 17 chars including spaces.
-export const STR_TITLE    = 'M I N E F I E L D'
+// 17 chars including spaces. "The Strip" is the game's name (see the story
+// intro); the repo/dir still read "minefield" until a later focused rename.
+export const STR_TITLE    = 'T H E   S T R I P'
 
 // Subtitle under the title. 21 chars.
 export const STR_SUBTITLE = 'ZX  SPECTRUM  EDITION'
@@ -180,6 +181,44 @@ export const STR_AUDIO_HINT = 'CLICK/TAP TO ENABLE SOUND'
 
 // "Press to start" banner — blinks. 29 chars.
 export const STR_START_HINT = 'SPACE = DAILY    R = RANDOM'
+
+// ── Story intro ("The Strip") ──────────────────────────────────────────────
+// Played once on cold load before the title (see intro.ts / main.ts 'story'
+// phase). Each card is an array of left-aligned lines, typed out one char at a
+// time. Keep every line ≤ 30 chars (ASCII only — the ZX ROM font has no em-dash;
+// use '-'). The card COUNT must match across locales (strings.test.ts guards it).
+export const STR_STORY_CARDS: readonly (readonly string[])[] = [
+  [
+    'WINTER. THE ELEVENTH YEAR',
+    'OF A WAR NO ONE DECLARED.',
+    'BETWEEN THE WALLS LIES THE',
+    'STRIP: A FIELD OF BURIED',
+    'DEATH.',
+  ],
+  [
+    'EACH NIGHT THEIR SOWER',
+    'FLIES OVER AND SEEDS IT',
+    'ANEW. EACH NIGHT,',
+    'A DIFFERENT GRAVE.',
+  ],
+  [
+    'YOU CROSS IN THE DARK.',
+    'YOU CANNOT SEE THE MINES -',
+    'YOU HEAR THEM. FIND THE GAP',
+    'IN THE FAR WALL. GET',
+    'ACROSS BEFORE DAWN.',
+  ],
+  [
+    'IT TOOK UNTIL SPRING TO',
+    'FIND THE FIRST RUNNER',
+    'WILLING TO CROSS.',
+    'BUT HE MADE IT. AND HE',
+    'CARRIED THE FIRST ONE HOME.',
+  ],
+]
+
+// Hint shown (blinking) at the bottom of every story card. 14 chars.
+export const STR_STORY_SKIP_HINT = 'ANY KEY = SKIP'
 
 // Footer lines — copyright + zx-kit version. `(C) 2026  RELEASE:{x}` is
 // stretched to fit the right-aligned RELEASE tag without overflow at

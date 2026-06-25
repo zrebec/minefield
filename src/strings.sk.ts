@@ -115,7 +115,9 @@ export const STR_HISCORE_HINT_KEYBOARD  = 'KLAVESNICA: PISAJ PISMENA'        // 
 
 // ── Intro / title screen ──────────────────────────────────────────────────
 
-export const STR_TITLE    = 'M I N O V E   P O L E'         // 21 znakov — širšie ale fits
+// "The Strip" je názov hry (brand, nechávame anglicky); repo/adresár zatiaľ
+// ostáva "minefield" do neskoršieho cieleného premenovania.
+export const STR_TITLE    = 'T H E   S T R I P'             // 17 znakov
 
 export const STR_SUBTITLE = 'ZX  SPECTRUM  EDICIA'          // 20 znakov
 
@@ -134,6 +136,38 @@ export const STR_GOAL       = 'PREJDI POLE!'                // 12 znakov
 export const STR_AUDIO_HINT = 'KLIK/TAP PRE ZVUK'           // 17 znakov
 
 export const STR_START_HINT = 'SPACE = DENNY    R = NAHODNY' // 28 znakov
+
+// ── Príbehové intro ("The Strip") ──────────────────────────────────────────
+// Bez diakritiky (ROM font), každý riadok ≤ 30 znakov, '-' namiesto pomlčky.
+// Počet kariet musí sedieť s EN (stráži strings.test.ts).
+export const STR_STORY_CARDS: readonly (readonly string[])[] = [
+  [
+    'ZIMA. JEDENASTY ROK',
+    'VOJNY KTORU NIKTO',
+    'NEVYHLASIL. MEDZI MURMI',
+    'LEZI PAS - POLE',
+    'POCHOVANEJ SMRTI.',
+  ],
+  [
+    'KAZDU NOC ICH ROZSIEVAC',
+    'PRELETI A ZNOVA HO ZASEJE.',
+    'KAZDU NOC INY HROB.',
+  ],
+  [
+    'PRECHADZAS POTME.',
+    'MINY NEVIDIS - POCUJES ICH.',
+    'NAJDI MEDZERU V DRUHEJ',
+    'STENE. PREJDI PRED USVITOM.',
+  ],
+  [
+    'PRVEHO POSLA NASLI',
+    'AZ NA JAR. ALE PRESIEL.',
+    'A PRVU ZASIELKU',
+    'DONIESOL DOMOV.',
+  ],
+]
+
+export const STR_STORY_SKIP_HINT = 'LUBOVOLNA KLAVESA = DALEJ' // 25 znakov
 
 export const STR_COPYRIGHT      = (build: string)   => `(C) 2026  VYDANIE:${build}`
 export const STR_ZXKIT_VERSION  = (version: string) => `ZX-KIT:${version}`

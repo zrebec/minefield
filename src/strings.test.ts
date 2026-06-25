@@ -28,3 +28,30 @@ describe('controls / i18n consistency', () => {
     expect(en.STR_PAUSE_TITLES.length).toBe(sk.STR_PAUSE_TITLES.length)
   })
 })
+
+// The story intro is typed char-by-char with the ZX ROM font (ASCII only) and
+// left-aligned, so every line must be ASCII and fit the 256 px (32-cell) canvas.
+// The card count must match across locales or main.ts walks off the end of one.
+describe('story intro cards', () => {
+  it('has the same number of cards in both languages', () => {
+    expect(en.STR_STORY_CARDS.length).toBe(sk.STR_STORY_CARDS.length)
+    expect(en.STR_STORY_CARDS.length).toBeGreaterThan(0)
+  })
+
+  it('every line is ASCII (the ROM font has no em-dash/diacritics) and ≤ 30 chars', () => {
+    for (const pack of [en, sk]) {
+      for (const card of pack.STR_STORY_CARDS) {
+        for (const line of card) {
+          expect(line.length, line).toBeLessThanOrEqual(30)
+          // eslint-disable-next-line no-control-regex
+          expect(/^[\x20-\x7E]*$/.test(line), line).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('has a skip hint in both languages', () => {
+    expect(en.STR_STORY_SKIP_HINT).toBeTruthy()
+    expect(sk.STR_STORY_SKIP_HINT).toBeTruthy()
+  })
+})

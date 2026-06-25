@@ -2,18 +2,19 @@ import { C, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
 import { createGame, dailySeed, tickTimer, tryToggleReveal, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap } from './input.ts'
-import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver } from './audio.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
+import { renderStoryCard, createStoryState, stepStory } from './intro.ts'
 import { isHighScore, saveHighScore } from './assets/highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
 import { L } from './lang.ts'
 
-type AppPhase = 'intro' | 'ingame' | 'hiscore'
+type AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'
 
-let appPhase: AppPhase = 'intro'
+let appPhase: AppPhase = 'story'
 let state: GameState = createGame(0, 0, dailySeed(0))  // placeholder; replaced on resume/start
 setStateGetter(() => state)
 let lastTime = 0
@@ -50,6 +51,12 @@ const INTRO_PAGE_MS = 3000
 let introPage = 0
 let introPageTimer = INTRO_PAGE_MS
 
+// Story intro ("The Strip"): typewriter cards shown once on cold load, before
+// the title. A save-resume (below) skips straight to 'ingame', so returning
+// players never sit through it.
+const story = createStoryState()
+let introMusicStarted = false   // AY underscore starts the moment audio unlocks
+
 function getCtx(): CanvasRenderingContext2D {
   return (document.getElementById('game') as HTMLCanvasElement).getContext('2d')!
 }
@@ -62,7 +69,9 @@ function initAudioOnce(): void {
   if (!audioReady) {
     initAudio()
     audioReady = true
-    playStartupJingle()
+    // The horror sting is the title's sound; during the story the AY underscore
+    // plays instead, so don't fire the jingle on top of it.
+    if (appPhase !== 'story') playStartupJingle()
   }
 }
 
@@ -100,6 +109,34 @@ function gameLoop(timestamp: number): void {
   const ctx = getCtx()
 
   const blink = tickBlinker(blinker, dt)
+
+  if (appPhase === 'story') {
+    setBorderColor(C.B_BLUE)
+    tickMovement(dt)  // keep gamepad polled
+    const pressed = consumeAnyKey() || consumePause()
+    // Start the AY underscore the instant audio is unlocked (key OR click). The
+    // unlocking key only enables sound — it must not also skip the first card.
+    let justEnabled = false
+    if (audioReady && !introMusicStarted) {
+      startIntroMusic()
+      introMusicStarted = true
+      justEnabled = true
+    }
+    const before = Math.floor(story.revealed)
+    stepStory(story, dt, justEnabled ? false : pressed)
+    if (Math.floor(story.revealed) > before) playTypeClick()  // a fresh char appeared
+    if (story.finished) {
+      stopIntroMusic()
+      resetInput()
+      appPhase = 'intro'
+      introPage = 0
+      introPageTimer = INTRO_PAGE_MS
+    } else {
+      renderStoryCard(ctx, story.card, Math.floor(story.revealed), blink)
+    }
+    finishFrame(ctx)
+    return
+  }
 
   if (appPhase === 'intro') {
     setBorderColor(C.B_BLUE)
