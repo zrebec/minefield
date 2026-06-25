@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, isFieldSolvable, tryToggleReveal, tickTimer, GEM_KINDS, type MineType, type GameState } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, isFieldSolvable, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from './game.ts'
 import { movePlayer } from './player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
@@ -1420,5 +1420,34 @@ describe('airplane drops — solvability guard', () => {
     }
     const mean = cols.reduce((acc, c) => acc + c, 0) / cols.length
     expect(mean).toBeGreaterThan((COLS - 2) / 2)   // skewed past the midpoint toward the exit
+  })
+})
+
+// ── Daily run origin date (highscore fairness) ────────────────────────────────
+
+describe('seedDate', () => {
+  it('extracts the YYYY-MM-DD prefix from a daily seed', () => {
+    expect(seedDate('2026-06-24:L3')).toBe('2026-06-24')
+    expect(seedDate('2026-06-24:L0')).toBe('2026-06-24')
+  })
+  it('is null for a random run (null seed)', () => {
+    expect(seedDate(null)).toBeNull()
+  })
+  it('is null for a non-dated / malformed seed', () => {
+    expect(seedDate('garbage')).toBeNull()
+    expect(seedDate('L3')).toBeNull()
+  })
+})
+
+describe('nextDailySeed — a daily run keeps its origin date across levels', () => {
+  it('reuses the run date (not today) for the next level', () => {
+    expect(nextDailySeed('2026-06-24:L0', 1)).toBe('2026-06-24:L1')
+    expect(nextDailySeed('2026-06-24:L1', 2)).toBe('2026-06-24:L2')
+  })
+  it('returns undefined for a random run (null seed)', () => {
+    expect(nextDailySeed(null, 1)).toBeUndefined()
+  })
+  it('falls back to today for a malformed daily seed', () => {
+    expect(nextDailySeed('weird', 1)).toBe(`${todaySeed()}:L1`)
   })
 })

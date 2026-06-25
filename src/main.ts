@@ -1,20 +1,20 @@
 import { C, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
-import { createGame, dailySeed, tickTimer, tryToggleReveal, type GameState, type GamePhase, type Dir } from './game.ts'
+import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
-import { renderStoryCard, createStoryState, stepStory } from './intro.ts'
+import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen } from './intro.ts'
 import { isHighScore, saveHighScore } from './assets/highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
 import { L } from './lang.ts'
 
 type AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'
 
-let appPhase: AppPhase = 'story'
+let appPhase: AppPhase = 'intro'
 let state: GameState = createGame(0, 0, dailySeed(0))  // placeholder; replaced on resume/start
 setStateGetter(() => state)
 let lastTime = 0
@@ -51,11 +51,15 @@ const INTRO_PAGE_MS = 3000
 let introPage = 0
 let introPageTimer = INTRO_PAGE_MS
 
-// Story intro ("The Strip"): typewriter cards shown once on cold load, before
-// the title. A save-resume (below) skips straight to 'ingame', so returning
-// players never sit through it.
-const story = createStoryState()
-let introMusicStarted = false   // AY underscore starts the moment audio unlocks
+// Story intro ("The Strip"): a typewriter pre-roll. Shown when "due" (isIntroDue)
+// on a mode start, or on demand via the title's `I` key. `storyReturn` is where it
+// hands off when finished/skipped: into the chosen game, or back to the title.
+let story = createStoryState()
+let introMusicStarted = false        // AY underscore starts the moment audio unlocks
+let storyReturn: 'intro' | 'ingame' = 'intro'
+let storyPendingRandom = false       // which mode to launch when storyReturn === 'ingame'
+let introReplayPending = false       // title `I` key → replay the intro
+let jingled = false                  // startup sting plays once per session (direct start only)
 
 function getCtx(): CanvasRenderingContext2D {
   return (document.getElementById('game') as HTMLCanvasElement).getContext('2d')!
@@ -66,12 +70,12 @@ function setBorderColor(color: SpectrumColor): void {
 }
 
 function initAudioOnce(): void {
+  // Unlock the AudioContext on the first user gesture. The startup jingle is no
+  // longer fired here (it clashed with the intro AY) — it plays once on a direct
+  // game-start instead (see the title mode-select).
   if (!audioReady) {
     initAudio()
     audioReady = true
-    // The horror sting is the title's sound; during the story the AY underscore
-    // plays instead, so don't fire the jingle on top of it.
-    if (appPhase !== 'story') playStartupJingle()
   }
 }
 
@@ -82,6 +86,31 @@ function enterHiScore(): void {
   resetInput()
   appPhase = 'hiscore'
   flashBorder(C.B_WHITE, 2, 80, C.B_CYAN)
+}
+
+// Begin a fresh run in the chosen mode. No save can exist at the title
+// (auto-resume skips it), so this is always a fresh level 1.
+function startRun(random: boolean): void {
+  initAudioOnce()
+  stopAmbientSounds()
+  // random ⇒ dropSeedBase null ⇒ off the leaderboard.
+  state = createGame(0, 0, random ? undefined : dailySeed(0))
+  writeSave(saveProfile, 'auto')   // make the run resumable from level 1
+  resetInput()
+  appPhase = 'ingame'
+  setBorderColor(C.BLACK)
+}
+
+// Play the story intro. `returnTarget` is the hand-off when it finishes or is
+// skipped: 'ingame' pre-rolls into `storyPendingRandom`'s mode; 'intro' → title.
+function enterStory(returnTarget: 'intro' | 'ingame', random = false): void {
+  story = createStoryState()
+  storyReturn = returnTarget
+  storyPendingRandom = random
+  introMusicStarted = false
+  resetInput()
+  appPhase = 'story'
+  setBorderColor(C.B_BLUE)
 }
 
 function finishFrame(ctx: CanvasRenderingContext2D): void {
@@ -127,10 +156,15 @@ function gameLoop(timestamp: number): void {
     if (Math.floor(story.revealed) > before) playTypeClick()  // a fresh char appeared
     if (story.finished) {
       stopIntroMusic()
-      resetInput()
-      appPhase = 'intro'
-      introPage = 0
-      introPageTimer = INTRO_PAGE_MS
+      markIntroSeen()               // seen on finish OR skip — silence it for the window
+      if (storyReturn === 'ingame') {
+        startRun(storyPendingRandom)   // pre-roll done → into the chosen game
+      } else {
+        resetInput()
+        appPhase = 'intro'             // launched via I → back to the title
+        introPage = 0
+        introPageTimer = INTRO_PAGE_MS
+      }
     } else {
       renderStoryCard(ctx, story.card, Math.floor(story.revealed), blink)
     }
@@ -148,22 +182,23 @@ function gameLoop(timestamp: number): void {
     tickMovement(dt)  // keep gamepad polled
     if (consumePause()) startKeyPending = true         // gamepad Start = daily
     if (consumeRandomMap()) startRandomPending = true  // R = random (title only)
-    if (startKeyPending || startRandomPending) {
+    if (introReplayPending) {
+      introReplayPending = false
+      consumeAnyKey()
+      initAudioOnce()
+      enterStory('intro')              // I → watch the intro, then back to the title
+    } else if (startKeyPending || startRandomPending) {
       const random = startRandomPending
       startKeyPending = false
       startRandomPending = false
       consumeAnyKey()   // drain so no stale key reaches ingame
       initAudioOnce()
-      stopAmbientSounds()
-      // No save can exist at the title (auto-resume skips it when one does), so
-      // this is always a fresh run. random ⇒ dropSeedBase null ⇒ off the board.
-      state = createGame(0, 0, random ? undefined : dailySeed(0))
-      writeSave(saveProfile, 'auto')   // make the run resumable from level 1
-      introPage = 0
-      introPageTimer = INTRO_PAGE_MS
-      resetInput()
-      appPhase = 'ingame'
-      setBorderColor(C.BLACK)
+      if (isIntroDue()) {
+        enterStory('ingame', random)   // pre-roll the intro, then start the chosen mode
+      } else {
+        if (!jingled) { playStartupJingle(); jingled = true }  // title sting, once, only when we skip the intro
+        startRun(random)
+      }
     }
     renderIntro(ctx, blink, introPage)
     finishFrame(ctx)
@@ -178,7 +213,10 @@ function gameLoop(timestamp: number): void {
         padLetterIdx = 0
       } else if (key === 'ENTER') {
         if (hiCursor >= 1) {
-          saveHighScore({ name: hiName.join('').padEnd(3, ' '), score: state.score, level: state.level + 1 })
+          // Date the entry by the daily it belongs to (origin date), not wall-clock,
+          // so a resumed older daily scores under its own date. Random never reaches
+          // here; daily always has the prefix; undefined falls back to today.
+          saveHighScore({ name: hiName.join('').padEnd(3, ' '), score: state.score, level: state.level + 1, date: seedDate(state.dropSeedBase) ?? undefined })
           resetInput()
           appPhase = 'intro'
           setBorderColor(C.B_BLUE)
@@ -286,11 +324,13 @@ function gameLoop(timestamp: number): void {
     if (state.levelCompleteTimer <= 0) {
       const prevScore = state.score
       const prevInventory = state.inventory
-      const wasRandom = state.dropSeedBase === null
       stopAmbientSounds()
       // random run stays random across levels; otherwise the daily field per level.
-      // Backpack carries over (it's the player's, not the field's).
-      state = createGame(state.level + 1, prevScore, wasRandom ? undefined : dailySeed(state.level + 1), prevInventory)
+      // Keep the run on its ORIGIN date (don't re-derive from today) so a run that
+      // crosses midnight / is resumed next day stays one coherent daily — and its
+      // highscore is dated by the field actually played. Backpack carries over.
+      const nextSeed = nextDailySeed(state.dropSeedBase, state.level + 1)
+      state = createGame(state.level + 1, prevScore, nextSeed, prevInventory)
       writeSave(saveProfile, 'auto')   // checkpoint at the start of every level
     }
 
@@ -347,6 +387,8 @@ function main(): void {
     if (appPhase === 'intro') {
       if (e.key === ' ' || e.key === 'Enter' || e.key === 's' || e.key === 'S') {
         startKeyPending = true
+      } else if (e.key === 'i' || e.key === 'I') {
+        introReplayPending = true   // replay the story intro on demand
       }
     } else if (appPhase === 'hiscore') {
       if (e.key.length === 1 && /[A-Za-z]/.test(e.key)) {

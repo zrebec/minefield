@@ -75,6 +75,28 @@ export function dailySeed(level: number): string {
   return `${todaySeed()}:L${level}`
 }
 
+/**
+ * The `YYYY-MM-DD` date a seed belongs to — the prefix of a daily seed
+ * (`"2026-06-24:L3"` → `"2026-06-24"`). `null` for a random run (`dropSeedBase === null`)
+ * or any non-dated seed. Lets a daily run keep its **origin** date across levels and
+ * reloads (so its highscore is dated by the field actually played, not wall-clock).
+ */
+export function seedDate(seed: string | null): string | null {
+  if (seed === null) return null
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(seed)
+  return m ? m[1] : null
+}
+
+/**
+ * The seed for the next level of a run, keeping a daily run on its **origin** date
+ * (not today's) so a multi-day / resumed daily stays one coherent challenge.
+ * `undefined` for a random run (`currentSeed === null`) — random rerolls fresh.
+ */
+export function nextDailySeed(currentSeed: string | null, nextLevel: number): string | undefined {
+  if (currentSeed === null) return undefined
+  return `${seedDate(currentSeed) ?? todaySeed()}:L${nextLevel}`
+}
+
 export type GamePhase = 'intro' | 'playing' | 'exploding' | 'levelcomplete' | 'gameover'
 export type RunState = 'idle' | 'running' | 'paused'
 export type Dir = 'up' | 'down' | 'left' | 'right'
