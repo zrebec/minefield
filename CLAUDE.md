@@ -18,7 +18,7 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (266 tests)
+npm test          # Vitest (284 tests)
 npm run build     # dist/
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
 ```
@@ -31,21 +31,22 @@ src/
 ├── constants.ts   # resolution + palette re-export from zx-kit (COLS=32, ROWS=18, STATUS_ROWS=6)
 ├── font.ts        # ZX ROM font re-export
 ├── sprites.ts     # all sprites + tile factories as Uint8Array (8×8); makeTileFence, etc.
-├── audio.ts       # Web Audio: warnings, explosion, fanfare, aircraft drone, volume
+├── audio.ts       # Web Audio: warnings, explosion, fanfare, aircraft drone, volume; + intro AY underscore + typewriter tick
 ├── input.ts       # zx-kit input wrapper + game keys (D reveal, R random, SHIFT+S, +/-)
 ├── game.ts        # GameState, TileMap, field/gem/building gen, daily seed, isFieldSolvable, addDropMinesInBand
 ├── player.ts      # movement, collision, flag, respawn, scoring, gem pickup, combo
 ├── airplane.ts    # aircraft timer, animation, mine drop (calls addDropMinesInBand)
+├── intro.ts       # "The Strip" story intro: stepStory state machine + typewriter + hand-drawn establishing shot (8×8 tiles)
 ├── renderer.ts    # TileMap, sprites, HUD, detector, night, overlays
 ├── save.ts        # zx-kit save profile wiring (version 5)
-├── strings.ts / strings.sk.ts / lang.ts   # i18n packs
+├── strings.ts / strings.sk.ts / lang.ts   # i18n packs (incl. STR_STORY_CARDS)
 └── main.ts        # game loop, phase switching, debug overlay (finishFrame helper)
 ```
 
 ## Important State Models
 
 - `GamePhase = 'playing' | 'exploding' | 'levelcomplete' | 'gameover'`
-- `AppPhase = 'intro' | 'ingame' | 'hiscore'`
+- `AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'` (`'story'` = the cold-load narrative intro → `'intro'` title)
 - `runState = 'idle' | 'running' | 'paused'` (idle = scout before the first step; reveal + freeze the timer)
 - **Game loop:** `gameLoop` is guard-clause style — `intro`/`hiscore` `return` early, `ingame` falls
   through. Each exit path schedules the next frame via **`finishFrame(ctx)`** (runs `endFrame(dbg)` then
@@ -53,6 +54,22 @@ src/
   `beginFrame(dbg, timestamp)` is at the top of the loop.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
+
+### Story intro ("The Strip") — `intro.ts` + the `'story'` phase in `main.ts`
+- Plays **once on cold load** (initial `appPhase = 'story'`); a save-resume sets `'ingame'` first, so
+  returning players skip it. Pure-function core (`stepStory`, `StoryState`) drives a typewriter over
+  `L.STR_STORY_CARDS`: each frame reveals `dt / MS_PER_CHAR` chars; **first key finishes** the current
+  card, a second key (or `CARD_HOLD_MS` elapsing) **advances**; past the last card → `'intro'` (title).
+  `MS_PER_CHAR` / `CARD_HOLD_MS` are owner-tuned constants in `intro.ts`.
+- **Audio (new, additive — existing sounds untouched):** the AY underscore (`startIntroMusic` /
+  `stopIntroMusic` in `audio.ts`, via zx-kit `seq`/`playAYLoop`) is the **only AY use** in the game;
+  `playTypeClick` ticks the beeper per char. Browser autoplay policy means audio is silent until the
+  first gesture — so the **first key only unlocks sound** (starts the AY, does NOT skip the card); the
+  jingle is suppressed while `appPhase === 'story'` so it can't clash with the AY.
+- **Visual (`intro.ts`):** card 1 is a **hand-drawn establishing shot** composed from bespoke 8×8 tiles
+  (`T_BRICK`/`T_WIRE`/`T_GROUND`/`T_MOON`/`T_STAR`/`T_SKY` dither/`T_MINE_DOME`) — one ink + one paper per
+  cell, so it's colour-clash-correct by construction. Cards 2–4 are still simpler sprite vignettes
+  (to be redrawn bespoke). Title renamed to **THE STRIP** (`STR_TITLE`).
 
 ### Field, fence & solvability
 - Playfield **32×18 cells**; the bottom **6 HUD rows**: backpack · timer · score+detector · mines+level ·

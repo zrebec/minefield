@@ -1,4 +1,8 @@
-# MINEFIELD — ZX Spectrum Edition
+# THE STRIP — ZX Spectrum Edition
+
+> *The game's name is **The Strip** — shown on the title screen and told in the story intro. The
+> repository, npm package and live URL are still `minefield` until a focused rename (dir + GitHub +
+> Pages base); the internal save key stays `minefield` so existing saves survive. See [ROADMAP](ROADMAP.md).*
 
 > A retro browser game inspired by 1980s ZX Spectrum titles. Cross a blind minefield by **listening** —
 > the closer the mines, the more urgent the sound — backed by a visual danger detector for players
@@ -35,8 +39,24 @@
 | Stack | TypeScript · Vite · Canvas · Web Audio · zx-kit |
 | Native resolution | 256×192 (integer ×4) |
 | Runtime dependencies | `zx-kit` only |
-| Tests | 266 (Vitest) |
-| Last verified | 2026-06-23 |
+| Tests | 284 (Vitest) |
+| Last verified | 2026-06-24 |
+
+---
+
+## Story
+
+*Winter, the eleventh year of a war no one declared.* Between two walls lies **the Strip** — a field of
+buried death. Each night the enemy's **Sower** flies over and seeds it anew — that is the in-world reason
+the **daily** field changes every day, and why an aircraft keeps dropping mines mid-run. You are not a
+sapper: you can't clear the Strip, only **cross** it and mark a safe path. For now you just carry
+**deliveries** across (the gems) to stay inconspicuous. It took until spring to find the first runner
+willing to cross — but he made it, and carried the first one home.
+
+A **4-card typewriter intro** tells this on cold load (any key advances / skips to the title), underscored
+by the kit's **AY chip** — the only place The Strip uses AY; gameplay stays pure beeper. The opening
+establishing shot is **hand-drawn in 8×8 tiles** (dithered night sky, the walled Strip, buried mines),
+colour-clash-correct by construction.
 
 ---
 
@@ -84,6 +104,9 @@ It's a deliberate homage to the ZX Spectrum (1982): pixel art with no anti-alias
 | `D` | Debug: reveal all mines — **idle only** (scout before you start; off once you move). **Disabled on the daily** (it would leak the scored solution); on **random/practice** it's capped (5 per level). |
 | `O` | Toggle the **FPS / CPU debug overlay** (zx-kit `debug` module) |
 | `+` / `-` | Volume up / down |
+
+**On the story intro** (cold load only): **any key** finishes typing the current card / advances to the
+next / skips to the title. The intro is shown once per session; a save-resume goes straight into the game.
 
 **On the title screen:** `SPACE` / `ENTER` / `S` (or gamepad Start) = **daily** run · `R` = **random** run.
 
@@ -212,14 +235,15 @@ src/
 ├── constants.ts   ← technical constants: resolution, palette re-export from zx-kit
 ├── font.ts        ← re-export of the ZX ROM font from zx-kit
 ├── sprites.ts     ← all sprites as Uint8Array (8×8 px)
-├── audio.ts       ← Web Audio engine: warnings, explosion, fanfare, aircraft
+├── audio.ts       ← Web Audio engine: warnings, explosion, fanfare, aircraft; + story-intro AY underscore + typewriter tick
 ├── input.ts       ← wrapper over zx-kit input (key-repeat config + game keys)
 ├── game.ts        ← GameState, TileMap, minefield/gem/building generation, daily seed
 ├── player.ts      ← movement, collision, flag, respawn, scoring, gem pickup
 ├── airplane.ts    ← aircraft timer, animation, mine drop
+├── intro.ts       ← "The Strip" story intro: typewriter state machine + hand-drawn establishing shot
 ├── renderer.ts    ← canvas rendering: TileMap, sprites, HUD, detector, overlays
 ├── save.ts        ← zx-kit save profile wiring
-└── main.ts        ← game loop (requestAnimationFrame), phase switching, debug overlay
+└── main.ts        ← game loop (requestAnimationFrame), phase switching ('story'→'intro'→'ingame'), debug overlay
 ```
 
 **Dependencies:** `zx-kit@^0.34.0` only — everything else is the Web Platform.
@@ -229,7 +253,7 @@ src/
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # production build → dist/
-npm test         # unit tests (Vitest) — 266 tests
+npm test         # unit tests (Vitest) — 284 tests
 npm run capture  # refresh docs/img screenshots (Playwright)
 ```
 
@@ -242,6 +266,7 @@ npm run capture  # refresh docs/img screenshots (Playwright)
 | `renderer` / `font` | canvas setup (×4), ROM bitmap font, sprites, scanlines, CRT curvature |
 | `tilemap` | the playfield (ground/mine/gem/visited/flag/fence/building tiles) |
 | `audio` | square-wave warnings/fanfares, aircraft drone; built-in `+`/`-` volume + HUD bar |
+| `music` / `ay` | the **story intro's AY underscore** (`seq` + `playAYLoop`) — the only AY use; gameplay is pure beeper |
 | `input` | key-repeat + gamepad; built-in `+`/`-` volume keys |
 | `save` | typed save/load with versioning (v5) |
 | `rng` | seeded `mulberry32` for the daily field and airplane behaviour |
@@ -253,10 +278,11 @@ npm run capture  # refresh docs/img screenshots (Playwright)
 |---|---|---|
 | Core loop | Complete | cross → levels → highscore → save |
 | Fence + solvability | Complete | winnable under all circumstances (generation + airdrop guard) |
+| Story + intro | **Done (tuning pending)** | 4-card typewriter intro + AY underscore + hand-drawn opening; copy/tempo/audio still being tuned by ear |
 | Save / load | Complete | version 5; auto-resume; cleared on game over |
-| Tests | 266 | seeded solvability + property tests |
+| Tests | 284 | seeded solvability + property tests; + intro/audio coverage |
 | Accessibility | Partial | visual detector done; stereo/TTS planned (Roadmap) |
-| Visuals | Readable | screenshots may be refreshed to show the fence |
+| Visuals | Readable | screenshots may be refreshed to show the fence + intro |
 
 ## Related Links
 

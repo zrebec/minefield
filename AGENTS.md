@@ -6,10 +6,26 @@
 
 ## Mission
 
-Minefield is a browser homage to early-1980s ZX Spectrum "minefield" games: cross a **blind** minefield
-left→right, warned only by sound and a visual HUD detector, while an aircraft periodically drops more
-mines. It must always stay: **audio-primary but not audio-only**, **fair** (a daily field is the same for
-everyone and **always winnable**), and **visually authentic ZX Spectrum**.
+The Strip (repo/package still `minefield` until a focused rename) is a browser homage to early-1980s ZX
+Spectrum "minefield" games: cross a **blind** minefield left→right, warned only by sound and a visual HUD
+detector, while an aircraft periodically drops more mines. It must always stay: **audio-primary but not
+audio-only**, **fair** (a daily field is the same for everyone and **always winnable**), and **visually
+authentic ZX Spectrum**. The story framing ("The Strip / Quiet War": a nightly Sower re-seeds the field)
+is the in-world reason the daily field changes and the aircraft keeps dropping mines.
+
+## Name
+
+The game's name is **The Strip**; the on-screen title (`STR_TITLE`) reads `THE STRIP`. The repository,
+npm package, GitHub Pages base and capture paths still read `minefield` — a full rename is a deliberate,
+deferred step. **Keep the internal save key `minefield`** through any rename (same origin ⇒ existing saves
+and high-scores survive).
+
+## Permanent Audio Rule
+
+Gameplay audio is the **beeper** (`playPattern` / Web Audio square waves) — warnings, explosion, fanfares,
+the aircraft drone. The **AY chip is reserved for the story-intro underscore only** (`startIntroMusic` via
+zx-kit `seq`/`playAYLoop`). Do not add AY to gameplay. New intro sounds are additive — never retune the
+existing beeper SFX without the owner (they are tuned by ear).
 
 ## Read Order
 
