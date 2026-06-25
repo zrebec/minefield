@@ -24,11 +24,11 @@ export const LANGUAGE_CODE: 'sk' | null = null
 
 // Initial delay before key-repeat starts (ms) — how long after first press
 // before auto-repeat begins. 280ms prevents accidental double-steps on D-pad taps.
-export const KEY_REPEAT_DELAY = 280
+export const KEY_REPEAT_DELAY = 1200
 
 // Key-repeat interval (ms) — movement rate while key is held.
 // Should match WALK_DURATION_MS so held key queues one step per animation.
-export const KEY_REPEAT_INTERVAL = 120
+export const KEY_REPEAT_INTERVAL = 220
 
 // ── Player & Start ────────────────────────────────────────────────────────────
 
