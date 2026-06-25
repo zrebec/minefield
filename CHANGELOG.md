@@ -1,3 +1,15 @@
+# [0.43.0](https://github.com/zrebec/minefield/compare/v0.42.0...v0.43.0) (2026-06-25)
+
+
+### Bug Fixes
+
+* **daily:** date the highscore by the run's daily, not wall-clock — game.ts, main.ts ([bda8e80](https://github.com/zrebec/minefield/commit/bda8e80d3ca8df7e3050643a7ca6fb97eeb9063f))
+
+
+### Features
+
+* **intro:** title-first flow — I replays, intro pre-rolls when due — config.ts, ([a7e24c6](https://github.com/zrebec/minefield/commit/a7e24c6931d4f2ce7aef5936f2ec31440297844b))
+
 # [0.42.0](https://github.com/zrebec/minefield/compare/v0.41.1...v0.42.0) (2026-06-25)
 
 
