@@ -53,9 +53,10 @@ sapper: you can't clear the Strip, only **cross** it and mark a safe path. For n
 **deliveries** across (the gems) to stay inconspicuous. It took until spring to find the first runner
 willing to cross — but he made it, and carried the first one home.
 
-A **4-card typewriter intro** tells this on cold load (any key advances / skips to the title), underscored
-by the kit's **AY chip** — the only place The Strip uses AY; gameplay stays pure beeper. The opening
-establishing shot is **hand-drawn in 8×8 tiles** (dithered night sky, the walled Strip, buried mines),
+A **4-card typewriter intro** tells this the first time you play (replay anytime with `I`; any key
+advances / skips), underscored by the kit's **AY chip** — the only place The Strip uses AY; gameplay stays
+pure beeper. The opening establishing shot is **hand-drawn in 8×8 tiles** (dithered night sky via the kit's
+`drawShade`, the walled Strip, buried mines),
 colour-clash-correct by construction.
 
 ---
@@ -105,10 +106,13 @@ It's a deliberate homage to the ZX Spectrum (1982): pixel art with no anti-alias
 | `O` | Toggle the **FPS / CPU debug overlay** (zx-kit `debug` module) |
 | `+` / `-` | Volume up / down |
 
-**On the story intro** (cold load only): **any key** finishes typing the current card / advances to the
-next / skips to the title. The intro is shown once per session; a save-resume goes straight into the game.
+**On the title screen:** `SPACE` / `ENTER` / `S` (or gamepad Start) = **daily** run · `R` = **random** run
+· **`I`** = (re)play the story intro. The title is the landing screen; a save-resume goes straight into the
+game.
 
-**On the title screen:** `SPACE` / `ENTER` / `S` (or gamepad Start) = **daily** run · `R` = **random** run.
+**The story intro** plays as a pre-roll when it's "due" (first time, after a content refresh, or once per
+window — daily until v1.0) or on demand via `I`. During it, **any key** finishes typing the current card /
+advances / skips.
 
 > Why `D` and `O`? Browsers reserve most "obvious" debug chords (`F12`, `Ctrl+Shift+B`, `F3`), so
 > game-local single letters are used instead. `D` reveals mines (a gameplay scouting aid, idle only);

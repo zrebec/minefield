@@ -18,7 +18,7 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (284 tests)
+npm test          # Vitest (294 tests)
 npm run build     # dist/
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
 ```
@@ -36,7 +36,7 @@ src/
 ├── game.ts        # GameState, TileMap, field/gem/building gen, daily seed, isFieldSolvable, addDropMinesInBand
 ├── player.ts      # movement, collision, flag, respawn, scoring, gem pickup, combo
 ├── airplane.ts    # aircraft timer, animation, mine drop (calls addDropMinesInBand)
-├── intro.ts       # "The Strip" story intro: stepStory state machine + typewriter + hand-drawn establishing shot (8×8 tiles)
+├── intro.ts       # "The Strip" intro: stepStory machine + typewriter + hand-drawn shot (8×8) + isIntroDue/markIntroSeen (localStorage seen-gate)
 ├── renderer.ts    # TileMap, sprites, HUD, detector, night, overlays
 ├── save.ts        # zx-kit save profile wiring (version 5)
 ├── strings.ts / strings.sk.ts / lang.ts   # i18n packs (incl. STR_STORY_CARDS)
@@ -46,7 +46,8 @@ src/
 ## Important State Models
 
 - `GamePhase = 'playing' | 'exploding' | 'levelcomplete' | 'gameover'`
-- `AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'` (`'story'` = the cold-load narrative intro → `'intro'` title)
+- `AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'` (`'intro'` = title/landing; `'story'` = the
+  narrative pre-roll, entered from the title when "due" or via `I`, then hands off to `'ingame'`/`'intro'`)
 - `runState = 'idle' | 'running' | 'paused'` (idle = scout before the first step; reveal + freeze the timer)
 - **Game loop:** `gameLoop` is guard-clause style — `intro`/`hiscore` `return` early, `ingame` falls
   through. Each exit path schedules the next frame via **`finishFrame(ctx)`** (runs `endFrame(dbg)` then
@@ -56,20 +57,24 @@ src/
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 
 ### Story intro ("The Strip") — `intro.ts` + the `'story'` phase in `main.ts`
-- Plays **once on cold load** (initial `appPhase = 'story'`); a save-resume sets `'ingame'` first, so
-  returning players skip it. Pure-function core (`stepStory`, `StoryState`) drives a typewriter over
-  `L.STR_STORY_CARDS`: each frame reveals `dt / MS_PER_CHAR` chars; **first key finishes** the current
-  card, a second key (or `CARD_HOLD_MS` elapsing) **advances**; past the last card → `'intro'` (title).
-  `MS_PER_CHAR` / `CARD_HOLD_MS` are owner-tuned constants in `intro.ts`.
+- **Flow (redesigned 2026-06-25):** the **title** is the cold-load screen; a save-resume goes straight to
+  `'ingame'`. The story plays as a **pre-roll** when "due" on a mode-start, or on demand via the title's
+  **`I`** key. `isIntroDue()` gates it (localStorage `minefield_intro` = `{v,t}`; `INTRO_REVALIDATE_DAYS`
+  = 1 → daily until v1.0, ~30 monthly after; bump `INTRO_VERSION` to force a re-show). `enterStory(returnTarget)`
+  sets the hand-off: `'ingame'` (start the chosen mode via `startRun`) or `'intro'` (back to title); marked
+  seen on finish **or** skip. Pure core (`stepStory`, `StoryState`) drives the typewriter over
+  `L.STR_STORY_CARDS`: each frame reveals `dt / MS_PER_CHAR` chars; **first key finishes** the card, a
+  second (or `CARD_HOLD_MS`) **advances**. `MS_PER_CHAR` / `CARD_HOLD_MS` are owner-tuned.
 - **Audio (new, additive — existing sounds untouched):** the AY underscore (`startIntroMusic` /
   `stopIntroMusic` in `audio.ts`, via zx-kit `seq`/`playAYLoop`) is the **only AY use** in the game;
-  `playTypeClick` ticks the beeper per char. Browser autoplay policy means audio is silent until the
-  first gesture — so the **first key only unlocks sound** (starts the AY, does NOT skip the card); the
-  jingle is suppressed while `appPhase === 'story'` so it can't clash with the AY.
-- **Visual (`intro.ts`):** card 1 is a **hand-drawn establishing shot** composed from bespoke 8×8 tiles
-  (`T_BRICK`/`T_WIRE`/`T_GROUND`/`T_MOON`/`T_STAR`/`T_SKY` dither/`T_MINE_DOME`) — one ink + one paper per
-  cell, so it's colour-clash-correct by construction. Cards 2–4 are still simpler sprite vignettes
-  (to be redrawn bespoke). Title renamed to **THE STRIP** (`STR_TITLE`).
+  `playTypeClick` ticks the beeper per char. Autoplay policy: audio is silent until the first gesture, so
+  the **first key only unlocks sound**. The startup jingle was **relocated off first-gesture** (it clashed
+  with the AY) → it now plays once per session on a **direct** game-start (intro not shown).
+- **Visual (`intro.ts`):** card 1 is a **hand-drawn establishing shot** from bespoke 8×8 tiles
+  (`T_BRICK`/`T_WIRE`/`T_GROUND`/`T_MOON`/`T_STAR`/`T_MINE_DOME`); its **dithered night sky uses zx-kit
+  `drawShade` + `DITHER.HALF`** (0.35.0 — the local `T_SKY` tile was removed). One ink + one paper per
+  cell ⇒ colour-clash-correct. Cards 2–4 are still simpler sprite vignettes (to be redrawn bespoke). Title
+  is **THE STRIP** (`STR_TITLE`).
 
 ### Field, fence & solvability
 - Playfield **32×18 cells**; the bottom **6 HUD rows**: backpack · timer · score+detector · mines+level ·
