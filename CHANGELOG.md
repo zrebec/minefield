@@ -1,3 +1,10 @@
+# [0.44.0](https://github.com/zrebec/minefield/compare/v0.43.0...v0.44.0) (2026-06-29)
+
+
+### Features
+
+* **intro:** 5-card dramatic story, per-card AY score, chapter titles ([a800af4](https://github.com/zrebec/minefield/commit/a800af4ae85e3876b5d733b489557b5409cf40c6))
+
 # [0.43.0](https://github.com/zrebec/minefield/compare/v0.42.0...v0.43.0) (2026-06-25)
 
 
