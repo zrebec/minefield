@@ -189,32 +189,50 @@ export const STR_START_HINT = 'SPACE=DAILY  R=RANDOM  I=INTRO'
 // use '-'). The card COUNT must match across locales (strings.test.ts guards it).
 export const STR_STORY_CARDS: readonly (readonly string[])[] = [
   [
-    'WINTER. THE ELEVENTH YEAR',
-    'OF A WAR NO ONE DECLARED.',
-    'BETWEEN THE WALLS LIES THE',
-    'STRIP: A FIELD OF BURIED',
-    'DEATH.',
+    'A WAR NO ONE DECLARED.',
+    'A WAR NO ONE ENDED.',
+    'BETWEEN TWO COUNTRIES LAY',
+    'A STRETCH OF NO MAN\'S LAND.',
+    'THEY CALLED IT THE STRIP.',
   ],
   [
-    'EACH NIGHT THEIR SOWER',
-    'FLIES OVER AND SEEDS IT',
-    'ANEW. EACH NIGHT,',
-    'A DIFFERENT GRAVE.',
+    'OVERNIGHT THEY TORE THEM',
+    'APART: MOTHERS FROM SONS,',
+    'LOVERS, FRIENDS. AND EACH',
+    'NIGHT A PLANE RESEEDS THE',
+    'DEATH THAT KEEPS THEM APART.',
   ],
   [
-    'YOU CROSS IN THE DARK.',
-    'YOU CANNOT SEE THE MINES -',
-    'YOU HEAR THEM. FIND THE GAP',
-    'IN THE FAR WALL. GET',
-    'ACROSS BEFORE DAWN.',
+    'FOR YEARS THEY SEARCHED FOR',
+    'A WAY ACROSS. THE FIELD',
+    'SWALLOWED ALL WHO TRIED.',
+    'NO PATH. NO RETURN. ONLY',
+    'THE SILENCE AFTER THE BLAST.',
   ],
   [
-    'IT TOOK UNTIL SPRING TO',
-    'FIND THE FIRST RUNNER',
-    'WILLING TO CROSS.',
-    'BUT HE MADE IT. AND HE',
-    'CARRIED THE FIRST ONE HOME.',
+    'THEN ONE MAN WATCHED HOW',
+    'THEY SOWED IT, AND FOUND',
+    'THE PATTERN. HE BUILT A',
+    'SONAR - AND SUDDENLY HEARD',
+    'A SAFE WAY THROUGH.',
   ],
+  [
+    'THE PEOPLE WOULD NOT RISK',
+    'THEIR LIVES - SO THEY PRESSED',
+    'PARCELS INTO HIS HANDS: FOR',
+    'A MOTHER, A LOVE, A SON',
+    'ACROSS. CARRY THEM HOME.',
+  ],
+]
+
+// Chapter titles shown book-style on each card's heading rule ("N/5  TITLE").
+// One per card; the count must match STR_STORY_CARDS (strings.test.ts guards it).
+export const STR_STORY_TITLES: readonly string[] = [
+  'THE DIVIDE',
+  'TORN APART',
+  'NO WAY ACROSS',
+  'THE RUNNER',
+  'NEW HOPE',
 ]
 
 // Hint shown (blinking) at the bottom of every story card. 14 chars.

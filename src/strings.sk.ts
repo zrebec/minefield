@@ -140,31 +140,52 @@ export const STR_START_HINT = 'SPACE=DENNY R=NAHODNY I=INTRO' // 29 znakov; I = 
 // ── Príbehové intro ("The Strip") ──────────────────────────────────────────
 // Bez diakritiky (ROM font), každý riadok ≤ 30 znakov, '-' namiesto pomlčky.
 // Počet kariet musí sedieť s EN (stráži strings.test.ts).
+// Pozn.: v hre sa zobrazujú ANGLICKE karty (default locale = EN); toto je SK
+// preklad pre SK locale + ako poznámka. Počet kariet musí sedieť s EN (5).
 export const STR_STORY_CARDS: readonly (readonly string[])[] = [
   [
-    'ZIMA. JEDENASTY ROK',
-    'VOJNY KTORU NIKTO',
-    'NEVYHLASIL. MEDZI MURMI',
-    'LEZI PAS - POLE',
-    'POCHOVANEJ SMRTI.',
+    'VOJNA, KTORU NIKTO',
+    'NEVYHLASIL. A NIKTO',
+    'NEUKONCIL. MEDZI DVOMA',
+    'KRAJINAMI NECHALI UZEMIE',
+    'NIKOHO. VOLALI HO PAS.',
   ],
   [
-    'KAZDU NOC ICH ROZSIEVAC',
-    'PRELETI A ZNOVA HO ZASEJE.',
-    'KAZDU NOC INY HROB.',
+    'CEZ NOC ICH ROZTRHLI - MATKY',
+    'OD SYNOV, MILENCOV, PRIATELOV.',
+    'A KAZDU NOC LIETADLO NANOVO',
+    'ZASEJE SMRT, CO ICH DELI.',
   ],
   [
-    'PRECHADZAS POTME.',
-    'MINY NEVIDIS - POCUJES ICH.',
-    'NAJDI MEDZERU V DRUHEJ',
-    'STENE. PREJDI PRED USVITOM.',
+    'ROKY HLADALI CESTU K SEBE.',
+    'POLE POHLTILO KAZDEHO, KTO',
+    'TO SKUSIL. ZIADNA CESTA.',
+    'ZIADNY NAVRAT. LEN TICHO',
+    'PO VYBUCHU.',
   ],
   [
-    'PRVEHO POSLA NASLI',
-    'AZ NA JAR. ALE PRESIEL.',
-    'A PRVU ZASIELKU',
-    'DONIESOL DOMOV.',
+    'POTOM JEDEN MUZ SLEDOVAL,',
+    'AKO HO ZASIEVAJU, A NASIEL',
+    'VZOREC. VYROBIL SI SONAR',
+    'A ZRAZU POCUL BEZPECNU',
+    'CESTU.',
   ],
+  [
+    'LUDIA NECHCELI RISKOVAT',
+    'VLASTNE ZIVOTY - TAK MU DALI',
+    'DO RUK ZASIELKY: PRE MATKU,',
+    'PRE LASKU, PRE SYNA NA DRUHEJ',
+    'STRANE. ODNES ICH DOMOV.',
+  ],
+]
+
+// Kapitoly (book-style) — počet musí sedieť s STR_STORY_CARDS (5).
+export const STR_STORY_TITLES: readonly string[] = [
+  'ROZDELENIE',
+  'ROZTRHNUTI',
+  'NIET CESTY',
+  'BEZEC',
+  'NOVA NADEJ',
 ]
 
 export const STR_STORY_SKIP_HINT = 'LUBOVOLNA KLAVESA = DALEJ' // 25 znakov

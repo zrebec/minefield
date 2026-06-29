@@ -55,7 +55,7 @@ let introPageTimer = INTRO_PAGE_MS
 // on a mode start, or on demand via the title's `I` key. `storyReturn` is where it
 // hands off when finished/skipped: into the chosen game, or back to the title.
 let story = createStoryState()
-let introMusicStarted = false        // AY underscore starts the moment audio unlocks
+let introMusicCard = -1              // which card's AY track is playing (-1 = none / not started)
 let storyReturn: 'intro' | 'ingame' = 'intro'
 let storyPendingRandom = false       // which mode to launch when storyReturn === 'ingame'
 let introReplayPending = false       // title `I` key → replay the intro
@@ -107,7 +107,7 @@ function enterStory(returnTarget: 'intro' | 'ingame', random = false): void {
   story = createStoryState()
   storyReturn = returnTarget
   storyPendingRandom = random
-  introMusicStarted = false
+  introMusicCard = -1
   resetInput()
   appPhase = 'story'
   setBorderColor(C.B_BLUE)
@@ -143,19 +143,20 @@ function gameLoop(timestamp: number): void {
     setBorderColor(C.B_BLUE)
     tickMovement(dt)  // keep gamepad polled
     const pressed = consumeAnyKey() || consumePause()
-    // Start the AY underscore the instant audio is unlocked (key OR click). The
-    // unlocking key only enables sound — it must not also skip the first card.
-    let justEnabled = false
-    if (audioReady && !introMusicStarted) {
-      startIntroMusic()
-      introMusicStarted = true
-      justEnabled = true
-    }
+    // The unlocking key/click only enables sound — it must not also skip the first
+    // card (introMusicCard === -1 ⇒ no track has started for this story yet).
+    const justEnabled = audioReady && introMusicCard === -1
     const before = Math.floor(story.revealed)
     stepStory(story, dt, justEnabled ? false : pressed)
     if (Math.floor(story.revealed) > before) playTypeClick()  // a fresh char appeared
+    // Per-card underscore: (re)start the track whenever the visible card changes.
+    if (audioReady && !story.finished && story.card !== introMusicCard) {
+      startIntroMusic(story.card)
+      introMusicCard = story.card
+    }
     if (story.finished) {
       stopIntroMusic()
+      introMusicCard = -1
       markIntroSeen()               // seen on finish OR skip — silence it for the window
       if (storyReturn === 'ingame') {
         startRun(storyPendingRandom)   // pre-roll done → into the chosen game

@@ -54,4 +54,15 @@ describe('story intro cards', () => {
     expect(en.STR_STORY_SKIP_HINT).toBeTruthy()
     expect(sk.STR_STORY_SKIP_HINT).toBeTruthy()
   })
+
+  it('has one chapter title per card in both languages (ASCII, fits the heading)', () => {
+    for (const pack of [en, sk]) {
+      expect(pack.STR_STORY_TITLES.length).toBe(pack.STR_STORY_CARDS.length)
+      for (const title of pack.STR_STORY_TITLES) {
+        expect(title.length, title).toBeLessThanOrEqual(20)   // "  N/5  TITLE  " must fit 32 cells
+        // eslint-disable-next-line no-control-regex
+        expect(/^[\x20-\x7E]*$/.test(title), title).toBe(true)
+      }
+    }
+  })
 })

@@ -10,6 +10,7 @@ import {
   playAYLoop,
   type Note,
   type LoopHandle,
+  type AYNote,
 } from 'zx-kit'
 
 export { resumeAudio }
@@ -245,13 +246,66 @@ export function stopAmbientSounds(): void {
 
 let introMusic: LoopHandle | null = null
 
-// A4-minor lament (channel A) over a slow A2/E2 drone (channel B), ~5.8 s loop.
-export function startIntroMusic(): void {
-  if (introMusic) return
-  introMusic = playAYLoop({
-    a: seq('A4:900 r:300 C5:600 B4:600 A4:900 r:300 E4:1200 r:1000'),
-    b: seq('A2:2900 E2:2900'),
-  })
+// Add volume (0–15) and an optional pluck/decay envelope to a seq() line. Rests
+// (freq 0) pass through untouched. Lets us shape dynamics + timbre per voice.
+function voiced(notes: AYNote[], vol: number, envShape?: number, envCycleDurMs?: number): AYNote[] {
+  return notes.map((n) =>
+    n.freq === 0 ? n
+      : envShape === undefined ? { ...n, vol }
+        : { ...n, vol, envShape, envCycleDurMs },
+  )
+}
+
+// One AY track per intro card — melancholic, low/mid register, up to 3 voices
+// (melody / bass / arpeggio). Card 0 keeps the original lament; the arc darkens to
+// a funeral dirge (card 3 = despair) and resolves into "Ode to Joy" (card 5 = new
+// hope). Channel lengths are matched so each loops cleanly. ALL tunable by ear.
+function introTrack(card: number): { a?: AYNote[]; b?: AYNote[]; c?: AYNote[] } {
+  switch (card) {
+    case 1: // "torn apart" — A-minor lament, a falling melody over i-VI-VII-v (7.2 s)
+      return {
+        a: voiced(seq('E4:700 D4:700 C4:1000 r:200 B3:600 A3:700 G3:700 F3:1000 E3:1200 r:400'), 12),
+        b: voiced(seq('A2:1800 F2:1800 G2:1800 E2:1800'), 13),
+        c: voiced(seq('A3:450 C4:450 E4:450 C4:450 A3:450 C4:450 F4:450 C4:450 B3:450 D4:450 G4:450 D4:450 B3:450 E4:450 G4:450 E4:450'), 7, 0, 240),
+      }
+    case 2: // despair — a funeral dirge: a tolling bell, a descending lament, a dominant pedal (7.2 s)
+      return {
+        a: voiced(seq('A3:1500 r:300 G3:1200 F3:1200 E3:1800 r:1200'), 11),
+        b: voiced(seq('A2:1500 r:300 A2:1500 r:300 A2:1500 r:300 A2:1500 r:300'), 13, 0, 1400),
+        c: voiced(seq('E2:7200'), 6),
+      }
+    case 3: // the runner — a rising motif brightening from A-minor toward C major (6 s)
+      return {
+        a: voiced(seq('A3:600 B3:600 C4:600 E4:600 D4:600 E4:600 G4:900 E4:900 r:600'), 12),
+        b: voiced(seq('A2:1500 C3:1500 G2:1500 C3:1500'), 12),
+        c: voiced(seq('A3:375 C4:375 E4:375 G4:375 A3:375 C4:375 E4:375 G4:375 G3:375 B3:375 D4:375 G4:375 G3:375 B3:375 D4:375 G4:375'), 8, 0, 200),
+      }
+    case 4: // new hope — Beethoven's "Ode to Joy" in C major, warm + full (16 s)
+      return {
+        a: voiced(seq(
+          'E4:500 E4:500 F4:500 G4:500 G4:500 F4:500 E4:500 D4:500 '
+          + 'C4:500 C4:500 D4:500 E4:500 E4:750 D4:250 D4:1000 '
+          + 'E4:500 E4:500 F4:500 G4:500 G4:500 F4:500 E4:500 D4:500 '
+          + 'C4:500 C4:500 D4:500 E4:500 D4:750 C4:250 C4:1000'), 13),
+        b: voiced(seq('C3:2000 G2:2000 C3:2000 G2:2000 C3:2000 G2:2000 C3:2000 G2:1000 C3:1000'), 12),
+        c: voiced(seq(
+          'C4:500 E4:500 G4:500 E4:500 D4:500 G4:500 B4:500 G4:500 '
+          + 'C4:500 E4:500 G4:500 E4:500 D4:500 G4:500 B4:500 G4:500 '
+          + 'C4:500 E4:500 G4:500 E4:500 D4:500 G4:500 B4:500 G4:500 '
+          + 'C4:500 E4:500 G4:500 E4:500 D4:500 G4:500 B4:500 G4:500'), 8, 0, 240),
+      }
+    default: // card 0 — the original A-minor lament, kept as-is (5.8 s)
+      return {
+        a: seq('A4:900 r:300 C5:600 B4:600 A4:900 r:300 E4:1200 r:1000'),
+        b: seq('A2:2900 E2:2900'),
+      }
+  }
+}
+
+// (Re)start the intro underscore for a card, replacing any current loop.
+export function startIntroMusic(card = 0): void {
+  introMusic?.stop()
+  introMusic = playAYLoop(introTrack(card))
 }
 
 export function stopIntroMusic(): void {

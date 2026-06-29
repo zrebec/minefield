@@ -15,7 +15,7 @@ import { drawText, drawSprite, drawChar, drawShade, DITHER } from 'zx-kit'
 import { CANVAS_W, CANVAS_H, CELL, COLS, C } from './constants.ts'
 import { INTRO_VERSION, INTRO_REVALIDATE_DAYS } from './config.ts'
 import { L } from './lang.ts'
-import { PLAYER_RIGHT_A, AIRPLANE_RIGHT, MINE, GEM } from './sprites.ts'
+import { PLAYER_RIGHT_A, GEM, GROUND_A, GROUND_B } from './sprites.ts'
 
 /** Typewriter speed — ms per revealed character. */
 export const MS_PER_CHAR = 120
@@ -221,27 +221,148 @@ function drawEstablishingShot(ctx: CanvasRenderingContext2D): void {
   for (const col of [10, 20]) drawSprite(ctx, T_MINE_DOME, col * CELL, 10 * CELL, C.RED, C.BLACK)
 }
 
-// Upper-half scene per card. Card 1 is the hand-drawn establishing shot; the
-// rest are simpler sprite vignettes (to be redrawn bespoke if card 1 lands).
-// Card order maps to the beats: the Strip → the Sower → the crossing → delivery.
+// ── Hand-drawn scenes for cards 2–4 (same bespoke 8×8-tile technique) ──
+
+const T_PLANE_TAIL = new Uint8Array([  // bomber: tail fin + fuselage + wing line (left cell)
+  0b00000000,
+  0b00110000,
+  0b00111000,
+  0b01111110,
+  0b11111111,
+  0b01111110,
+  0b00000000,
+  0b00000000,
+])
+const T_PLANE_NOSE = new Uint8Array([  // bomber: fuselage tapering to a pointed nose (right cell)
+  0b00000000,
+  0b00000000,
+  0b00000000,
+  0b11111100,
+  0b11111110,
+  0b11111100,
+  0b00000000,
+  0b00000000,
+])
+const T_SEED = new Uint8Array([        // a mine-seed dropped by the Sower
+  0b00000000,
+  0b00011000,
+  0b00111100,
+  0b00111100,
+  0b00011000,
+  0b00000000,
+  0b00000000,
+  0b00000000,
+])
+const T_PING = new Uint8Array([        // a sonar ring around a hidden mine — "you hear them"
+  0b00111100,
+  0b01000010,
+  0b10000001,
+  0b10011001,
+  0b10011001,
+  0b10000001,
+  0b01000010,
+  0b00111100,
+])
+const T_SUN = new Uint8Array([         // dawn sun with rays (card 4 — spring)
+  0b10011001,
+  0b01011010,
+  0b00111100,
+  0b01111110,
+  0b01111110,
+  0b00111100,
+  0b01011010,
+  0b10011001,
+])
+
+// Card 2 — the Sower flies over at night and seeds the field with fresh graves.
+function drawSowerScene(ctx: CanvasRenderingContext2D): void {
+  drawShade(ctx, 0, 0, COLS * CELL, 10 * CELL, C.BLACK, C.B_BLUE, DITHER.HALF)
+  drawSprite(ctx, T_MOON, 3 * CELL, 1 * CELL, C.B_YELLOW, C.B_BLUE)
+  for (const [c, r] of [[11, 1], [18, 0], [25, 2], [15, 4]] as const) {
+    drawSprite(ctx, T_STAR, c * CELL, r * CELL, C.B_WHITE, C.B_BLUE)
+  }
+  // the bomber, mid-air, flying right; seeds raining down behind it
+  drawSprite(ctx, T_PLANE_TAIL, 13 * CELL, 2 * CELL, C.B_WHITE, C.B_BLUE)
+  drawSprite(ctx, T_PLANE_NOSE, 14 * CELL, 2 * CELL, C.B_WHITE, C.B_BLUE)
+  for (const [c, r] of [[13, 4], [12, 6], [11, 8]] as const) {
+    drawSprite(ctx, T_SEED, c * CELL, r * CELL, C.B_RED, C.B_BLUE)
+  }
+  // thin side walls + the dark Strip, freshly sown with graves
+  for (const col of [0, 31]) for (let row = 2; row <= 11; row++) drawSprite(ctx, T_BRICK, col * CELL, row * CELL, C.BLUE, C.WHITE)
+  for (let col = 1; col <= 30; col++) drawSprite(ctx, T_GROUND, col * CELL, 11 * CELL, C.B_BLUE, C.BLACK)
+  for (const col of [5, 10, 16, 22, 27]) drawSprite(ctx, T_MINE_DOME, col * CELL, 10 * CELL, C.RED, C.BLACK)
+}
+
+// Card 3 — the blind crossing: can't see the mines, you hear them; find the gap.
+function drawCrossingScene(ctx: CanvasRenderingContext2D): void {
+  drawShade(ctx, 0, 0, COLS * CELL, 10 * CELL, C.BLACK, C.B_BLUE, DITHER.HALF)
+  drawSprite(ctx, T_MOON, 27 * CELL, 1 * CELL, C.B_YELLOW, C.B_BLUE)
+  for (const [c, r] of [[5, 1], [12, 0], [20, 2]] as const) {
+    drawSprite(ctx, T_STAR, c * CELL, r * CELL, C.B_WHITE, C.B_BLUE)
+  }
+  // far wall (right, 3 cols), wire-crowned, with a GAP at rows 9–10 (the exit)
+  for (let c = 0; c < 3; c++) {
+    const col = 29 + c
+    drawSprite(ctx, T_WIRE, col * CELL, 2 * CELL, C.B_WHITE, C.B_BLUE)
+    for (let row = 3; row <= 11; row++) {
+      if (row === 9 || row === 10) continue
+      drawSprite(ctx, T_BRICK, col * CELL, row * CELL, C.BLUE, C.WHITE)
+    }
+  }
+  for (let row = 2; row <= 11; row++) drawSprite(ctx, T_BRICK, 0, row * CELL, C.BLUE, C.WHITE)  // entry wall
+  // runner facing the far gap; cyan pings = mines he hears, not sees
+  drawSprite(ctx, PLAYER_RIGHT_A, 6 * CELL, 10 * CELL, C.B_WHITE, C.BLACK)
+  for (const [c, r] of [[13, 10], [20, 10]] as const) drawSprite(ctx, T_PING, c * CELL, r * CELL, C.B_CYAN, C.BLACK)
+  for (let col = 1; col <= 28; col++) drawSprite(ctx, T_GROUND, col * CELL, 11 * CELL, C.B_BLUE, C.BLACK)
+}
+
+// Card 4 — dawn, spring: the first runner made it across, carrying the delivery.
+function drawDeliveryScene(ctx: CanvasRenderingContext2D): void {
+  // dawn sky — a pale cyan haze (lighter QUARTER dither) with a rising sun
+  drawShade(ctx, 0, 0, COLS * CELL, 10 * CELL, C.B_WHITE, C.B_CYAN, DITHER.QUARTER)
+  drawSprite(ctx, T_SUN, 4 * CELL, 1 * CELL, C.B_YELLOW, C.B_CYAN)
+  // the far wall with the gap he's reached (rows 9–10)
+  for (let c = 0; c < 3; c++) {
+    const col = 29 + c
+    for (let row = 3; row <= 11; row++) {
+      if (row === 9 || row === 10) continue
+      drawSprite(ctx, T_BRICK, col * CELL, row * CELL, C.BLUE, C.WHITE)
+    }
+  }
+  // spring grass band (rows 10–11)
+  for (let row = 10; row <= 11; row++) {
+    for (let col = 1; col <= 28; col++) {
+      const isA = (col + row) % 2 === 0
+      drawSprite(ctx, isA ? GROUND_A : GROUND_B, col * CELL, row * CELL, isA ? C.B_GREEN : C.GREEN, C.BLACK)
+    }
+  }
+  // the runner at the gap with his first delivery, carried home
+  drawSprite(ctx, GEM, 24 * CELL, 9 * CELL, C.B_GREEN, C.B_CYAN)
+  drawSprite(ctx, PLAYER_RIGHT_A, 26 * CELL, 9 * CELL, C.B_WHITE, C.B_CYAN)
+}
+
+// Card 3 — despair: for years no one crossed; the field is wired off and sown.
+function drawDespairScene(ctx: CanvasRenderingContext2D): void {
+  drawShade(ctx, 0, 0, COLS * CELL, 10 * CELL, C.BLACK, C.B_BLUE, DITHER.HALF)  // grim, no moon
+  for (const [c, r] of [[7, 1], [16, 0], [23, 2]] as const) {
+    drawSprite(ctx, T_STAR, c * CELL, r * CELL, C.WHITE, C.B_BLUE)  // cold, dim stars
+  }
+  for (const col of [0, 31]) for (let row = 2; row <= 11; row++) drawSprite(ctx, T_BRICK, col * CELL, row * CELL, C.BLUE, C.WHITE)
+  // a barbed-wire barrier strung across the field, buried mines beneath it
+  for (let col = 1; col <= 30; col++) drawSprite(ctx, T_WIRE, col * CELL, 9 * CELL, C.WHITE, C.B_BLUE)
+  for (let col = 1; col <= 30; col++) drawSprite(ctx, T_GROUND, col * CELL, 11 * CELL, C.B_BLUE, C.BLACK)
+  for (const col of [4, 10, 16, 22, 27]) drawSprite(ctx, T_MINE_DOME, col * CELL, 10 * CELL, C.RED, C.BLACK)
+}
+
+// Upper-half scene per card — all five hand-drawn. Beats: the Strip → the Sower
+// seeds it → despair (the graves) → the blind crossing → dawn & the delivery.
 function drawVignette(ctx: CanvasRenderingContext2D, cardIndex: number): void {
   switch (cardIndex) {
-    case 0:  // hand-drawn: two walls + the Strip between, a moon, buried mines
-      drawEstablishingShot(ctx)
-      break
-    case 1:  // the Sower (aircraft) dropping a fresh mine
-      drawSprite(ctx, AIRPLANE_RIGHT, 12 * CELL, 4 * CELL, C.B_WHITE, C.BLACK)
-      drawSprite(ctx, MINE, 14 * CELL, 7 * CELL, C.B_RED, C.BLACK)
-      break
-    case 2:  // the runner crossing blind, mines around
-      drawSprite(ctx, PLAYER_RIGHT_A, 10 * CELL, 6 * CELL, C.B_WHITE, C.BLACK)
-      drawSprite(ctx, MINE, 16 * CELL, 6 * CELL, C.RED, C.BLACK)
-      drawSprite(ctx, MINE, 20 * CELL, 7 * CELL, C.RED, C.BLACK)
-      break
-    default:  // the runner + his first delivery (gems = shipments)
-      drawSprite(ctx, PLAYER_RIGHT_A, 13 * CELL, 6 * CELL, C.B_WHITE, C.BLACK)
-      drawSprite(ctx, GEM, 17 * CELL, 6 * CELL, C.B_GREEN, C.BLACK)
-      break
+    case 0:  drawEstablishingShot(ctx); break
+    case 1:  drawSowerScene(ctx); break
+    case 2:  drawDespairScene(ctx); break
+    case 3:  drawCrossingScene(ctx); break
+    default: drawDeliveryScene(ctx); break
   }
 }
 
@@ -285,10 +406,12 @@ export function renderStoryCard(
 
   drawVignette(ctx, cardIndex)
 
+  // Chapter heading on the separator rule, book-style: "──  N/5  TITLE  ──"
   for (let c = 0; c < COLS; c++) drawChar(ctx, 0x2D, c * CELL, SEP_ROW, C.BLUE, C.BLACK)
+  const heading = `  ${cardIndex + 1}/${L.STR_STORY_TITLES.length}  ${L.STR_STORY_TITLES[cardIndex]}  `
+  drawText(ctx, heading, ((COLS - heading.length) >> 1) * CELL, SEP_ROW, C.B_YELLOW, C.BLACK)
 
   drawTypedLines(ctx, L.STR_STORY_CARDS[cardIndex], revealed, blink)
 
   if (blink) drawText(ctx, L.STR_STORY_SKIP_HINT, TEXT_X, 22 * CELL, C.B_BLUE, C.BLACK)
-  drawText(ctx, `${cardIndex + 1}/${L.STR_STORY_CARDS.length}`, (COLS - 4) * CELL, 22 * CELL, C.BLUE, C.BLACK)
 }
