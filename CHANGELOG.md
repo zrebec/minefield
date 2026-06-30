@@ -1,3 +1,10 @@
+# [0.45.0](https://github.com/zrebec/minefield/compare/v0.44.0...v0.45.0) (2026-06-30)
+
+
+### Features
+
+* new intro object in scene ([6ce3e23](https://github.com/zrebec/minefield/commit/6ce3e23678b8b5ba0285320573143ddccce45355))
+
 # [0.44.0](https://github.com/zrebec/minefield/compare/v0.43.0...v0.44.0) (2026-06-29)
 
 
