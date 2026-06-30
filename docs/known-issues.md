@@ -15,21 +15,6 @@
   (Technical Debt). A secondary, negligible companion: `revealsUsed` is not reset on respawn (reveal is
   idle-only and daily = 0, so impact is nil).
 
-### Infra — undici 6.26.0 high `npm audit` warning (bundled in the npm CLI) · dev/CI-only · NOT shipped
-
-- **Status:** open, **unfixable downstream**, waiting on upstream npm. Flagged 2026-06-20. Not a
-  player-facing issue. Shared across the ecosystem (anything using semantic-release).
-- **Where it comes from:** `undici@6.26.0` is a **bundled dependency of the `npm` CLI**, pulled into the
-  **dev** tree by semantic-release (`@semantic-release/npm`). It lives inside the npm tarball.
-- **Why it can't be fixed here:** npm bundles its own deps; a downstream project can't override them.
-  `npm audit fix` says so itself ("is a bundled dependency of npm … cannot be fixed automatically").
-  Verified ineffective (2026-06-20): `audit fix`, `--force`, package `overrides`, nuke + reinstall, global
-  npm upgrade. The fix must come from upstream npm bundling a patched undici.
-- **Why the real risk is negligible:** dev/CI-only (semantic-release in a trusted GitHub Actions runner).
-  **Not in the shipped artifact** — the game ships a static Vite bundle; npm/undici never reach the
-  browser. This game's `dependencies` is only `zx-kit`, and zx-kit has zero runtime deps.
-- **Plan:** accept; re-check `npm audit` on each release. **Do not re-investigate.**
-
 ## Resolved Issues
 
 ### `airplanePassIndex` not persisted (airplane sequence reset on reload)

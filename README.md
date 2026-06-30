@@ -311,11 +311,6 @@ so deaf players get the same information. Planned next: stereo/spatial warning (
 L/R channels), an ARIA live region + TTS for screen readers, and an exit beacon — an audio-first
 "playable blind" deductive traversal is an under-served niche. See `retro/docs/sk/minefield.md` §7.
 
-## Known issues
-
-`npm audit` reports a high `undici` advisory bundled inside the npm CLI (via semantic-release) — it is
-**unfixable downstream, dev/CI-only, and never shipped** to players. See [`docs/known-issues.md`](docs/known-issues.md).
-
 ## License
 
 MIT — do what you want, Sinclair would be proud. 🕹️
