@@ -11,7 +11,7 @@
  * so it stays trivially testable.
  */
 
-import { drawText, drawSprite, drawChar, drawShade, DITHER } from 'zx-kit'
+import { drawText, drawSprite, drawChar, drawShade, DITHER, createBitmapFromRows, drawBitmap } from 'zx-kit'
 import { CANVAS_W, CANVAS_H, CELL, COLS, C } from './constants.ts'
 import { INTRO_VERSION, INTRO_REVALIDATE_DAYS } from './config.ts'
 import { L } from './lang.ts'
@@ -341,9 +341,49 @@ function drawDeliveryScene(ctx: CanvasRenderingContext2D): void {
   drawSprite(ctx, PLAYER_RIGHT_A, 26 * CELL, 9 * CELL, C.B_WHITE, C.B_CYAN)
 }
 
+// A sitting cat silhouette, 4×-majority-downscaled from a 96×128 hand-authored
+// source (zxart white_cat_sitting) to 24×32 so it fits the 12-row vignette.
+const CAT_SITTING = createBitmapFromRows([
+  '..X.....................',
+  '..XX.......XXX..........',
+  '..XXX.....XXXX..........',
+  '..XXXXXXXXXXXX..........',
+  '..XXXXXXXXXXXX..........',
+  '..XXXXXXXXXXXX..........',
+  '..XXXXXXXXXXX...........',
+  '..XXXXXXXXXXX...........',
+  '..XXXXXXXXXXXX..........',
+  '...XXXXXXXXXX...........',
+  '.XXXXXXXXXXXXX..........',
+  '..XXXXXXXXXXXX..........',
+  '...XXXXXXXXXX...........',
+  '...XXXXXXXXXX...........',
+  '..XXXXXXXXXXXX..........',
+  '..XXXXXXXXXXXX..........',
+  '...XXXXXXXXXXXX.........',
+  '...XXXXXXXXXXXX...XXX...',
+  '...XXXXXXXXXXXXX..XXXX..',
+  '...XXXXXXXXXXXXX....XXX.',
+  '...XXXXXXXXXXXXX....XXX.',
+  '..XXXXXXXXXXXXXXX...XXX.',
+  '..XXXXXXXXXXXXXXX...XXX.',
+  '..XXXXXXXXXXXXXXXX..XXX.',
+  '..XXXXXXXXXXXXXXXX..XXX.',
+  '..XXXXXXXXXXXXXXX..XXX..',
+  '...XXXXXXXXXXXXXX.XXXX..',
+  '...XXXXXXXXXXXXXXXXXX...',
+  '....XXXXXXXXXXXXXXXX....',
+  '...XXXXXXXXXXXXXXX......',
+  '...XXXXXXXXXXX..........',
+  '........................',
+])
+
 // Card 3 — despair: for years no one crossed; the field is wired off and sown.
+// A stray cat sits undisturbed in the gap between two mines — a first, quiet
+// hint (before THE RUNNER finds the same gap on purpose) that a way exists.
 function drawDespairScene(ctx: CanvasRenderingContext2D): void {
   drawShade(ctx, 0, 0, COLS * CELL, 10 * CELL, C.BLACK, C.B_BLUE, DITHER.HALF)  // grim, no moon
+  drawShade(ctx, 1 * CELL, 8 * CELL, 30 * CELL, CELL, C.BLACK, C.YELLOW, DITHER.QUARTER)  // first light, low on the horizon
   for (const [c, r] of [[7, 1], [16, 0], [23, 2]] as const) {
     drawSprite(ctx, T_STAR, c * CELL, r * CELL, C.WHITE, C.B_BLUE)  // cold, dim stars
   }
@@ -352,6 +392,7 @@ function drawDespairScene(ctx: CanvasRenderingContext2D): void {
   for (let col = 1; col <= 30; col++) drawSprite(ctx, T_WIRE, col * CELL, 9 * CELL, C.WHITE, C.B_BLUE)
   for (let col = 1; col <= 30; col++) drawSprite(ctx, T_GROUND, col * CELL, 11 * CELL, C.B_BLUE, C.BLACK)
   for (const col of [4, 10, 16, 22, 27]) drawSprite(ctx, T_MINE_DOME, col * CELL, 10 * CELL, C.RED, C.BLACK)
+  drawBitmap(ctx, CAT_SITTING, 6 * CELL, 11 * CELL - CAT_SITTING.height, C.B_WHITE)
 }
 
 // Upper-half scene per card — all five hand-drawn. Beats: the Strip → the Sower
