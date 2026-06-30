@@ -383,7 +383,7 @@ const CAT_SITTING = createBitmapFromRows([
 // hint (before THE RUNNER finds the same gap on purpose) that a way exists.
 function drawDespairScene(ctx: CanvasRenderingContext2D): void {
   drawShade(ctx, 0, 0, COLS * CELL, 10 * CELL, C.BLACK, C.B_BLUE, DITHER.HALF)  // grim, no moon
-  drawShade(ctx, 1 * CELL, 8 * CELL, 30 * CELL, CELL, C.BLACK, C.YELLOW, DITHER.QUARTER)  // first light, low on the horizon
+  drawShade(ctx, 22 * CELL, 8 * CELL, 2 * CELL, CELL, C.YELLOW, C.B_BLUE, DITHER.QUARTER)  // a faint glint of first light, low on the horizon
   for (const [c, r] of [[7, 1], [16, 0], [23, 2]] as const) {
     drawSprite(ctx, T_STAR, c * CELL, r * CELL, C.WHITE, C.B_BLUE)  // cold, dim stars
   }
