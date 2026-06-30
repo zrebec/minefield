@@ -18,7 +18,7 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (294 tests)
+npm test          # Vitest (295 tests)
 npm run build     # dist/
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
 ```
@@ -31,12 +31,12 @@ src/
 ├── constants.ts   # resolution + palette re-export from zx-kit (COLS=32, ROWS=18, STATUS_ROWS=6)
 ├── font.ts        # ZX ROM font re-export
 ├── sprites.ts     # all sprites + tile factories as Uint8Array (8×8); makeTileFence, etc.
-├── audio.ts       # Web Audio: warnings, explosion, fanfare, aircraft drone, volume; + intro AY underscore + typewriter tick
+├── audio.ts       # Web Audio: warnings, explosion, fanfare, aircraft drone, volume; + per-card intro AY score (introTrack) + typewriter tick
 ├── input.ts       # zx-kit input wrapper + game keys (D reveal, R random, SHIFT+S, +/-)
 ├── game.ts        # GameState, TileMap, field/gem/building gen, daily seed, isFieldSolvable, addDropMinesInBand
 ├── player.ts      # movement, collision, flag, respawn, scoring, gem pickup, combo
 ├── airplane.ts    # aircraft timer, animation, mine drop (calls addDropMinesInBand)
-├── intro.ts       # "The Strip" intro: stepStory machine + typewriter + hand-drawn shot (8×8) + isIntroDue/markIntroSeen (localStorage seen-gate)
+├── intro.ts       # "The Strip" intro: stepStory machine + typewriter + 5 hand-drawn scenes (8×8) + chapter titles + isIntroDue/markIntroSeen (seen-gate)
 ├── renderer.ts    # TileMap, sprites, HUD, detector, night, overlays
 ├── save.ts        # zx-kit save profile wiring (version 5)
 ├── strings.ts / strings.sk.ts / lang.ts   # i18n packs (incl. STR_STORY_CARDS)
@@ -57,6 +57,13 @@ src/
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 
 ### Story intro ("The Strip") — `intro.ts` + the `'story'` phase in `main.ts`
+- **Story (5 chapters):** two countries that never declared/ended a war carve a no-man's-land (the Strip);
+  a nightly plane reseeds it with mines, keeping torn-apart families apart; a runner reads the **pattern**,
+  builds a home-made **sonar** that hears mines, and carries **parcels** to loved ones across. Maps to the
+  mechanics (sowing = daily reseed · pattern = seed · sonar = audio warning · parcels = gems · crossing =
+  win). **English ships** (`STR_STORY_CARDS` in `strings.ts`); Slovak is a translation (`strings.sk.ts`).
+  Chapter titles `STR_STORY_TITLES` (THE DIVIDE / TORN APART / NO WAY ACROSS / THE RUNNER / NEW HOPE) show
+  book-style on each card's heading rule.
 - **Flow (redesigned 2026-06-25):** the **title** is the cold-load screen; a save-resume goes straight to
   `'ingame'`. The story plays as a **pre-roll** when "due" on a mode-start, or on demand via the title's
   **`I`** key. `isIntroDue()` gates it (localStorage `minefield_intro` = `{v,t}`; `INTRO_REVALIDATE_DAYS`
@@ -65,16 +72,17 @@ src/
   seen on finish **or** skip. Pure core (`stepStory`, `StoryState`) drives the typewriter over
   `L.STR_STORY_CARDS`: each frame reveals `dt / MS_PER_CHAR` chars; **first key finishes** the card, a
   second (or `CARD_HOLD_MS`) **advances**. `MS_PER_CHAR` / `CARD_HOLD_MS` are owner-tuned.
-- **Audio (new, additive — existing sounds untouched):** the AY underscore (`startIntroMusic` /
-  `stopIntroMusic` in `audio.ts`, via zx-kit `seq`/`playAYLoop`) is the **only AY use** in the game;
-  `playTypeClick` ticks the beeper per char. Autoplay policy: audio is silent until the first gesture, so
-  the **first key only unlocks sound**. The startup jingle was **relocated off first-gesture** (it clashed
-  with the AY) → it now plays once per session on a **direct** game-start (intro not shown).
-- **Visual (`intro.ts`):** card 1 is a **hand-drawn establishing shot** from bespoke 8×8 tiles
-  (`T_BRICK`/`T_WIRE`/`T_GROUND`/`T_MOON`/`T_STAR`/`T_MINE_DOME`); its **dithered night sky uses zx-kit
-  `drawShade` + `DITHER.HALF`** (0.35.0 — the local `T_SKY` tile was removed). One ink + one paper per
-  cell ⇒ colour-clash-correct. Cards 2–4 are still simpler sprite vignettes (to be redrawn bespoke). Title
-  is **THE STRIP** (`STR_TITLE`).
+- **Audio (new, additive — existing sounds untouched):** a **per-card AY score** (`introTrack(card)` →
+  `startIntroMusic(card)` in `audio.ts`, via zx-kit `seq`/`playAYLoop`; 3 voices + per-note volume/envelopes
+  via `voiced()`), switched on card change. The arc: lament → **funeral dirge** (despair) → a brightening
+  turn → Beethoven's **"Ode to Joy"** (new hope). The **only AY use** in the game; gameplay stays beeper.
+  `playTypeClick` ticks the beeper per char. Autoplay: silent until the first gesture (the first key only
+  unlocks sound); the startup jingle was relocated off first-gesture (clashed with the AY) → now once per
+  session on a **direct** game-start. **Music is tuned by ear by the owner.**
+- **Visual (`intro.ts`):** **all 5 chapters are hand-drawn** (`drawEstablishingShot` / `drawSowerScene` /
+  `drawDespairScene` / `drawCrossingScene` / `drawDeliveryScene`) from bespoke 8×8 tiles; dithered skies use
+  zx-kit `drawShade` + `DITHER`. One ink + one paper per cell ⇒ colour-clash-correct. Title is **THE STRIP**
+  (`STR_TITLE`).
 
 ### Field, fence & solvability
 - Playfield **32×18 cells**; the bottom **6 HUD rows**: backpack · timer · score+detector · mines+level ·

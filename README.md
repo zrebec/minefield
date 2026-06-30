@@ -39,25 +39,31 @@
 | Stack | TypeScript · Vite · Canvas · Web Audio · zx-kit |
 | Native resolution | 256×192 (integer ×4) |
 | Runtime dependencies | `zx-kit` only |
-| Tests | 284 (Vitest) |
+| Tests | 295 (Vitest) |
 | Last verified | 2026-06-24 |
 
 ---
 
 ## Story
 
-*Winter, the eleventh year of a war no one declared.* Between two walls lies **the Strip** — a field of
-buried death. Each night the enemy's **Sower** flies over and seeds it anew — that is the in-world reason
-the **daily** field changes every day, and why an aircraft keeps dropping mines mid-run. You are not a
-sapper: you can't clear the Strip, only **cross** it and mark a safe path. For now you just carry
-**deliveries** across (the gems) to stay inconspicuous. It took until spring to find the first runner
-willing to cross — but he made it, and carried the first one home.
+*Two countries that never declared a war — and never ended one.* Between them they carved a stretch of
+no man's land and called it **the Strip**. Overnight it tore families apart — mothers from sons, lovers,
+friends, each stranded on a different side — and **each night a plane reseeds the Strip** with mines to keep
+them apart. (That is the in-world reason the **daily** field changes every day, and why an aircraft keeps
+sowing mines mid-run.) For years no one could cross; the field swallowed all who tried.
 
-A **4-card typewriter intro** tells this the first time you play (replay anytime with `I`; any key
-advances / skips), underscored by the kit's **AY chip** — the only place The Strip uses AY; gameplay stays
-pure beeper. The opening establishing shot is **hand-drawn in 8×8 tiles** (dithered night sky via the kit's
-`drawShade`, the walled Strip, buried mines),
-colour-clash-correct by construction.
+Then **one man** watched *how* they sowed it, found the **pattern**, and built a **home-made sonar** that
+hears a mine close by — and suddenly knew a safe way through. The people would not risk their own lives, so
+they pressed **parcels** into his hands — for a mother, a love, a son across — and he carries them home.
+*Sowing = the daily reseed · the pattern = the seed · the sonar = the audio warning · the parcels = the
+gems · crossing = the win.*
+
+A **5-chapter typewriter intro** (THE DIVIDE · TORN APART · NO WAY ACROSS · THE RUNNER · NEW HOPE) tells it
+the first time you play (replay anytime with `I`; any key advances / skips). Each chapter is **hand-drawn in
+8×8 tiles** (clash-correct by construction; dithered night skies via the kit's `drawShade`) and carries its
+own **AY underscore** — a melancholic loop per card that darkens to a funeral dirge for *No Way Across* and
+resolves into Beethoven's *Ode to Joy* for *New Hope*. AY is the **only** place The Strip touches the chip;
+gameplay stays pure beeper.
 
 ---
 
@@ -239,7 +245,7 @@ src/
 ├── constants.ts   ← technical constants: resolution, palette re-export from zx-kit
 ├── font.ts        ← re-export of the ZX ROM font from zx-kit
 ├── sprites.ts     ← all sprites as Uint8Array (8×8 px)
-├── audio.ts       ← Web Audio engine: warnings, explosion, fanfare, aircraft; + story-intro AY underscore + typewriter tick
+├── audio.ts       ← Web Audio engine: warnings, explosion, fanfare, aircraft; + per-card story-intro AY score + typewriter tick
 ├── input.ts       ← wrapper over zx-kit input (key-repeat config + game keys)
 ├── game.ts        ← GameState, TileMap, minefield/gem/building generation, daily seed
 ├── player.ts      ← movement, collision, flag, respawn, scoring, gem pickup
@@ -257,7 +263,7 @@ src/
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # production build → dist/
-npm test         # unit tests (Vitest) — 284 tests
+npm test         # unit tests (Vitest) — 295 tests
 npm run capture  # refresh docs/img screenshots (Playwright)
 ```
 
@@ -270,7 +276,7 @@ npm run capture  # refresh docs/img screenshots (Playwright)
 | `renderer` / `font` | canvas setup (×4), ROM bitmap font, sprites, scanlines, CRT curvature |
 | `tilemap` | the playfield (ground/mine/gem/visited/flag/fence/building tiles) |
 | `audio` | square-wave warnings/fanfares, aircraft drone; built-in `+`/`-` volume + HUD bar |
-| `music` / `ay` | the **story intro's AY underscore** (`seq` + `playAYLoop`) — the only AY use; gameplay is pure beeper |
+| `music` / `ay` | the **per-card story-intro score** (`seq` + `playAYLoop`, 3 voices + envelopes) — the only AY use; gameplay is pure beeper |
 | `input` | key-repeat + gamepad; built-in `+`/`-` volume keys |
 | `save` | typed save/load with versioning (v5) |
 | `rng` | seeded `mulberry32` for the daily field and airplane behaviour |
@@ -282,9 +288,9 @@ npm run capture  # refresh docs/img screenshots (Playwright)
 |---|---|---|
 | Core loop | Complete | cross → levels → highscore → save |
 | Fence + solvability | Complete | winnable under all circumstances (generation + airdrop guard) |
-| Story + intro | **Done (tuning pending)** | 4-card typewriter intro + AY underscore + hand-drawn opening; copy/tempo/audio still being tuned by ear |
+| Story + intro | **Done (music tuning pending)** | 5-chapter typewriter intro + per-card AY score + 5 hand-drawn scenes + chapter titles; music tuned by ear |
 | Save / load | Complete | version 5; auto-resume; cleared on game over |
-| Tests | 284 | seeded solvability + property tests; + intro/audio coverage |
+| Tests | 295 | seeded solvability + property tests; + intro/audio coverage |
 | Accessibility | Partial | visual detector done; stereo/TTS planned (Roadmap) |
 | Visuals | Readable | screenshots may be refreshed to show the fence + intro |
 

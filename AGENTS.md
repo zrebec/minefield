@@ -10,8 +10,9 @@ The Strip (repo/package still `minefield` until a focused rename) is a browser h
 Spectrum "minefield" games: cross a **blind** minefield left→right, warned only by sound and a visual HUD
 detector, while an aircraft periodically drops more mines. It must always stay: **audio-primary but not
 audio-only**, **fair** (a daily field is the same for everyone and **always winnable**), and **visually
-authentic ZX Spectrum**. The story framing ("The Strip / Quiet War": a nightly Sower re-seeds the field)
-is the in-world reason the daily field changes and the aircraft keeps dropping mines.
+authentic ZX Spectrum**. The story (two countries with a no-man's-land Strip between them; a nightly plane
+reseeds it with mines to keep torn-apart families apart; a runner with a home-made sonar carries parcels
+across) is the in-world reason the daily field changes and the aircraft keeps dropping mines.
 
 ## Name
 
@@ -23,9 +24,10 @@ and high-scores survive).
 ## Permanent Audio Rule
 
 Gameplay audio is the **beeper** (`playPattern` / Web Audio square waves) — warnings, explosion, fanfares,
-the aircraft drone. The **AY chip is reserved for the story-intro underscore only** (`startIntroMusic` via
-zx-kit `seq`/`playAYLoop`). Do not add AY to gameplay. New intro sounds are additive — never retune the
-existing beeper SFX without the owner (they are tuned by ear).
+the aircraft drone. The **AY chip is reserved for the story intro's per-card score only** (`introTrack` /
+`startIntroMusic` via zx-kit `seq`/`playAYLoop`). Do not add AY to gameplay. New intro sounds are additive —
+never retune the existing beeper SFX without the owner. The **intro score + tempo are tuned by ear by the
+owner** (`introTrack` in `audio.ts`).
 
 ## Read Order
 

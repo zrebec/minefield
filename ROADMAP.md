@@ -37,8 +37,8 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Fence + solvability | **Done** — winnable under all circumstances (gen + airdrop guard) | 2026-06-23 |
 | Daily fairness | **Done** — field **and** highscore dated by the run's **origin** daily (verified 2026-06-29) | 2026-06-29 |
 | Leaderboard integrity | Client-only — random runs off-board; localStorage editable ⇒ **anti-cheat = open topic** | 2026-06-29 |
-| Story + intro | **Live, polishing** — 4-card typewriter + AY + hand-drawn card 1; flow: title-first, `I` replays, due-gated pre-roll | 2026-06-29 |
-| Tests | 294 (Vitest) | 2026-06-29 |
+| Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
+| Tests | 295 (Vitest) | 2026-06-30 |
 | Build / release | semantic-release → GitHub Pages (latest **0.42.0**) | 2026-06-29 |
 | Accessibility | Partial (visual detector done; stereo/TTS/beacon = **v1.0 scope**, option C) | 2026-06-29 |
 
@@ -48,8 +48,9 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 new mechanics** (those are Post-1.0). Each item ships with tests where behaviour changes.
 
 ### P1 — Finish & polish (the game must feel done)
-1. **Finish the intro.** Bespoke hand-drawn art for **cards 2–4** (card 1 done), then a final copy /
-   tempo (`MS_PER_CHAR`, `CARD_HOLD_MS`) / AY (`startIntroMusic`) / typing-click pass. Owner-led art.
+1. **Finish the intro — music tuning only.** The story (5 chapters), all 5 hand-drawn scenes, the per-card
+   AY score (`introTrack`) and book-style chapter titles are **done**. What remains is the owner's by-ear
+   tuning of the tracks + tempo (`MS_PER_CHAR` / `CARD_HOLD_MS`). Optional: a "press to begin (sound on)" gate.
 2. **Difficulty tuning pass.** A daily L1–L2 **reliably beatable** within `TIMER_BASE_MS` by a careful
    player. Knobs only: `LEVEL_CONFIGS`, `acMineDrop*`, building size/count.
 3. **Green-gem special — decide + implement.** One behaviour, data-driven in `config.ts`/`GEM_KINDS`,
@@ -123,6 +124,7 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 | 2026-06-25 | Daily run carries its **origin date** across levels; highscore dated by it (not wall-clock) | A resumed/older daily scores under its own date — keeps the leaderboard fair (verified 2026-06-29) |
 | 2026-06-25 | Intro flow: **title-first**; `I` replays; intro pre-rolls on a mode-start when "due" (localStorage; daily until v1.0) | Save-resume skipped the intro entirely; this makes it reachable + first-time-gated |
 | 2026-06-25 | Startup jingle moved off first-gesture → once per session on a **direct** game-start | It clashed with the intro AY underscore; only the *timing* changed (sound unchanged) |
+| 2026-06-30 | Story rewritten to **5 chapters** (two countries / no-man's-land / runner+sonar / parcels); each card a **bespoke scene + its own AY track**; cards **English**, SK translated | Owner wanted stronger drama; the two-countries framing + per-card score (lament→dirge→Ode to Joy) land the emotion; maps cleanly to the mechanics |
 
 ## Dropped / Archived
 
@@ -135,6 +137,7 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Milestone |
 |---|---|
+| 2026-06-30 | Intro story rewrite (5 dramatic chapters) + per-card AY score (lament → funeral dirge → Ode to Joy) + book-style chapter titles + all 5 hand-drawn scenes |
 | 2026-06-29 | Daily-date fairness — field + highscore dated by the run's origin daily (verified via an edited save) |
 | 2026-06-25 | Intro flow redesign — title-first, `I` replays, due-gated pre-roll (localStorage seen-flag) |
 | 2026-06-25 | zx-kit 0.35.0 dither (`drawShade`/`DITHER`) shipped + adopted by the intro's night sky |
