@@ -61,6 +61,10 @@ export interface MinefieldSave {
   /** Seeded airplane pass counter — drives the `:pass`/`:drop`/`:next` seeds.
    *  Optional: saves written before it was persisted resume at 0 (old behaviour). */
   airplanePassIndex?: number
+  /** Debug mine-reveal budget already spent this level (see RANDOM_REVEAL_LIMIT
+   *  in config.ts). Optional: saves written before it was persisted resume at 0
+   *  — a one-time free reveal on old saves, not worth a migration for. */
+  revealsUsed?: number
   /** Field seed base: a string for daily runs, null for a random (R-rerolled)
    *  run. Persisted so a resumed random run stays random (and off the
    *  leaderboard). Optional: older saves lack it and resume as daily. */
@@ -172,6 +176,7 @@ function serializeState(state: GameState): MinefieldSave {
     comboCount: state.comboCount,
     nextAircraftMs: state.nextAircraftMs,
     airplanePassIndex: state.airplanePassIndex,
+    revealsUsed: state.revealsUsed,
     dropSeedBase: state.dropSeedBase,
     map,
   }
@@ -196,7 +201,13 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.gemsTotal = GEM_COUNT
   target.cycleSteps = data.cycleSteps
   target.isNight = data.isNight
-  target.comboCount = data.comboCount
+  // Combo is a short-term "hot hand" streak, not resume-worthy state — reload
+  // clears it outright (comboCount AND comboTimer together), same as death
+  // already does. Previously only comboTimer was zeroed while comboCount
+  // survived from the save; since the auto-expiry check in main.ts only runs
+  // when comboTimer > 0, that stale comboCount silently outlived a reload and
+  // applied its score multiplier to the player's next step.
+  target.comboCount = 0
   target.comboTimer = 0
   target.nextAircraftMs = data.nextAircraftMs
   target.airplanePassIndex = data.airplanePassIndex ?? 0
@@ -228,7 +239,10 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.flashTimer = 0
   target.flashOn = false
   target.debugMode = false
-  target.revealsUsed = 0
+  // Persisted (older saves without it resume with a one-time free reveal —
+  // harmless, not worth a migration): previously always reset to 0, letting
+  // a save→reload cycle repeatedly bypass RANDOM_REVEAL_LIMIT.
+  target.revealsUsed = data.revealsUsed ?? 0
   target.levelCompleteTimer = 0
   target.blink = true
   target.blinkTimer = 500

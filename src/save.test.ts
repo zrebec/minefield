@@ -85,4 +85,34 @@ describe('save round-trip', () => {
     expect(tile?.id).toBe('ground')
     expect(tile?.metadata?.flagged).toBe(true)
   })
+
+  it('persists revealsUsed (regression: reload used to reset the debug-reveal budget, letting save-scumming bypass RANDOM_REVEAL_LIMIT)', () => {
+    const saved = createGame(0, 0)   // undefined seed → random mode
+    saved.revealsUsed = 1            // spent the one allowed reveal
+    setStateGetter(() => saved)
+    writeSave(saveProfile, 'auto')
+
+    const loaded = createGame(0, 0)
+    expect(loaded.revealsUsed).toBe(0)   // fresh state, budget not yet spent
+    setStateGetter(() => loaded)
+    readSaveLatest(saveProfile)
+
+    // Before the fix this stayed 0 → reload silently refilled the budget.
+    expect(loaded.revealsUsed).toBe(1)
+  })
+
+  it('clears the combo on load (regression: comboCount survived a reload while comboTimer was zeroed, so the auto-expiry check — which only runs when comboTimer > 0 — never fired, and the stale multiplier applied to the next step)', () => {
+    const saved = createGame(0, 0, 'combo-seed')
+    saved.comboCount = 7
+    saved.comboTimer = 1200   // mid-streak, well before natural expiry
+    setStateGetter(() => saved)
+    writeSave(saveProfile, 'auto')
+
+    const loaded = createGame(0, 0, 'combo-seed')
+    setStateGetter(() => loaded)
+    readSaveLatest(saveProfile)
+
+    expect(loaded.comboCount).toBe(0)
+    expect(loaded.comboTimer).toBe(0)
+  })
 })
