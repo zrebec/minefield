@@ -211,9 +211,37 @@ function placeMines(map: TileMap, count: number, safeCol: number, safeRow: numbe
   }
 }
 
-// Prevent the "obstacle ahead + mine on each side" trap (forced step onto a mine)
-// around any solid obstacle perimeter. For every walkable approach cell flanked
-// by mines on both perpendicular sides, relocate one flank mine back to ground.
+// Single source of truth for the SHAPE of the "obstacle ahead + mine on each
+// side" trap (forced step onto a mine): given a candidate approach cell and
+// which axis its two flanking cells lie on, returns those flank coordinates
+// ONLY if the approach itself qualifies as a trap SITE — walkable, and
+// adjacent to a solid obstacle on the OTHER axis. Returns null otherwise.
+// Deliberately does NOT decide whether the flanks are actually mines — that
+// evaluation differs by caller (see below) and mixing it in here caused a
+// real bug: an earlier version checked both flanks against the live map,
+// which broke createsObstacleTrap for a flank that's still hypothetical (not
+// yet placed on the map). Both fixObstacleTraps (scanning forward from every
+// obstacle at generation time) and createsObstacleTrap (checking backward
+// from one candidate cell, for airplane drops) call this for the geometry —
+// a change to what counts as a trap SITE can't update one and silently miss
+// the other, which is exactly how the flag/id bug happened.
+function obstacleTrapSite(
+  map: TileMap, ac: number, ar: number, flankAxis: 'horizontal' | 'vertical',
+): [[number, number], [number, number]] | null {
+  const approach = map.getTile(ac, ar)
+  // Walkable = on the map, not solid, not a mine (a mine approach kills the
+  // player first, so it isn't a trap). Matches the invariant we assert.
+  if (!approach || approach.solid || approach.id === 'mine') return null
+  const obstacleAxis = flankAxis === 'horizontal' ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]]
+  const hasObstacle = obstacleAxis.some(([odc, odr]) => map.getTile(ac + odc, ar + odr)?.solid)
+  if (!hasObstacle) return null
+  const flankDirs = flankAxis === 'horizontal' ? [[1, 0], [-1, 0]] : [[0, 1], [0, -1]]
+  return flankDirs.map(([fdc, fdr]) => [ac + fdc, ar + fdr]) as [[number, number], [number, number]]
+}
+
+// Prevent the trap around any solid obstacle perimeter: for every walkable
+// approach cell flanked by mines on both perpendicular sides, relocate one
+// flank mine back to ground.
 //
 // Runs to a FIXED POINT: relocating a mine can turn a previously-deadly "mine
 // approach" (which the player would die on before ever facing the obstacle) into
@@ -222,23 +250,20 @@ function placeMines(map: TileMap, count: number, safeCol: number, safeRow: numbe
 // Termination is guaranteed — every change removes exactly one mine.
 export function fixObstacleTraps(map: TileMap, terrain: TerrainType): void {
   // Every solid obstacle — buildings AND the perimeter fence — can form the
-  // "mine on each side of a walkable approach" trap. The obstacle set never changes
-  // here (we only relocate mines to ground), so compute it once.
+  // trap. The obstacle set never changes here (we only relocate mines to
+  // ground), so compute it once.
   const obstacles = [...map.findById('building'), ...map.findById('fence')]
   let changed = true
   while (changed) {
     changed = false
     for (const { x, y } of obstacles) {
-      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
         const ac = x + dc, ar = y + dr
-        const approach = map.getTile(ac, ar)
-        // Walkable = on the map, not solid, not a mine (a mine approach kills the
-        // player first, so it isn't a trap). Matches the invariant we assert.
-        if (!approach || approach.solid || approach.id === 'mine') continue
-        const perpDirs = dc === 0 ? [[1, 0], [-1, 0]] : [[0, 1], [0, -1]]
-        const perps: Array<[number, number]> = perpDirs.map(([pdc, pdr]) => [ac + pdc, ar + pdr])
-        if (perps.every(([pc, pr]) => map.getTile(pc, pr)?.id === 'mine')) {
-          const [pc, pr] = perps[0]
+        const flankAxis = dc === 0 ? 'horizontal' : 'vertical'
+        const flanks = obstacleTrapSite(map, ac, ar, flankAxis)
+        // Both flanks must be real mines on the live map — no hypotheticals here.
+        if (flanks && flanks.every(([fc, fr]) => map.getTile(fc, fr)?.id === 'mine')) {
+          const [pc, pr] = flanks[0]
           map.setTile(pc, pr, makeTileGround(cellVariant(pc, pr), terrain))
           changed = true
         }
@@ -247,27 +272,26 @@ export function fixObstacleTraps(map: TileMap, terrain: TerrainType): void {
   }
 }
 
-// Read-only mirror of fixObstacleTraps' trap predicate, checked outward from a
-// single candidate cell instead of scanning every obstacle on the map — cheap
-// enough to call once per airplane-drop candidate. Answers: if `col,row` were
-// a mine right now, would it flank some nearby walkable approach (together
-// with an existing mine on the opposite flank) that's itself adjacent to a
-// solid obstacle? fixObstacleTraps only runs at generation time; without this,
-// airplane drops could silently recreate the exact "forced step onto a mine"
-// trap generation is built to eliminate.
+// Would a mine at (col,row) complete an obstacle-flanking trap? `col,row`
+// is treated as a HYPOTHETICAL mine — it does not need to already be on the
+// map (the caller may check this before committing the placement, or after;
+// either works, since only the OTHER flank is read from the live map).
+// Checked outward from this one candidate cell (cheap enough to call once
+// per airplane-drop attempt) instead of scanning every obstacle.
+// fixObstacleTraps only runs at generation time; without this, airplane
+// drops could silently recreate the exact trap generation is built to
+// eliminate.
 export function createsObstacleTrap(map: TileMap, col: number, row: number): boolean {
   for (const [ddc, ddr] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-    // (col,row) as a perp of approach ⇒ approach = (col,row) − (ddc,ddr).
+    // (col,row) as a flank of approach ⇒ approach = (col,row) − (ddc,ddr).
     const ac = col - ddc, ar = row - ddr
-    const approach = map.getTile(ac, ar)
-    if (!approach || approach.solid || approach.id === 'mine') continue
-    // The obstacle sits on the axis PERPENDICULAR to (ddc,ddr) from the
-    // approach (mirrors fixObstacleTraps' perpDirs construction, reversed).
-    const obstacleDirs = ddr === 0 ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]]
-    const hasObstacle = obstacleDirs.some(([odc, odr]) => map.getTile(ac + odc, ar + odr)?.solid)
-    if (!hasObstacle) continue
-    // The other flank, opposite our candidate mine across the approach.
-    if (map.getTile(ac - ddc, ar - ddr)?.id === 'mine') return true
+    const flankAxis = ddr === 0 ? 'horizontal' : 'vertical'
+    const flanks = obstacleTrapSite(map, ac, ar, flankAxis)
+    if (!flanks) continue
+    // The other flank — the one that ISN'T our candidate — must be a real
+    // mine on the live map for this to be a live trap.
+    const [otherCol, otherRow] = flanks[0][0] === col && flanks[0][1] === row ? flanks[1] : flanks[0]
+    if (map.getTile(otherCol, otherRow)?.id === 'mine') return true
   }
   return false
 }
