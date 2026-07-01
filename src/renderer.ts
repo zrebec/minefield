@@ -4,7 +4,7 @@ import type { GameState, AirplaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor } from 'zx-kit'
 import { loadHighScores } from './assets/highscore.ts'
-import { L } from './lang.ts'
+import { L, getLocale } from './lang.ts'
 import {
   PLAYER_RIGHT_A, PLAYER_RIGHT_B,
   PLAYER_LEFT_A, PLAYER_LEFT_B,
@@ -449,6 +449,10 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
     drawTextCentered(ctx, L.STR_GOAL, 16 * CELL, C.B_GREEN, C.BLACK)
     drawTextCentered(ctx, L.STR_AUDIO_HINT, 17 * CELL, C.YELLOW, C.BLACK)
   }
+
+  // Language toggle hint — inherently a language code, not prose, so it's built
+  // locally rather than routed through the L.STR_* translation pack.
+  drawTextCentered(ctx, `L: ${getLocale().toUpperCase()}`, 18 * CELL, C.YELLOW, C.BLACK)
 
   if (blink) {
     drawTextCentered(ctx, L.STR_START_HINT, 19 * CELL, C.B_YELLOW, C.BLACK)

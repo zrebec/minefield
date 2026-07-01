@@ -10,7 +10,7 @@ import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
 import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen } from './intro.ts'
 import { isHighScore, saveHighScore } from './assets/highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
-import { L } from './lang.ts'
+import { L, cycleLocale } from './lang.ts'
 
 type AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'
 
@@ -390,6 +390,8 @@ function main(): void {
         startKeyPending = true
       } else if (e.key === 'i' || e.key === 'I') {
         introReplayPending = true   // replay the story intro on demand
+      } else if (e.key === 'l' || e.key === 'L') {
+        cycleLocale()   // synchronous, safe to call directly — no pending flag needed
       }
     } else if (appPhase === 'hiscore') {
       if (e.key.length === 1 && /[A-Za-z]/.test(e.key)) {
