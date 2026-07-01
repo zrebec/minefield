@@ -1,3 +1,10 @@
+# [0.47.0](https://github.com/zrebec/minefield/compare/v0.46.0...v0.47.0) (2026-07-01)
+
+
+### Features
+
+* **flag:** SHIFT+arrow directional flagging; fix mine flag defusing itself ([7a30e54](https://github.com/zrebec/minefield/commit/7a30e54f919605434eaac2de45fd437ebad740d4))
+
 # [0.46.0](https://github.com/zrebec/minefield/compare/v0.45.0...v0.46.0) (2026-07-01)
 
 
