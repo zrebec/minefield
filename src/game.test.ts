@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, isFieldSolvable, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from './game.ts'
 import { movePlayer } from './player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
@@ -804,6 +804,63 @@ describe('fixObstacleTraps — no-op cases', () => {
   })
 })
 
+// createsObstacleTrap answers "would a mine HERE complete a trap", checked
+// outward from the candidate cell — the read-only counterpart addDropMinesInBand
+// consults before committing an airplane-dropped mine, so airplane drops can't
+// silently recreate the traps fixObstacleTraps eliminates at generation time.
+// Same fixture geometry as the fixObstacleTraps tests above, viewed from the
+// other flank's perspective.
+describe('createsObstacleTrap', () => {
+  it('true: placing at the second flank when the first flank is already a mine (vertical wall)', () => {
+    const map = emptyMap()
+    setObstacle(map, 5, 5)         // approach (4,5); perps (4,4) and (4,6)
+    setMine(map, 4, 4)
+    expect(createsObstacleTrap(map, 4, 6)).toBe(true)
+  })
+
+  it('true: the opposite side of the same vertical wall', () => {
+    const map = emptyMap()
+    setObstacle(map, 5, 5)         // approach (6,5); perps (6,4) and (6,6)
+    setMine(map, 6, 4)
+    expect(createsObstacleTrap(map, 6, 6)).toBe(true)
+  })
+
+  it('true: horizontal wall, above the wall', () => {
+    const map = emptyMap()
+    setObstacle(map, 5, 5)         // approach (5,4); perps (4,4) and (6,4)
+    setMine(map, 4, 4)
+    expect(createsObstacleTrap(map, 6, 4)).toBe(true)
+  })
+
+  it('false: no obstacle at all — flanking mines alone are not a trap', () => {
+    const map = emptyMap()
+    setMine(map, 4, 4)
+    expect(createsObstacleTrap(map, 4, 6)).toBe(false)
+  })
+
+  it('false: obstacle present but the other flank has no mine yet', () => {
+    const map = emptyMap()
+    setObstacle(map, 5, 5)
+    // (4,4) stays ground — only one candidate cell, no existing flank mine
+    expect(createsObstacleTrap(map, 4, 6)).toBe(false)
+  })
+
+  it('false: the approach cell itself is solid (not a valid approach)', () => {
+    const map = emptyMap()
+    setObstacle(map, 5, 5)
+    setObstacle(map, 4, 5)   // approach cell is ALSO solid
+    setMine(map, 4, 4)
+    expect(createsObstacleTrap(map, 4, 6)).toBe(false)
+  })
+
+  it('false: a mine far away is not mistaken for a flank', () => {
+    const map = emptyMap()
+    setObstacle(map, 5, 5)
+    setMine(map, 10, 10)
+    expect(createsObstacleTrap(map, 4, 6)).toBe(false)
+  })
+})
+
 describe('fixObstacleTraps — invariant via createGame', () => {
   // Property test: across many random levels, no wall is ever flanked by
   // mines on both perpendicular sides of any of its approach cells.
@@ -1446,6 +1503,30 @@ describe('airplane drops — solvability guard', () => {
     for (let col = 1; col <= COLS - 2; col++) if (map.getTile(col, R)?.id === 'mine') placed++
     expect(placed).toBe(0)
     expect(state.totalMines).toBe(0)
+  })
+
+  // Regression coverage for the obstacle-trap prevention added alongside the
+  // solvability guard: fixObstacleTraps only runs once, at generation — without
+  // this, a later airplane drop could recreate the exact "forced step onto a
+  // mine" trap it eliminated. Row 6 is mined everywhere except (4,6), so the
+  // ONLY candidate the RNG can ever place at in that row is the one that would
+  // complete the trap (obstacle at (5,5), existing flank mine at (4,4)).
+  it('refuses a drop that would recreate an obstacle-flanking trap', () => {
+    const map = createTileMap(COLS, ROWS)
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) map.setTile(col, row, makeTileGround(cellVariant(col, row), 'grass'))
+    }
+    map.setTile(5, 5, makeTileBuilding('brick'))
+    setMine(map, 4, 4)
+    for (let col = 1; col <= COLS - 2; col++) {
+      if (col !== 4) setMine(map, col, 6)   // every row-6 cell but the trap candidate
+    }
+    const state = dropState(map, 10, 10, 'trap-guard')
+
+    addDropMinesInBand(state, 30, 6, 6)   // row-locked to 6; only (4,6) is ever a valid target
+
+    expect(map.getTile(4, 6)?.id).toBe('ground')   // guard kept it open
+    expect(state.totalMines).toBe(0)               // the only candidate was rejected every time
   })
 
   it('drops are deterministic for the same seed (daily stays comparable)', () => {

@@ -247,6 +247,31 @@ export function fixObstacleTraps(map: TileMap, terrain: TerrainType): void {
   }
 }
 
+// Read-only mirror of fixObstacleTraps' trap predicate, checked outward from a
+// single candidate cell instead of scanning every obstacle on the map — cheap
+// enough to call once per airplane-drop candidate. Answers: if `col,row` were
+// a mine right now, would it flank some nearby walkable approach (together
+// with an existing mine on the opposite flank) that's itself adjacent to a
+// solid obstacle? fixObstacleTraps only runs at generation time; without this,
+// airplane drops could silently recreate the exact "forced step onto a mine"
+// trap generation is built to eliminate.
+export function createsObstacleTrap(map: TileMap, col: number, row: number): boolean {
+  for (const [ddc, ddr] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+    // (col,row) as a perp of approach ⇒ approach = (col,row) − (ddc,ddr).
+    const ac = col - ddc, ar = row - ddr
+    const approach = map.getTile(ac, ar)
+    if (!approach || approach.solid || approach.id === 'mine') continue
+    // The obstacle sits on the axis PERPENDICULAR to (ddc,ddr) from the
+    // approach (mirrors fixObstacleTraps' perpDirs construction, reversed).
+    const obstacleDirs = ddr === 0 ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]]
+    const hasObstacle = obstacleDirs.some(([odc, odr]) => map.getTile(ac + odc, ar + odr)?.solid)
+    if (!hasObstacle) continue
+    // The other flank, opposite our candidate mine across the approach.
+    if (map.getTile(ac - ddc, ar - ddr)?.id === 'mine') return true
+  }
+  return false
+}
+
 function placeGems(map: TileMap, count: number, safeCol: number, safeRow: number, rng: Rng): void {
   const kinds = gemKindSequence(count, GEM_KINDS)
   let placed = 0
@@ -549,7 +574,10 @@ export function addDropMinesInBand(state: GameState, count: number, minRow: numb
     // field stays deterministic. If this drop would seal the field, revert it and skip —
     // a pass can legitimately place fewer mines than `count`, even 0.
     state.map.setTile(col, row, makeTileMine('normal', cellVariant(col, row), state.terrain))
-    if (!isFieldSolvable(state.map, state.startRow, state.exitRow)) {
+    // Same revert-and-skip pattern as the solvability guard above: a drop that
+    // would recreate a "forced step onto a mine" trap next to a building/fence
+    // (see createsObstacleTrap) is rejected, not just ones that seal the field.
+    if (!isFieldSolvable(state.map, state.startRow, state.exitRow) || createsObstacleTrap(state.map, col, row)) {
       state.map.setTile(col, row, makeTileGround(cellVariant(col, row), state.terrain))
       continue
     }
