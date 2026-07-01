@@ -1,3 +1,11 @@
+## [0.47.1](https://github.com/zrebec/minefield/compare/v0.47.0...v0.47.1) (2026-07-01)
+
+
+### Bug Fixes
+
+* **game:** airplane drops can no longer recreate obstacle-flanking traps ([2e4c351](https://github.com/zrebec/minefield/commit/2e4c351c8809659dbe0ef5880c2b2a483addd2cc))
+* **save:** stop combo/reveal-budget bugs surviving a reload ([b2b6d23](https://github.com/zrebec/minefield/commit/b2b6d23d16b194d7af6713e33e7e08497a31d10e))
+
 # [0.47.0](https://github.com/zrebec/minefield/compare/v0.46.0...v0.47.0) (2026-07-01)
 
 
