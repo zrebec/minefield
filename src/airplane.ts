@@ -1,12 +1,10 @@
 import { CANVAS_W, CELL, ROWS } from './constants.ts'
-import { LEVEL_CONFIGS, AIRPLANE_CROSS_MS, AIRPLANE_APPROACH_MS, AIRPLANE_ROW_MIN, AIRPLANE_ROW_MAX } from './config.ts'
+import { LEVEL_CONFIGS, AIRPLANE_CROSS_MS, AIRPLANE_APPROACH_MS, AIRPLANE_DROP_DELAY_MS, AIRPLANE_ROW_MIN, AIRPLANE_ROW_MAX, AIRCRAFT_WARN_BLINK_MS, AUTOSAVE_THROTTLE_MS, atLevel } from './config.ts'
 import { type GameState, addDropMinesInBand } from './game.ts'
 import { createRng } from 'zx-kit'
 import { startAirplane, stopAmbientSounds, startApproachSound, isApproachSoundActive } from './audio.ts'
 import { writeSaveThrottled } from 'zx-kit'
 import { saveProfile } from './save.ts'
-
-const DROP_DELAY_MS = 1000
 
 let dropScheduled = false
 let dropTimer = 0
@@ -28,14 +26,14 @@ export function updateAirplane(state: GameState, dtMs: number): void {
   const plane = state.airplane
   const planeSpeed = (CANVAS_W + 32) / AIRPLANE_CROSS_MS
 
-  plane.warningBlink = Math.floor(Date.now() / 250) % 2 === 0
+  plane.warningBlink = Math.floor(Date.now() / AIRCRAFT_WARN_BLINK_MS) % 2 === 0
   plane.x += plane.dir * planeSpeed * dtMs
 
   if (!plane.dropDone && !dropScheduled) {
     const mid = CANVAS_W / 2
     if ((plane.dir === 1 && plane.x > mid) || (plane.dir === -1 && plane.x < mid)) {
       dropScheduled = true
-      dropTimer = DROP_DELAY_MS
+      dropTimer = AIRPLANE_DROP_DELAY_MS
     }
   }
 
@@ -55,12 +53,12 @@ export function updateAirplane(state: GameState, dtMs: number): void {
     state.airplane = null
     scheduleNext(state)
     // Autosave after each flyover — mine count just changed.
-    writeSaveThrottled(saveProfile, 'auto', 5000)
+    writeSaveThrottled(saveProfile, 'auto', AUTOSAVE_THROTTLE_MS)
   }
 }
 
 function spawnAirplane(state: GameState): void {
-  const cfg = LEVEL_CONFIGS[Math.min(state.level, LEVEL_CONFIGS.length - 1)]
+  const cfg = atLevel(LEVEL_CONFIGS, state.level)
   let goRight: boolean, yRow: number, scheduledDropCount: number
   if (state.dropSeedBase !== null) {
     const rng = createRng(`${state.dropSeedBase}:pass${state.airplanePassIndex}`)
@@ -87,7 +85,7 @@ function spawnAirplane(state: GameState): void {
 }
 
 function scheduleNext(state: GameState): void {
-  const cfg = LEVEL_CONFIGS[Math.min(state.level, LEVEL_CONFIGS.length - 1)]
+  const cfg = atLevel(LEVEL_CONFIGS, state.level)
   if (state.dropSeedBase !== null) {
     const rng = createRng(`${state.dropSeedBase}:next${state.airplanePassIndex}`)
     state.nextAircraftMs = rng.float(cfg.acMinMs, cfg.acMaxMs)

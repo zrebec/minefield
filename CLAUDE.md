@@ -23,11 +23,39 @@ npm run build     # dist/
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
 ```
 
+## Coding practices (owner's standing rules — follow these)
+
+These are non-negotiable. Each has already cost a real bug in this codebase.
+
+1. **DRY — extend, don't copy.** If two places need the same logic, they call the
+   same function (add a parameter/input if they differ slightly). Never paste a
+   function's body into a new function. If only PART is shared, extract that part
+   — not the whole thing including what differs. *(The airplane obstacle-trap check
+   first duplicated `fixObstacleTraps`' geometry; the flag/id bug came from 5 sites
+   re-implementing "is this a mine".)*
+2. **One source of truth per decision.** A `tile.id === X` (or any rule) repeated
+   across call sites, or a literal that duplicates a `config.ts` constant, is a
+   smell — one of them will drift. `atLevel()` in `config.ts` is the canonical
+   per-level array read; use it, don't re-write `arr[Math.min(level, …)]`.
+3. **`config.ts` is the single source of truth for tunables.** Any value that is a
+   constant and isn't computed during play belongs there — never a bare literal or
+   local `const` in a feature file. Keep it *readable*: grouped by concern
+   (graphics / audio / logic separate), **one-line comments, never multi-line
+   litanies**, no stray `export default`.
+4. **Don't overload one field with two meanings.** Identity/permanent state
+   (`tile.id`) must not also carry transient/UI state (flagged) — put the transient
+   bit elsewhere (`metadata.flagged`). *(This was the flag bug.)*
+5. **Changing what data means ⇒ grep every consumer first.** Don't assume a refactor
+   is safe because it "looks equivalent"; find each reader and check it.
+6. **No correctness claim without a test that proves it.** "Looks right" is not
+   evidence; a passing test is. State that must change together (e.g.
+   `comboCount`+`comboTimer`) must be checked together.
+
 ## Architecture Map
 
 ```
 src/
-├── config.ts      # all tunable params: LEVEL_CONFIGS, gems, buildings, timings, reveal/airplane consts
+├── config.ts      # all tunable params: LEVEL_CONFIGS, gems, buildings, timings, reveal/airplane consts; atLevel() per-level lookup
 ├── constants.ts   # resolution + palette re-export from zx-kit (COLS=32, ROWS=18, STATUS_ROWS=6)
 ├── font.ts        # ZX ROM font re-export
 ├── sprites.ts     # all sprites + tile factories as Uint8Array (8×8); makeTileFence, etc.

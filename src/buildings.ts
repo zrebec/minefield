@@ -3,7 +3,7 @@ import { COLS, ROWS } from './constants.ts'
 import {
   START_COL, SAFE_RADIUS,
   BUILDING_COUNTS, BUILDING_WALL_HEIGHT, BUILDING_GAP,
-  ROOF_MIN, ROOF_MAX_PER_LEVEL, BIG_ROOF_MIN,
+  ROOF_MIN, ROOF_MAX_PER_LEVEL, BIG_ROOF_MIN, atLevel,
 } from './config.ts'
 import { makeTileBuilding, type BuildingPart } from './sprites.ts'
 
@@ -134,9 +134,9 @@ function tooCloseToBuilding(
  * never throws).
  */
 export function placeBuildings(map: TileMap, level: number, rng: Rng, startRow: number, exitRow: number): BuildingBox[] {
-  const [minCount, maxCount] = BUILDING_COUNTS[Math.min(level, BUILDING_COUNTS.length - 1)]
+  const [minCount, maxCount] = atLevel(BUILDING_COUNTS, level)
   const target = randInt(rng, minCount, maxCount)
-  const roofMax = ROOF_MAX_PER_LEVEL[Math.min(level, ROOF_MAX_PER_LEVEL.length - 1)]
+  const roofMax = atLevel(ROOF_MAX_PER_LEVEL, level)
   // "Big at least once per two levels": force the first building big on odd
   // (0-indexed) levels, where the per-level cap actually allows a big roof.
   const forceBig = level % 2 === 1 && roofMax >= BIG_ROOF_MIN

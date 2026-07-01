@@ -4,7 +4,7 @@
 
 import { createSaveProfile, createAnimation, createTileMap, type TileMap, type SaveProfile } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
-import GEM_COUNT, { START_ROW, WALK_FRAME_MS, TIMER_BASE_MS } from './config.ts'
+import { GEM_COUNT, START_ROW, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS } from './config.ts'
 import { type GameState, type Dir, gemColor } from './game.ts'
 import {
   type TerrainType, type CellVariant, type BuildingPart,
@@ -245,7 +245,7 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.revealsUsed = data.revealsUsed ?? 0
   target.levelCompleteTimer = 0
   target.blink = true
-  target.blinkTimer = 500
+  target.blinkTimer = BLINK_INTERVAL_MS
 }
 
 // ── Profile (singleton) ─────────────────────────────────────────────────────

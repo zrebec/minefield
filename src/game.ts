@@ -1,6 +1,6 @@
 import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
 import { COLS, ROWS, C, type SpectrumColor } from './constants.ts'
-import GEM_COUNT, { START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS } from './config.ts'
+import { GEM_COUNT, START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS, DROP_FLASH_MS, MAX_FIELD_ATTEMPTS, atLevel } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileFence, TILE_EXPLODED,
   type CellVariant, type TerrainType,
@@ -371,12 +371,6 @@ export function isFieldSolvable(map: TileMap, startRow: number, exitRow: number)
   return false
 }
 
-// Deterministic cap on solvability retries. Local entry/exit safe zones make the
-// first attempt succeed almost always (mine density is far below the 2-D
-// percolation threshold), so retries are rare; the cap just bounds the
-// astronomically unlikely worst case.
-const MAX_FIELD_ATTEMPTS = 64
-
 interface BuiltField {
   map: TileMap
   startRow: number
@@ -487,7 +481,7 @@ function randomSeed(): number {
 }
 
 export function createGame(level = 0, initialScore = 0, seed?: string | number, initialInventory: Record<string, number> = {}): GameState {
-  const cfg = LEVEL_CONFIGS[Math.min(level, LEVEL_CONFIGS.length - 1)]
+  const cfg = atLevel(LEVEL_CONFIGS, level)
   // Field generation is seeded: pass a `seed` (e.g. dailySeed(level)) for a reproducible
   // daily field; omit it (tests / free play) to get a fresh field each call.
   const baseSeed = seed ?? randomSeed()
@@ -525,7 +519,7 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
     airplane: null,
     nextAircraftMs: firstAcMs,
     blink: true,
-    blinkTimer: 500,
+    blinkTimer: BLINK_INTERVAL_MS,
     totalMines: map.findById('mine').length,
     explodedMines: 0,
     levelCompleteTimer: 0,
@@ -609,5 +603,5 @@ export function addDropMinesInBand(state: GameState, count: number, minRow: numb
     dropped.push({ col, row })
   }
   state.droppedMines = dropped
-  state.dropFlashTimer = 500
+  state.dropFlashTimer = DROP_FLASH_MS
 }

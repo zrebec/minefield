@@ -34,15 +34,10 @@ export const INTRO_REVALIDATE_DAYS = 1
 // Typewriter speed for the story cards (ms per revealed character).
 export const MS_PER_CHAR = 120
 
-// How long a fully-typed card holds on screen before auto-advancing (ms) — but
-// ONLY if the player presses nothing. The hold clock starts counting the moment
-// typing finishes, not when the card first appears (see stepStory in intro.ts).
-// IMPORTANT: any keypress on an already-fully-typed card advances INSTANTLY,
-// bypassing this hold entirely — that's the "ANY KEY = SKIP" hint working as
-// designed. In practice this means a player holding/mashing a key while the
-// text is still typing (natural if they're impatient) can skip a card the
-// instant it finishes typing, well before this hold would have applied — the
-// hold only protects an idle reader, not one already tapping through.
+// How long a fully-typed card holds before auto-advancing (ms), if the player
+// presses nothing. Clock starts when typing finishes, not when the card appears.
+// Any keypress skips instantly (the "ANY KEY = SKIP" hint), so this only paces
+// an idle reader. See stepStory in intro.ts.
 export const CARD_HOLD_MS = 4200
 
 // ── Title screen ──────────────────────────────────────────────────────────────
@@ -56,12 +51,12 @@ export const INTRO_PAGE_MS = 10_000
 
 // ── Input ─────────────────────────────────────────────────────────────────────
 
-// Initial delay before key-repeat starts (ms) — how long after first press
-// before auto-repeat begins. 280ms prevents accidental double-steps on D-pad taps.
+// Delay before a held key starts auto-repeating (ms). Long on purpose — a held
+// arrow shouldn't auto-step until clearly intentional (avoids D-pad double-taps).
 export const KEY_REPEAT_DELAY = 1200
 
-// Key-repeat interval (ms) — movement rate while key is held.
-// Should match WALK_DURATION_MS so held key queues one step per animation.
+// Movement rate while a key is held (ms). Matches WALK_DURATION_MS so a held key
+// queues exactly one step per walk animation.
 export const KEY_REPEAT_INTERVAL = 220
 
 // ── Player & Start ────────────────────────────────────────────────────────────
@@ -84,14 +79,18 @@ export const SAFE_RADIUS = 1
 // longer mandatory path. Must stay < ROWS so a valid exit row always exists.
 export const MIN_ENTRY_EXIT_ROW_GAP = 6
 
-// Debug mine-reveal (`D` key) budget per level, by run mode. `D` reveals EVERY mine
-// position, so on a SCORED daily field it would leak the solution — daily gets 0
-// (the key does nothing). Random/practice is unscored, so it gets a finite scouting
-// allowance. `null` = unlimited. NB: 0 means "none" and `null` means "infinite" —
-// we deliberately do NOT overload 0 as "infinite", because daily legitimately needs
-// exactly 0, and `null` avoids any `NaN`/`Infinity` arithmetic.
+// Debug mine-reveal (`D` key) budget per level. `D` reveals every mine, so the
+// scored daily gets 0 (leaking the solution would be cheating); unscored
+// random/practice gets a small allowance. `null` = unlimited (0 stays "none",
+// never overloaded to mean infinite).
 export const DAILY_REVEAL_LIMIT: number | null = 0
 export const RANDOM_REVEAL_LIMIT: number | null = 1
+
+// Max field-rebuild attempts before accepting whatever generated (the solvability
+// guard rebuilds from a derived seed if a field seals its own exit). Mine density
+// is far below the percolation threshold, so retries are rare; this just bounds
+// the astronomically unlikely worst case.
+export const MAX_FIELD_ATTEMPTS = 64
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
@@ -201,15 +200,20 @@ export const BUILDING_COUNTS: Array<[number, number]> = [
 // between buildings and prevents corner-touch pockets).
 export const BUILDING_GAP = 1
 
-// ── Airplane — movement ───────────────────────────────────────────────────────
+// ── Airplane ──────────────────────────────────────────────────────────────────
 
-// Time for an airplane to cross the screen (ms)
+// Time for an airplane to cross the screen (ms).
 export const AIRPLANE_CROSS_MS = 3000
 
+// Lead time before spawn that the distant engine sound starts (ms).
+export const AIRPLANE_APPROACH_MS = 5000
+
+// Delay after the plane passes mid-screen before it releases its mines (ms).
+export const AIRPLANE_DROP_DELAY_MS = 1000
+
 // Flight-row band (0-indexed, inclusive): the plane flies somewhere in [MIN, MAX]
-// and scatters its drops in a small band below that row. Kept off the very top/
-// bottom edges to leave room for the future top/bottom fence (row 0 and the last
-// rows). With ROWS = 18 this is 1..14.
+// and scatters drops in a small band below. Kept off the top/bottom edges. With
+// ROWS = 18 this is 1..14.
 export const AIRPLANE_ROW_MIN = 1
 export const AIRPLANE_ROW_MAX = 14
 
@@ -243,6 +247,17 @@ export const BLINK_INTERVAL_MS = 500
 // Aircraft WARNING blink interval in the status bar (ms)
 export const AIRCRAFT_WARN_BLINK_MS = 250
 
+// Newly airdropped mines flash white for this long (ms), toggling on/off every
+// DROP_FLASH_BLINK_MS so the player sees where the plane just seeded.
+export const DROP_FLASH_MS = 500
+export const DROP_FLASH_BLINK_MS = 100
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+
+// Minimum gap between throttled autosaves (ms) — e.g. the autosave after each
+// airplane flyover coalesces if flyovers come faster than this.
+export const AUTOSAVE_THROTTLE_MS = 5000
+
 // ── Level complete ────────────────────────────────────────────────────────────
 
 // Time to display "LEVEL COMPLETE" overlay before transitioning (ms)
@@ -250,8 +265,8 @@ export const LEVEL_COMPLETE_DELAY_MS = 2500
 
 // ── Collectibles (Gems) ───────────────────────────────────────────────────────
 
-// Number of gems placed on the field each level
-export default 12
+// Number of gems placed on the field each level.
+export const GEM_COUNT = 12
 
 // Base gem collection bonus (before combo multiplier)
 export const GEM_SCORE = 1000
@@ -312,11 +327,6 @@ export const BEACON_MINE_LEVEL = 2   // from level 3
 // Fraction of mines that are beacon mines (0.12 = 12%)
 export const BEACON_MINE_RATIO = 0.12
 
-// ── Airplane — approach ───────────────────────────────────────────────────────
-
-// How many ms before airplane spawn the distant engine sound starts
-export const AIRPLANE_APPROACH_MS = 5000
-
 // ── Day/night cycle ───────────────────────────────────────────────────────────
 
 // Steps ON NEW CELLS until phase change.
@@ -354,3 +364,14 @@ export const CONTROLS: ControlSpec[] = [
   { id: 'start', keys: 'SPACE', scope: 'title' },
   { id: 'random', keys: 'R', scope: 'title' },
 ]
+
+// ── Per-level lookup ──────────────────────────────────────────────────────────
+
+// The one canonical way to read any per-level array above (LEVEL_CONFIGS,
+// SCORE_MULTIPLIERS, ROOF_MAX_PER_LEVEL, BUILDING_COUNTS): index by level,
+// clamping past the end to the last entry ("levels beyond range repeat the last
+// value"). Keeps that clamp in ONE place instead of every call site re-deriving
+// `arr[Math.min(level, arr.length - 1)]`.
+export function atLevel<T>(perLevel: readonly T[], level: number): T {
+  return perLevel[Math.min(level, perLevel.length - 1)]
+}

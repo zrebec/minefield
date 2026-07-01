@@ -1,5 +1,5 @@
 import { CANVAS_W, CANVAS_H, ROWS, STATUS_ROWS, COLS, CELL, C } from './constants.ts'
-import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS } from './config.ts'
+import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS, DROP_FLASH_BLINK_MS } from './config.ts'
 import type { GameState, AirplaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor } from 'zx-kit'
@@ -515,7 +515,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState, pau
 
   // Drop flash overlay — newly dropped mines blink white
   if (state.dropFlashTimer > 0) {
-    const flashOn = Math.floor(state.dropFlashTimer / 100) % 2 === 1
+    const flashOn = Math.floor(state.dropFlashTimer / DROP_FLASH_BLINK_MS) % 2 === 1
     if (flashOn) {
       for (const { col, row } of state.droppedMines) {
         if (col !== state.playerCol || row !== state.playerRow) {
