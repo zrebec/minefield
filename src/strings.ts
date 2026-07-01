@@ -97,6 +97,7 @@ export const STR_PAUSE_HINT   = 'ARROWS: PAGE   P: RESUME'
 export const CONTROL_DESC: Record<string, string> = {
   move:   'Move',
   flag:   'Flag cell ahead',
+  flagDir: 'Flag any direction',
   pause:  'Pause / resume',
   save:   'Manual save',
   reveal: 'Reveal mines (when idle)',

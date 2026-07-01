@@ -345,6 +345,7 @@ export interface ControlSpec {
 export const CONTROLS: ControlSpec[] = [
   { id: 'move', keys: 'ARROWS', scope: 'ingame' },
   { id: 'flag', keys: 'F', scope: 'ingame' },
+  { id: 'flagDir', keys: 'SHIFT+ARROWS', scope: 'ingame' },
   { id: 'pause', keys: 'P', scope: 'ingame' },
   { id: 'save', keys: 'SHIFT+S', scope: 'ingame' },
   { id: 'reveal', keys: 'D', scope: 'ingame' },

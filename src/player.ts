@@ -3,7 +3,7 @@ import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL
 import { type GameState, countWarningMines, applyClusterBlast, revealMine, gemColor, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
 import type { Direction } from './input.ts'
 import { playWarning, playExplosion, playGemCollect, playFootstep, playExtraLife, playReveal, isAmbientSoundActive } from './audio.ts'
-import { makeTileVisited, makeTileGround, makeTileMine, makeTileGem, makeTileFlag, TILE_EXPLODED } from './sprites.ts'
+import { makeTileVisited, makeTileGround, makeTileMine, makeTileGem, flagTile, TILE_EXPLODED } from './sprites.ts'
 import { createTween, tickTween, tickAnimation, resetAnimation } from 'zx-kit'
 
 function cellVariant(col: number, row: number): 'a' | 'b' {
@@ -174,36 +174,37 @@ export function respawnPlayer(state: GameState): void {
   state.comboTimer = 0
 }
 
-// Flag the cell directly in front of the player (in the direction they're facing)
-export function toggleFlag(state: GameState): void {
+// Flag the cell one step away from the player in `dir` — defaults to the
+// direction they're facing (the classic "flag ahead" behaviour), but callers
+// can pass an explicit absolute direction (e.g. SHIFT+arrow) to flag a cell
+// regardless of which way the player currently faces — needed for triangulation
+// play, where the facing direction after walking around rarely matches the
+// side the mine turned out to be on.
+export function toggleFlag(state: GameState, dir: Direction = state.playerDir): void {
   if (state.phase !== 'playing') return
   if (state.walkTween) return  // can't flag mid-step
-  const dc = state.playerDir === 'right' ? 1 : state.playerDir === 'left' ? -1 : 0
-  const dr = state.playerDir === 'down' ? 1 : state.playerDir === 'up' ? -1 : 0
+  const dc = dir === 'right' ? 1 : dir === 'left' ? -1 : 0
+  const dr = dir === 'down' ? 1 : dir === 'up' ? -1 : 0
   const fc = state.playerCol + dc
   const fr = state.playerRow + dr
   const tile = state.map.getTile(fc, fr)
   if (tile === null) return
 
-  if (tile.id === 'flag') {
-    // Unflag: restore what was underneath
-    const underneath = tile.metadata?.underneath as string
-    const mineType = tile.metadata?.mineType as string | undefined
+  if (tile.metadata?.flagged) {
+    // Unflag: regenerate the tile's true appearance from its own id +
+    // metadata — flagging is a pure visual overlay, so neither ever changed.
     const variant = (tile.metadata?.variant as 'a' | 'b') ?? cellVariant(fc, fr)
-    if (underneath === 'mine') {
-      state.map.setTile(fc, fr, makeTileMine(mineType ?? 'normal', variant, state.terrain))
-    } else if (underneath === 'gem') {
+    if (tile.id === 'mine') {
+      const mineType = (tile.metadata?.mineType as string | undefined) ?? 'normal'
+      state.map.setTile(fc, fr, makeTileMine(mineType, variant, state.terrain))
+    } else if (tile.id === 'gem') {
       const kind = (tile.metadata?.gemKind as string) ?? 'cyan'
       state.map.setTile(fc, fr, makeTileGem(kind, gemColor(kind)))
     } else {
       state.map.setTile(fc, fr, makeTileGround(variant, state.terrain))
     }
   } else if (tile.id === 'ground' || tile.id === 'mine' || tile.id === 'gem') {
-    const underneath = tile.id
-    const mineType = tile.id === 'mine' ? (tile.metadata?.mineType as string | undefined) : undefined
-    const gemKind = tile.id === 'gem' ? ((tile.metadata?.gemKind as string) ?? 'cyan') : undefined
-    const variant = tile.id === 'gem' ? cellVariant(fc, fr) : (tile.metadata?.variant as 'a' | 'b' | undefined) ?? cellVariant(fc, fr)
-    state.map.setTile(fc, fr, makeTileFlag(underneath, mineType, variant, gemKind))
+    state.map.setTile(fc, fr, flagTile(tile))
   }
   // 'visited' and 'exploded' cells cannot be flagged
 }

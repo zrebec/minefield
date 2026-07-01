@@ -5,7 +5,7 @@ import { movePlayer } from './player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import GEM_COUNT, { BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS } from './config.ts'
-import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, makeTileFence, TILE_EXPLODED, type TerrainType } from './sprites.ts'
+import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, makeTileFence, flagTile, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
 
@@ -25,6 +25,12 @@ function emptyMap(): TileMap {
 
 function setMine(map: TileMap, col: number, row: number, type: MineType = 'normal'): void {
   map.setTile(col, row, makeTileMine(type, cellVariant(col, row), 'grass'))
+}
+
+// Same as setMine, but flagged — flagging is a pure visual overlay, so this
+// must behave identically to setMine for every game-logic purpose.
+function setFlaggedMine(map: TileMap, col: number, row: number, type: MineType = 'normal'): void {
+  map.setTile(col, row, flagTile(makeTileMine(type, cellVariant(col, row), 'grass')))
 }
 
 // ── countWarningMines ─────────────────────────────────────────────────────────
@@ -130,6 +136,22 @@ describe('countAdjacentMines / countBeaconSignals (HUD split)', () => {
     const total = countAdjacentMines(map, 5, 5) + countBeaconSignals(map, 5, 5)
     expect(total).toBe(countWarningMines(map, 5, 5))
     expect(total).toBe(4)
+  })
+
+  // Regression: flagging used to swap a mine's tile.id to 'flag', which made
+  // it silently drop out of these counts (the beeper would go quiet next to a
+  // flagged mine). Flagging is now a pure visual overlay — a flagged mine
+  // must count exactly like an unflagged one.
+  it('a flagged adjacent mine still counts', () => {
+    const map = emptyMap()
+    setFlaggedMine(map, 5, 4)
+    expect(countAdjacentMines(map, 5, 5)).toBe(1)
+  })
+
+  it('a flagged beacon mine still signals at distance 2', () => {
+    const map = emptyMap()
+    setFlaggedMine(map, 5, 3, 'beacon')
+    expect(countBeaconSignals(map, 5, 5)).toBe(1)
   })
 })
 
@@ -357,6 +379,21 @@ describe('applyClusterBlast', () => {
     expect(state.explodedMines).toBe(minesBefore + 3)
     expect(state.map.getTile(4, 4)?.id).toBe('exploded')
     expect(state.map.getTile(5, 6)?.id).toBe('exploded')
+    expect(state.map.getTile(6, 5)?.id).toBe('exploded')
+  })
+
+  // Regression: flagging used to change a mine's id to 'flag', so a flagged
+  // mine caught in a cluster blast silently failed to chain-detonate.
+  it('chain-explodes a flagged mine too', () => {
+    const state = createGame(0)
+    for (let r = 4; r <= 6; r++)
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r), 'grass'))
+    setFlaggedMine(state.map, 6, 5)
+    const minesBefore = state.explodedMines
+
+    applyClusterBlast(state, 5, 5)
+
+    expect(state.explodedMines).toBe(minesBefore + 1)
     expect(state.map.getTile(6, 5)?.id).toBe('exploded')
   })
 
@@ -1047,6 +1084,31 @@ describe('revealMine — cyan-gem reward', () => {
     for (let i = 0; i < total; i++) expect(revealMine(state)).toBe(true)
     expect(revealMine(state)).toBe(false)
     expect(state.revealedMines).toHaveLength(total)
+  })
+
+  // Owner decision (2026-07-01): revealing an already-flagged mine would waste
+  // the reward on something the player has already marked/found themselves.
+  it('excludes already-flagged mines from candidates', () => {
+    const state = createGame(0, 0, 'reveal-seed')
+    const mines = state.map.findById('mine')
+    expect(mines.length).toBeGreaterThan(1)
+    // Flag every mine except the last one, leaving exactly one legal candidate.
+    for (let i = 0; i < mines.length - 1; i++) {
+      const { x, y, tile } = mines[i]
+      state.map.setTile(x, y, flagTile(tile))
+    }
+    const onlyUnflagged = mines[mines.length - 1]
+    expect(revealMine(state)).toBe(true)
+    expect(state.revealedMines[0]).toEqual({ col: onlyUnflagged.x, row: onlyUnflagged.y })
+  })
+
+  it('returns false when every remaining mine is flagged', () => {
+    const state = createGame(0, 0, 'reveal-seed')
+    for (const { x, y, tile } of state.map.findById('mine')) {
+      state.map.setTile(x, y, flagTile(tile))
+    }
+    expect(revealMine(state)).toBe(false)
+    expect(state.revealedMines).toHaveLength(0)
   })
 })
 

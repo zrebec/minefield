@@ -363,20 +363,19 @@ export function makeTileVisited(variant: CellVariant, terrain: TerrainType): Til
   }
 }
 
-// underneath: original tile id before flag was placed; needed to restore on unflag
-export function makeTileFlag(
-  underneath: string,
-  mineType: string | undefined,
-  variant: CellVariant | undefined,
-  gemKind?: string,
-): Tile {
+// A flag is a PURE VISUAL OVERLAY — id and the rest of metadata (mineType/
+// gemKind/variant/terrain) pass through untouched, so every consumer that
+// checks tile.id (explosion, mine counting, solvability, HUD counts...)
+// keeps seeing the tile's true identity whether or not it's flagged. Only
+// the drawn sprite/ink/paper change, plus metadata.flagged for toggleFlag's
+// own on/off detection and for save.ts's encode/decode.
+export function flagTile(tile: Tile): Tile {
   return {
+    ...tile,
     sprite: FLAG,
     ink: C.B_CYAN,
     paper: C.BLACK,
-    solid: false,
-    id: 'flag',
-    metadata: { underneath, mineType, variant, gemKind },
+    metadata: { ...tile.metadata, flagged: true },
   }
 }
 

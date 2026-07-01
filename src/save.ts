@@ -9,7 +9,7 @@ import { type GameState, type Dir, gemColor } from './game.ts'
 import {
   type TerrainType, type CellVariant, type BuildingPart,
   makeTileGround, makeTileVisited, makeTileMine, makeTileGem,
-  makeTileBuilding, makeTileFlag, makeTileFence, TILE_EXPLODED,
+  makeTileBuilding, flagTile, makeTileFence, TILE_EXPLODED,
 } from './sprites.ts'
 
 // Building parts ↔ save chars (none collide with the mine/flag/terrain codes below).
@@ -88,25 +88,21 @@ function deriveExitRow(map: TileMap): number {
 function encodeCell(state: GameState, col: number, row: number): string {
   const tile = state.map.getTile(col, row)
   if (!tile) return '_'
+  const flagged = tile.metadata?.flagged === true
   switch (tile.id) {
-    case 'ground': return '.'
+    case 'ground': return flagged ? 'f' : '.'
     case 'visited': return 'V'
     case 'fence': return '#'
     case 'building': return BUILDING_PART_CHAR[tile.metadata?.part as BuildingPart] ?? '_'
-    case 'gem': return GEM_GROUND_CHAR[(tile.metadata?.gemKind as string) ?? 'cyan'] ?? '2'
+    case 'gem': {
+      const kind = (tile.metadata?.gemKind as string) ?? 'cyan'
+      return flagged ? (GEM_FLAG_CHAR[kind] ?? '6') : (GEM_GROUND_CHAR[kind] ?? '2')
+    }
     case 'exploded': return 'X'
     case 'mine': {
       const mt = tile.metadata?.mineType as string | undefined
+      if (flagged) return mt === 'cluster' ? 'c' : mt === 'beacon' ? 'b' : 'm'
       return mt === 'cluster' ? 'C' : mt === 'beacon' ? 'B' : 'M'
-    }
-    case 'flag': {
-      const underneath = tile.metadata?.underneath as string
-      if (underneath === 'gem') return GEM_FLAG_CHAR[(tile.metadata?.gemKind as string) ?? 'cyan'] ?? '6'
-      if (underneath === 'mine') {
-        const mt = tile.metadata?.mineType as string | undefined
-        return mt === 'cluster' ? 'c' : mt === 'beacon' ? 'b' : 'm'
-      }
-      return 'f' // flag on ground (default)
     }
     default: return '_'
   }
@@ -125,7 +121,7 @@ function placeFromChar(
   const gemGround = CHAR_GEM_GROUND[ch]
   if (gemGround) { target.map.setTile(col, row, makeTileGem(gemGround, gemColor(gemGround))); return }
   const gemFlag = CHAR_GEM_FLAG[ch]
-  if (gemFlag) { target.map.setTile(col, row, makeTileFlag('gem', undefined, variant, gemFlag)); return }
+  if (gemFlag) { target.map.setTile(col, row, flagTile(makeTileGem(gemFlag, gemColor(gemFlag)))); return }
   switch (ch) {
     case '.': target.map.setTile(col, row, makeTileGround(variant, t)); return
     case '#': target.map.setTile(col, row, makeTileFence()); return
@@ -135,11 +131,11 @@ function placeFromChar(
     case 'M': target.map.setTile(col, row, makeTileMine('normal', variant, t)); return
     case 'C': target.map.setTile(col, row, makeTileMine('cluster', variant, t)); return
     case 'B': target.map.setTile(col, row, makeTileMine('beacon', variant, t)); return
-    case 'f': target.map.setTile(col, row, makeTileFlag('ground', undefined, variant)); return
-    case 'm': target.map.setTile(col, row, makeTileFlag('mine', 'normal', variant)); return
-    case 'c': target.map.setTile(col, row, makeTileFlag('mine', 'cluster', variant)); return
-    case 'b': target.map.setTile(col, row, makeTileFlag('mine', 'beacon', variant)); return
-    case 'g': target.map.setTile(col, row, makeTileFlag('gem', undefined, variant)); return
+    case 'f': target.map.setTile(col, row, flagTile(makeTileGround(variant, t))); return
+    case 'm': target.map.setTile(col, row, flagTile(makeTileMine('normal', variant, t))); return
+    case 'c': target.map.setTile(col, row, flagTile(makeTileMine('cluster', variant, t))); return
+    case 'b': target.map.setTile(col, row, flagTile(makeTileMine('beacon', variant, t))); return
+    case 'g': target.map.setTile(col, row, flagTile(makeTileGem())); return
     // '_' or unknown: leave empty
   }
 }

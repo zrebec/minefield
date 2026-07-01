@@ -156,6 +156,22 @@ describe('movePlayer — mine hit', () => {
     expect(state.phase).toBe('exploding')
   })
 
+  // Regression test: flagging used to change a mine's tile.id to 'flag',
+  // which meant this explosion check (tile.id === 'mine') silently missed it
+  // — walking onto a flagged mine was treated as safe, scored ground. Flagging
+  // is now a pure visual overlay (metadata.flagged), so id stays 'mine' and
+  // this must still explode exactly like an unflagged mine.
+  it('still explodes when the mine is flagged', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
+    state.playerDir = 'right'
+    toggleFlag(state)
+    expect(state.map.getTile(6, 5)?.id).toBe('mine')  // sanity: still a real mine
+    step(state, 'right')
+    expect(state.phase).toBe('exploding')
+    expect(state.map.getTile(6, 5)?.id).toBe('exploded')
+  })
+
   it('marks mine cell as exploded', () => {
     const state = makeState(5, 5)
     state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
@@ -669,40 +685,53 @@ describe('day/night cycle — counter ticks only on new cells', () => {
 // ── toggleFlag ────────────────────────────────────────────────────────────────
 
 describe('toggleFlag', () => {
-  it('flags the unvisited cell directly in front (right)', () => {
+  it('flags the unvisited cell directly in front (right) — id stays "ground"', () => {
     const state = makeState(5, 5)
     state.playerDir = 'right'
     toggleFlag(state)
-    expect(state.map.getTile(6, 5)?.id).toBe('flag')
+    expect(state.map.getTile(6, 5)?.id).toBe('ground')  // pure visual overlay — id never changes
+    expect(state.map.getTile(6, 5)?.metadata?.flagged).toBe(true)
   })
 
   it('flags cell in front when facing up', () => {
     const state = makeState(5, 5)
     state.playerDir = 'up'
     toggleFlag(state)
-    expect(state.map.getTile(5, 4)?.id).toBe('flag')
+    expect(state.map.getTile(5, 4)?.metadata?.flagged).toBe(true)
   })
 
   it('flags cell in front when facing down', () => {
     const state = makeState(5, 5)
     state.playerDir = 'down'
     toggleFlag(state)
-    expect(state.map.getTile(5, 6)?.id).toBe('flag')
+    expect(state.map.getTile(5, 6)?.metadata?.flagged).toBe(true)
   })
 
   it('flags cell in front when facing left', () => {
     const state = makeState(5, 5)
     state.playerDir = 'left'
     toggleFlag(state)
-    expect(state.map.getTile(4, 5)?.id).toBe('flag')
+    expect(state.map.getTile(4, 5)?.metadata?.flagged).toBe(true)
   })
 
-  it('unflags already-flagged cell (toggle)', () => {
+  it('flagging a mine keeps id "mine" (the bug this fixes: a flagged mine must still explode)', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
+    state.playerDir = 'right'
+    toggleFlag(state)
+    const tile = state.map.getTile(6, 5)
+    expect(tile?.id).toBe('mine')
+    expect(tile?.metadata?.flagged).toBe(true)
+  })
+
+  it('unflags already-flagged cell (toggle) — id unaffected throughout, flagged clears', () => {
     const state = makeState(5, 5)
     state.playerDir = 'right'
     toggleFlag(state)
     toggleFlag(state)
-    expect(state.map.getTile(6, 5)?.id).toBe('ground')
+    const tile = state.map.getTile(6, 5)
+    expect(tile?.id).toBe('ground')
+    expect(tile?.metadata?.flagged).toBeFalsy()
   })
 
   it('does not flag a visited cell', () => {
@@ -733,6 +762,45 @@ describe('toggleFlag', () => {
     movePlayer(state, 'right')   // start walk → walkTween active
     toggleFlag(state)
     // Walk target (6, 5) should not become a flag
+    expect(state.map.getTile(6, 5)?.id).toBe('ground')
+  })
+
+  // Explicit `dir` — SHIFT+arrow triangulation flagging, independent of facing.
+  it('flags an explicit direction that differs from playerDir', () => {
+    const state = makeState(5, 5)
+    state.playerDir = 'up'          // facing up
+    toggleFlag(state, 'right')      // but flag to the right instead
+    expect(state.map.getTile(6, 5)?.metadata?.flagged).toBe(true)
+    expect(state.map.getTile(5, 4)?.metadata?.flagged).toBeFalsy()   // "up" (facing) untouched
+  })
+
+  it('leaves playerDir unchanged after an explicit-direction flag', () => {
+    const state = makeState(5, 5)
+    state.playerDir = 'up'
+    toggleFlag(state, 'right')
+    expect(state.playerDir).toBe('up')   // no facing side-effect
+  })
+
+  it('explicit direction still toggles off an already-flagged cell', () => {
+    const state = makeState(5, 5)
+    state.playerDir = 'up'
+    toggleFlag(state, 'left')
+    toggleFlag(state, 'left')
+    expect(state.map.getTile(4, 5)?.id).toBe('ground')
+  })
+
+  it('omitting dir still defaults to playerDir (backward compatible)', () => {
+    const state = makeState(5, 5)
+    state.playerDir = 'down'
+    toggleFlag(state)
+    expect(state.map.getTile(5, 6)?.metadata?.flagged).toBe(true)
+  })
+
+  it('explicit direction still respects phase/walk guards', () => {
+    const state = makeState(5, 5)
+    state.playerDir = 'up'
+    state.phase = 'gameover'
+    toggleFlag(state, 'right')
     expect(state.map.getTile(6, 5)?.id).toBe('ground')
   })
 })
@@ -807,10 +875,12 @@ describe('terrain — toggleFlag unflag restores correct terrain ink', () => {
       state.playerDir = 'right'
       state.map.setTile(6, 5, makeTileGround(cellVariant(6, 5), terrain))
       toggleFlag(state)
-      expect(state.map.getTile(6, 5)?.id).toBe('flag')
+      expect(state.map.getTile(6, 5)?.id).toBe('ground')
+      expect(state.map.getTile(6, 5)?.metadata?.flagged).toBe(true)
       toggleFlag(state)
       const restored = state.map.getTile(6, 5)
       expect(restored?.id).toBe('ground')
+      expect(restored?.metadata?.flagged).toBeFalsy()
       expect(restored?.ink).toBe(C[inkName as keyof typeof C])
     })
   }
@@ -828,10 +898,12 @@ describe('terrain — toggleFlag unflag restores correct terrain ink', () => {
       state.playerDir = 'right'
       state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), terrain))
       toggleFlag(state)
-      expect(state.map.getTile(6, 5)?.id).toBe('flag')
+      expect(state.map.getTile(6, 5)?.id).toBe('mine')
+      expect(state.map.getTile(6, 5)?.metadata?.flagged).toBe(true)
       toggleFlag(state)
       const restored = state.map.getTile(6, 5)
       expect(restored?.id).toBe('mine')
+      expect(restored?.metadata?.flagged).toBeFalsy()
       expect(restored?.ink).toBe(C[inkName as keyof typeof C])
     })
   }

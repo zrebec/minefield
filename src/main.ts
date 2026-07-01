@@ -1,7 +1,7 @@
 import { C, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS, INTRO_PAGE_MS } from './config.ts'
 import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, type GameState, type GamePhase, type Dir } from './game.ts'
-import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap } from './input.ts'
+import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap, consumeDirFlag, isHeld } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
@@ -242,7 +242,7 @@ function gameLoop(timestamp: number): void {
       if (hiCursor < 3) letterQueue.push(PAD_LETTERS[padLetterIdx])
       letterQueue.push('ENTER')
     }
-    consumeFlag(); consumeDebug()  // drain unused gamepad buttons
+    consumeFlag(); consumeDebug(); consumeDirFlag()  // drain unused buttons
 
     renderHiScoreEntry(ctx, hiName, hiCursor, blink, PAD_LETTERS[padLetterIdx])
     finishFrame(ctx)
@@ -262,12 +262,16 @@ function gameLoop(timestamp: number): void {
       if (consumeDebug()) tryToggleReveal(state)
       consumePause()  // drain P — can't pause before starting
       const dir = tickMovement(dt, WALK_DURATION_MS)
-      if (dir) {
+      // SHIFT held → the arrow was a directional-flag press, not a movement
+      // attempt (see the SHIFT+arrow handling in input.ts / toggleFlag below).
+      if (dir && !isHeld('Shift')) {
         state.runState = 'running'
         state.debugMode = false   // debug off permanently for this level
         movePlayer(state, dir)
       }
       if (consumeFlag()) toggleFlag(state)
+      const dirFlag = consumeDirFlag()
+      if (dirFlag) toggleFlag(state, dirFlag)
       setBorderColor(C.BLACK)
 
     } else if (state.runState === 'running') {
@@ -285,8 +289,10 @@ function gameLoop(timestamp: number): void {
       }
       tickPlayer(state, dt)
       const dir = tickMovement(dt, WALK_DURATION_MS)
-      if (dir) movePlayer(state, dir)
+      if (dir && !isHeld('Shift')) movePlayer(state, dir)
       if (consumeFlag()) toggleFlag(state)
+      const dirFlag = consumeDirFlag()
+      if (dirFlag) toggleFlag(state, dirFlag)
       updateAirplane(state, dt)
       setBorderColor(C.BLACK)
 
@@ -295,9 +301,12 @@ function gameLoop(timestamp: number): void {
       consumeDebug()
       if (consumePause()) state.runState = 'running'
       const pdir = tickMovement(dt, WALK_DURATION_MS)
-      if (pdir === 'right' || pdir === 'down') pausePage = (pausePage + 1) % PAUSE_PAGES
-      else if (pdir === 'left' || pdir === 'up') pausePage = (pausePage + PAUSE_PAGES - 1) % PAUSE_PAGES
+      if (!isHeld('Shift')) {
+        if (pdir === 'right' || pdir === 'down') pausePage = (pausePage + 1) % PAUSE_PAGES
+        else if (pdir === 'left' || pdir === 'up') pausePage = (pausePage + PAUSE_PAGES - 1) % PAUSE_PAGES
+      }
       consumeFlag()
+      consumeDirFlag()  // drain — flagging (any direction) not available while paused
     }
 
     // Manual save (SHIFT+S) — works in any runState of 'playing'

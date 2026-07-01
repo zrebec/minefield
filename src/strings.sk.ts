@@ -69,6 +69,7 @@ export const STR_PAUSE_HINT   = 'SIPKY: STRANA   P: SPAT'
 export const CONTROL_DESC: Record<string, string> = {
   move:   'Pohyb',
   flag:   'Vlajka pred hracom',
+  flagDir: 'Vlajka - lubovolny smer',
   pause:  'Pauza / pokracovanie',
   save:   'Manualne ulozenie',
   reveal: 'Odkry miny (v pokoji)',

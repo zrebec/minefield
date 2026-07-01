@@ -300,10 +300,9 @@ export function isFieldSolvable(map: TileMap, startRow: number, exitRow: number)
   const safe = (c: number, r: number): boolean => {
     if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false
     const t = map.getTile(c, r)
+    // Flagging is a pure visual overlay — a flagged mine still has id 'mine',
+    // so this one check already covers it (no separate flag special-case needed).
     if (!t || t.solid || t.id === 'mine') return false
-    // A flagged mine is still a mine underneath → impassable. (At generation there
-    // are no flags, so this never triggers there; it matters for the runtime guard.)
-    if (t.id === 'flag' && t.metadata?.underneath === 'mine') return false
     return true
   }
   if (!safe(START_COL, startRow)) return false
@@ -410,14 +409,16 @@ export function applyClusterBlast(state: GameState, centerCol: number, centerRow
  * Permanently reveal one still-live mine for the rest of the level (cyan-gem
  * reward). Candidates come from `findById('mine')`, which by construction holds
  * only undetonated mines off the walked path (a stepped-on mine is 'exploded',
- * a walked cell is 'visited', buildings are 'building') — so every candidate is
- * automatically a legal target, no extra filtering needed. The pick is seeded
+ * a walked cell is 'visited', buildings are 'building') — filtered to exclude
+ * already-flagged mines, since revealing one the player already marked would
+ * waste the reward on something they already know about. The pick is seeded
  * off the field seed (like airplane drops) so a daily challenge reveals the same
  * mines for identical play. Returns false when nothing is left to reveal.
  */
 export function revealMine(state: GameState): boolean {
   const shown = new Set(state.revealedMines.map((m) => `${m.col},${m.row}`))
   const candidates = state.map.findById('mine')
+    .filter(({ tile }) => !tile.metadata?.flagged)
     .map(({ x, y }) => ({ col: x, row: y }))
     .filter((m) => !shown.has(`${m.col},${m.row}`))
     .sort((a, b) => a.row - b.row || a.col - b.col) // stable order before the seeded pick
