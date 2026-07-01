@@ -6,9 +6,8 @@ import {
   stepStory,
   renderStoryCard,
   introDue,
-  MS_PER_CHAR,
-  CARD_HOLD_MS,
 } from './intro.ts'
+import { MS_PER_CHAR, CARD_HOLD_MS } from './config.ts'
 
 const DAY = 86_400_000
 

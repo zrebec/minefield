@@ -31,6 +31,29 @@ export const INTRO_VERSION = 1
 // at v1.0. Replaying with `I` from the title is always available regardless.
 export const INTRO_REVALIDATE_DAYS = 1
 
+// Typewriter speed for the story cards (ms per revealed character).
+export const MS_PER_CHAR = 120
+
+// How long a fully-typed card holds on screen before auto-advancing (ms) — but
+// ONLY if the player presses nothing. The hold clock starts counting the moment
+// typing finishes, not when the card first appears (see stepStory in intro.ts).
+// IMPORTANT: any keypress on an already-fully-typed card advances INSTANTLY,
+// bypassing this hold entirely — that's the "ANY KEY = SKIP" hint working as
+// designed. In practice this means a player holding/mashing a key while the
+// text is still typing (natural if they're impatient) can skip a card the
+// instant it finishes typing, well before this hold would have applied — the
+// hold only protects an idle reader, not one already tapping through.
+export const CARD_HOLD_MS = 4200
+
+// ── Title screen ──────────────────────────────────────────────────────────────
+
+// How long each attract-mode page (controls/goal vs high scores) stays up
+// before flipping to the other (ms), on the persistent title screen (distinct
+// from the story-card intro above — this is main.ts's `introPage` cycle inside
+// renderIntro). Was 3s (felt like flickering); 10s gives it time to actually
+// read.
+export const INTRO_PAGE_MS = 10_000
+
 // ── Input ─────────────────────────────────────────────────────────────────────
 
 // Initial delay before key-repeat starts (ms) — how long after first press

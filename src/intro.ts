@@ -13,14 +13,9 @@
 
 import { drawText, drawSprite, drawChar, drawShade, DITHER, createBitmapFromRows, drawBitmap } from 'zx-kit'
 import { CANVAS_W, CANVAS_H, CELL, COLS, C } from './constants.ts'
-import { INTRO_VERSION, INTRO_REVALIDATE_DAYS } from './config.ts'
+import { INTRO_VERSION, INTRO_REVALIDATE_DAYS, MS_PER_CHAR, CARD_HOLD_MS } from './config.ts'
 import { L } from './lang.ts'
 import { PLAYER_RIGHT_A, GEM, GROUND_A, GROUND_B } from './sprites.ts'
-
-/** Typewriter speed — ms per revealed character. */
-export const MS_PER_CHAR = 120
-/** Once a card is fully typed, hold this long before auto-advancing. */
-export const CARD_HOLD_MS = 4200
 
 /** Total characters in a card (sum of its line lengths) — the typewriter target. */
 export function cardCharCount(card: readonly string[]): number {

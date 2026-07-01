@@ -1,5 +1,5 @@
 import { C, COLS, ROWS } from './constants.ts'
-import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS } from './config.ts'
+import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS, INTRO_PAGE_MS } from './config.ts'
 import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap } from './input.ts'
 import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
@@ -46,8 +46,7 @@ let showDebug = false
 const PAUSE_PAGES = L.STR_PAUSE_TITLES.length
 let pausePage = 0
 
-// Intro attract-mode cycling
-const INTRO_PAGE_MS = 3000
+// Intro attract-mode cycling (INTRO_PAGE_MS lives in config.ts)
 let introPage = 0
 let introPageTimer = INTRO_PAGE_MS
 
