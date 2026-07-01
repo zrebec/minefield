@@ -1,3 +1,10 @@
+# [0.46.0](https://github.com/zrebec/minefield/compare/v0.45.0...v0.46.0) (2026-07-01)
+
+
+### Features
+
+* **lang:** runtime EN/SK switch from the title screen ([791aeb6](https://github.com/zrebec/minefield/commit/791aeb6a7bb66d89726cebb930437dd52bb3c374))
+
 # [0.45.0](https://github.com/zrebec/minefield/compare/v0.44.0...v0.45.0) (2026-06-30)
 
 
