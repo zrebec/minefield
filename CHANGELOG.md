@@ -1,3 +1,15 @@
+# [0.48.0](https://github.com/zrebec/minefield/compare/v0.47.1...v0.48.0) (2026-07-03)
+
+
+### Bug Fixes
+
+* **game:** guarantee field solvability by construction — carve repair ([fb8168a](https://github.com/zrebec/minefield/commit/fb8168a2f8fc43f096fbb47e87b7ce6d7214259d))
+
+
+### Features
+
+* **a11y:** ARIA skeleton, THE STRIP document title, live <html lang> ([6d65b5d](https://github.com/zrebec/minefield/commit/6d65b5d6216a3de0f44a0d55fa96e2bf8405528f)), closes [#sr-announcer](https://github.com/zrebec/minefield/issues/sr-announcer) [#sr-status](https://github.com/zrebec/minefield/issues/sr-status)
+
 ## [0.47.1](https://github.com/zrebec/minefield/compare/v0.47.0...v0.47.1) (2026-07-01)
 
 
