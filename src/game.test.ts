@@ -1342,6 +1342,29 @@ describe('perimeter fence — solvability (BFS, large sample)', () => {
     }
   })
 
+  // REGRESSION (2026-07-03): at L4+ densities ~90% of raw boards are sealed, so all
+  // MAX_FIELD_ATTEMPTS rerolls could fail together and createGame shipped an
+  // unwinnable field (~0.7% of L4+ calls — seeded DAILIES included; this is what
+  // made the unseeded test above flake). These three seeds reproduced it before the
+  // carve repair; they must stay solvable forever.
+  it('createGame never returns an unsolvable field, even when every reroll fails (carve repair)', () => {
+    for (const seed of ['hunt3:187', 'hunt3:574', 'hunt3:1680']) {
+      const state = createGame(3, 0, seed)
+      expect(isFieldSolvable(state.map, state.startRow, state.exitRow)).toBe(true)
+    }
+  })
+
+  it('a carve-repaired daily is deterministic — the same seed repairs to the identical field', () => {
+    const mines = (state: ReturnType<typeof createGame>): string =>
+      state.map.findById('mine').map(({ x, y }) => `${x},${y}`).sort().join(';')
+    const a = createGame(3, 0, 'hunt3:187')
+    const b = createGame(3, 0, 'hunt3:187')
+    expect(a.startRow).toBe(b.startRow)
+    expect(a.exitRow).toBe(b.exitRow)
+    expect(mines(a)).toBe(mines(b))
+    expect(a.totalMines).toBe(b.totalMines) // HUD count reflects the post-carve board
+  })
+
   it('isFieldSolvable returns false when the exit hole is walled off by mines', () => {
     // Hand-built unsolvable field: fence both columns, ground interior, then a full
     // vertical mine wall in front of the exit column → no safe path can reach it.

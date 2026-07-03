@@ -34,13 +34,13 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Area | Status | Last verified |
 |---|---|---|
 | Core loop | Complete (cross → levels → highscore → save) | 2026-06-23 |
-| Fence + solvability | **Done** — winnable under all circumstances (gen + airdrop guard) | 2026-06-23 |
+| Fence + solvability | **Done** — winnable under all circumstances (gen + airdrop guard; **carve repair 2026-07-03** made it a construction guarantee — see known-issues) | 2026-07-03 |
 | Daily fairness | **Done** — field **and** highscore dated by the run's **origin** daily (verified 2026-06-29) | 2026-06-29 |
 | Leaderboard integrity | Client-only — random runs off-board; localStorage editable ⇒ **anti-cheat = open topic** | 2026-06-29 |
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
-| Tests | 295 (Vitest) | 2026-06-30 |
-| Build / release | semantic-release → GitHub Pages (latest **0.42.0**) | 2026-06-29 |
-| Accessibility | Partial (visual detector done; stereo/TTS/beacon = **v1.0 scope**, option C) | 2026-06-29 |
+| Tests | 341 (Vitest) | 2026-07-03 |
+| Build / release | semantic-release → GitHub Pages (latest **0.47.1**) | 2026-07-03 |
+| Accessibility | In progress — visual detector done; **ARIA skeleton + live document `lang` shipped 2026-07-03**; stereo/TTS/beacon = **v1.0 scope**, option C | 2026-07-03 |
 
 ## Road to v1.0 (`2026-09-07`) — prioritised backlog
 
@@ -53,6 +53,14 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    tuning of the tracks + tempo (`MS_PER_CHAR` / `CARD_HOLD_MS`). Optional: a "press to begin (sound on)" gate.
 2. **Difficulty tuning pass.** A daily L1–L2 **reliably beatable** within `TIMER_BASE_MS` by a careful
    player. Knobs only: `LEVEL_CONFIGS`, `acMineDrop*`, building size/count.
+   **Generation-health criterion (added 2026-07-03): at least ~50% of RAW generated boards per level
+   must be solvable without rerolls.** Measured today: L1 99% · L2 87% · L3 47% · L4+ **10%** — L3/L4+
+   sit past the percolation sweet spot, so the game currently *selects* playable boards instead of
+   *generating* them; the carve repair must stay a one-in-a-thousand safety net, not a crutch. Note:
+   raw mine counts track Mined-Out (the model), but Mined-Out had no buildings — our buildings + fence
+   shrink the open area, so the *effective* density is meaningfully higher at the same mine count.
+   Once tuned, guard the criterion with a seeded generation-health test so density can't silently
+   creep back.
 3. **Green-gem special — decide + implement.** One behaviour, data-driven in `config.ts`/`GEM_KINDS`,
    tested. Options: time-only / "disarm a threat ahead" / shield. No combinatorial sprawl.
 4. **Confirm the jingle relocation** (now once-per-session on a direct game-start, not on first gesture) —
@@ -60,7 +68,13 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 ### P1 — Accessibility moat (in v1.0 because we chose option C — the strongest differentiator)
 5. **Stereo / spatial warning** — encode mine direction in the L/R channels (genuinely playable blind).
-6. **Screen-reader support** — ARIA live region + `SpeechSynthesis` (TTS) for warnings/state.
+   zx-kit 0.36 ships the primitive (`pan` on `playPattern`); the game work is exposing per-direction
+   mine data from `game.ts` (the warning is a 0–8 count today) + HUD parity for the new direction info.
+6. **Screen-reader support** — ARIA live regions + `SpeechSynthesis` (TTS) for warnings/state.
+   The skeleton shipped 2026-07-03 (`#sr-announcer`/`#sr-status` in `index.html`, live document `lang`).
+   **"Fully playable" covers the whole shell, not just the field** — the wiring checklist is: step
+   warnings · explosion/respawn · title menu (daily/random/intro/language) · pause pages · high-score
+   letter entry · game over · level/day-night/aircraft state · gem pickups + backpack.
 7. **Exit beacon tone** + **assist-mode toggle** (flag assisted runs so they're marked on the board).
 
 ### P1/P2 — "Finished product" surface
@@ -79,15 +93,25 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
     (prevents a regression of the date bug we just fixed).
 14. **De-flake the statistical test** — the forward-bias `mean > midpoint` test flaked once in a full run;
     seed it / widen the sample so `npm test` never fails randomly. Audit other property tests for seeding.
+    *(Note 2026-07-03: the OTHER intermittent failure — "random unseeded fields are always solvable" —
+    turned out to be a real bug, not a flake: all 64 rerolls could fail at L4+ densities. Fixed at the
+    root by the carve repair; that test is now guaranteed by construction. The forward-bias flake is
+    still open.)*
 15. **Save round-trip / version property tests** — every saved state reloads identically; old versions are
     cleanly rejected. (Guards the next save field, e.g. when heroes land Post-1.0.)
 
-### P3 — Anti-cheat (decide v1.0 scope)
+### P2 — Anti-cheat (DECIDED 2026-07-03: deterrent-grade integrity hash in v1.0)
 16. localStorage is client-editable (`zxkit:minefield:auto`; `data.score` / `data.dropSeedBase`) → the
     local leaderboard is trivially cheatable. Client-only + era-appropriate ⇒ can't be *forced*, only
-    *verified*. Defence in place: random runs never reach the board. **Decide for v1.0:** accept it (local,
-    single-player) vs. a basic integrity check. **Full Action Replay** (seed + timed inputs → server-less
-    score verification) is the real lever but is **Post-1.0** (too big for the freeze).
+    *deterred*. Defence in place: random runs never reach the board. **Decided for v1.0:** every write
+    (auto + manual save **and the high-score entries** — the hash must cover both, or the front door
+    stays open) stores a **hash + salt** of the payload alongside the data; a mismatch is rejected the
+    same way as a bad save version. The salt ships in the JS — this is deterrence, not security, and
+    that's the point: cheating must cost more than editing `lives`. Implementation notes: SubtleCrypto
+    SHA-1 is async while the save path is sync → a small synchronous hash (e.g. FNV-1a) is equally
+    deterrent; a mandatory field means a save **version bump v5→v6**. Effort S — schedule inside the
+    P2 stabilisation block (August), with round-trip + tamper tests. **Full Action Replay** (seed +
+    timed inputs → server-less score verification) remains the real lever and stays **Post-1.0**.
 
 ## Post-1.0 / Deferred (NOT in v1.0 — protects the freeze)
 
@@ -104,7 +128,6 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Priority | Debt | Why it matters | Direction |
 |---|---|---|---|
-| P3 | Respawn keeps `runState='running'` (no idle re-scout; timer keeps running) | Possibly-intended death penalty, but inconsistent with the level-start scout | Owner decision; see `docs/known-issues.md` |
 | P4 | `revealsUsed` not reset on respawn | Negligible (reveal is idle-only; daily = 0) | Note only |
 | P3 | Capture script (`scripts/capture.mjs`) router predates the fence | Refreshed `play.png` may route oddly | Teach the BFS router the fence/exit before refreshing |
 
@@ -125,6 +148,10 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 | 2026-06-25 | Intro flow: **title-first**; `I` replays; intro pre-rolls on a mode-start when "due" (localStorage; daily until v1.0) | Save-resume skipped the intro entirely; this makes it reachable + first-time-gated |
 | 2026-06-25 | Startup jingle moved off first-gesture → once per session on a **direct** game-start | It clashed with the intro AY underscore; only the *timing* changed (sound unchanged) |
 | 2026-06-30 | Story rewritten to **5 chapters** (two countries / no-man's-land / runner+sonar / parcels); each card a **bespoke scene + its own AY track**; cards **English**, SK translated | Owner wanted stronger drama; the two-countries framing + per-card score (lament→dirge→Ode to Joy) land the emotion; maps cleanly to the mechanics |
+| 2026-07-03 | Document `<title>` reads **THE STRIP** now (repo/URL rename still a deferred focused step) | The tab is player-facing today; the in-game title already says THE STRIP — only infrastructure waits for the rename |
+| 2026-07-03 | **Accessibility promise made public in README with the date**: v1.0 (2026-09-07) fully playable blind + deaf | A public commitment is the strongest anti-scope-creep device; the deaf half (visual detector) already shipped |
+| 2026-07-03 | Respawn keeping `runState='running'` (no idle re-scout, timer keeps ticking) = **intended death penalty** | Death costs you the scout — deliberate; document it on the future RULES screen so it reads as a rule, not a bug |
+| 2026-07-03 | Anti-cheat v1.0 = **integrity hash (hash + salt) on saves AND high-score entries**, save v5→v6; full Action Replay stays Post-1.0 | Deterrent-grade: raises cheating cost well above editing localStorage by hand; era-appropriate; effort S in the August stabilisation block |
 
 ## Dropped / Archived
 
@@ -137,6 +164,8 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Milestone |
 |---|---|
+| 2026-07-03 | **Solvability became a construction guarantee** — `carveSafePath` repairs the rare board where all 64 rerolls stay sealed (~0.7% of L4+ fields, seeded dailies included, was shipping unwinnable); deterministic, covered by named regressions + a 9 000-field sample |
+| 2026-07-03 | Accessibility skeleton — ARIA live regions + canvas labelling in `index.html` (guarded by a new a11y contract test suite), `<title>` → THE STRIP, live document `lang` synced by `setLocale()`; the four v1.0 decisions recorded (title, public promise, respawn-by-design, integrity hash) |
 | 2026-06-30 | Intro story rewrite (5 dramatic chapters) + per-card AY score (lament → funeral dirge → Ode to Joy) + book-style chapter titles + all 5 hand-drawn scenes |
 | 2026-06-29 | Daily-date fairness — field + highscore dated by the run's origin daily (verified via an edited save) |
 | 2026-06-25 | Intro flow redesign — title-first, `I` replays, due-gated pre-roll (localStorage seen-flag) |

@@ -9,7 +9,7 @@
 
 - **Type:** browser game (single-page, static Vite bundle).
 - **Player fantasy:** cross a blind minefield by listening; an aircraft keeps dropping more.
-- **Stack:** Vanilla TypeScript · Vite · HTML5 Canvas · Web Audio API, on **`zx-kit@^0.34.0`** (only dep).
+- **Stack:** Vanilla TypeScript · Vite · HTML5 Canvas · Web Audio API, on **`zx-kit@^0.36.0`** (only dep).
 - **Release:** semantic-release on push to `main` (app pattern, `npmPublish: false`) → build → GitHub Pages.
 - **Main branch:** `main`. **Owner commits/releases** — never push/bump/deploy without being asked.
 
@@ -18,7 +18,7 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (295 tests)
+npm test          # Vitest (341 tests)
 npm run build     # dist/
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
 ```
@@ -60,14 +60,14 @@ src/
 ├── font.ts        # ZX ROM font re-export
 ├── sprites.ts     # all sprites + tile factories as Uint8Array (8×8); makeTileFence, etc.
 ├── audio.ts       # Web Audio: warnings, explosion, fanfare, aircraft drone, volume; + per-card intro AY score (introTrack) + typewriter tick
-├── input.ts       # zx-kit input wrapper + game keys (D reveal, R random, SHIFT+S, +/-)
+├── input.ts       # zx-kit input wrapper + game keys (D reveal, R random, SHIFT+S, SHIFT+arrow flag, +/-)
 ├── game.ts        # GameState, TileMap, field/gem/building gen, daily seed, isFieldSolvable, addDropMinesInBand
 ├── player.ts      # movement, collision, flag, respawn, scoring, gem pickup, combo
 ├── airplane.ts    # aircraft timer, animation, mine drop (calls addDropMinesInBand)
 ├── intro.ts       # "The Strip" intro: stepStory machine + typewriter + 5 hand-drawn scenes (8×8) + chapter titles + isIntroDue/markIntroSeen (seen-gate)
 ├── renderer.ts    # TileMap, sprites, HUD, detector, night, overlays
 ├── save.ts        # zx-kit save profile wiring (version 5)
-├── strings.ts / strings.sk.ts / lang.ts   # i18n packs (incl. STR_STORY_CARDS)
+├── strings.ts / strings.sk.ts / lang.ts   # i18n packs (incl. STR_STORY_CARDS); L on the title cycles EN/SK
 └── main.ts        # game loop, phase switching, debug overlay (finishFrame helper)
 ```
 
@@ -81,6 +81,24 @@ src/
   through. Each exit path schedules the next frame via **`finishFrame(ctx)`** (runs `endFrame(dbg)` then
   draws the debug overlay after it, so the overlay's draw cost is excluded from the CPU reading).
   `beginFrame(dbg, timestamp)` is at the top of the loop.
+
+## Accessibility (v1.0 promise — see README + ROADMAP P1)
+
+v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it stands in code:
+
+- **Deaf: done.** The HUD detector mirrors every audio warning (adjacent meter + beacon LED).
+- **ARIA skeleton (2026-07-03), in `index.html`:** the canvas has `role="img"` + a static English
+  `aria-label` (localise it when TTS lands); two screen-reader live regions exist for the game to
+  write into — `#sr-announcer` (`aria-live="assertive"`, urgent: warnings/explosions) and
+  `#sr-status` (`aria-live="polite"`, state: score/level/menus) — hidden via `.sr-only` (never
+  `display:none`, that silences them). `setLocale()` in `lang.ts` mirrors the locale onto
+  `document.documentElement.lang` (tested in `lang.test.ts`).
+- **Still to wire (ROADMAP P1 #5–7):** stereo/spatial warnings (zx-kit 0.36 ships `pan` on
+  `playPattern` — the hook point is `playWarning` in `audio.ts`, but direction data must first come
+  out of `game.ts` as per-direction structure, not the 0–8 count), TTS over the same message
+  formatter that feeds the live regions, exit beacon, assist-mode flag, and the **shell**: title,
+  pause pages, high-score letter entry and intro must all be announced — "fully playable" covers
+  menus, not just the field.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 
@@ -120,9 +138,14 @@ src/
   right edge through the exit gap (`movePlayer` funnels it; the rest of the wall is solid).
 - **Always winnable:** generation reserves a SAFE_RADIUS box around both gaps, `fixObstacleTraps` de-traps
   buildings + fence, `isFieldSolvable` (BFS) proves a full entry→exit path (regenerating `<seed>:r<n>` if a
-  board seals the exit). **Runtime: the airplane is guarded** (`addDropMinesInBand` discards any drop that
-  would seal the field — a pass can place 0). Mines never land on the player's `visited` trail, so retreat
-  is always possible. Tests: 300 seeded + 100 random fields; 40 seeds × 8 airplane passes.
+  board seals the exit). If **all** `MAX_FIELD_ATTEMPTS` rerolls stay sealed (raw unsolvability ≈90% per
+  attempt at L4+ — measured 2026-07-03; ~0.7% of L4+ `createGame` calls used to ship unwinnable),
+  `carveSafePath` deterministically defuses the mines on one shortest entry→exit route — a construction
+  guarantee, no RNG, so a repaired daily is identical for everyone. Both share `bfsPath` (one source of
+  truth for movement reachability; only the mine predicate differs). **Runtime: the airplane is guarded**
+  (`addDropMinesInBand` discards any drop that would seal the field — a pass can place 0). Mines never
+  land on the player's `visited` trail, so retreat is always possible. Tests: 300 seeded + 100 random
+  fields; 40 seeds × 8 airplane passes; named carve regressions (`hunt3:*` seeds).
 
 ### Timer (`tickTimer`)
 - `timeLeftMs` starts at `TIMER_BASE_MS` (10:00), set by `createGame` → **resets every level** (not per

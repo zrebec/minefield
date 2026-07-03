@@ -339,36 +339,76 @@ function pickExitRow(rng: Rng, startRow: number): number {
   return valid[randomInt(rng, 0, valid.length - 1)]
 }
 
-// Pure flood-fill: from the entry hole (col 0, startRow), can the player reach the
-// exit hole (col COLS-1, exitRow) stepping only on SAFE cells? Safe = on the map,
-// not solid (fence/building), not a mine. Orthogonal moves only — matches the
-// player. Side-effect-free → used both as the generation guard and directly in
-// tests to prove "at least one safe path exists".
-export function isFieldSolvable(map: TileMap, startRow: number, exitRow: number): boolean {
+// Orthogonal BFS from the entry hole (col 0, startRow) toward the exit hole
+// (col COLS-1, exitRow). Solid tiles (fence/building) always block; mines block
+// unless `throughMines` (the carve repair walks over them to know what to clear).
+// Returns the entry→exit path as cell keys (row * COLS + col), or null when the
+// exit is sealed. Deterministic: fixed neighbour order, no RNG. One function
+// serves both the solvability guard and the carve repair — one source of truth
+// for "how the player can move"; only the mine predicate differs.
+function bfsPath(map: TileMap, startRow: number, exitRow: number, throughMines: boolean): number[] | null {
   const key = (c: number, r: number): number => r * COLS + c
-  const safe = (c: number, r: number): boolean => {
+  const passable = (c: number, r: number): boolean => {
     if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false
     const t = map.getTile(c, r)
+    if (!t || t.solid) return false
     // Flagging is a pure visual overlay — a flagged mine still has id 'mine',
     // so this one check already covers it (no separate flag special-case needed).
-    if (!t || t.solid || t.id === 'mine') return false
-    return true
+    return throughMines || t.id !== 'mine'
   }
-  if (!safe(START_COL, startRow)) return false
-  const seen = new Set<number>([key(START_COL, startRow)])
+  if (!passable(START_COL, startRow)) return null
+  const prev = new Map<number, number>([[key(START_COL, startRow), -1]])
   const queue: Array<[number, number]> = [[START_COL, startRow]]
   // Index-pointer dequeue (O(n), no Array.shift reallocations).
   for (let head = 0; head < queue.length; head++) {
     const [c, r] = queue[head]
-    if (c === COLS - 1 && r === exitRow) return true
+    if (c === COLS - 1 && r === exitRow) {
+      const path: number[] = []
+      for (let k = key(c, r); k !== -1; k = prev.get(k)!) path.push(k)
+      return path
+    }
     for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nc = c + dc, nr = r + dr
-      if (seen.has(key(nc, nr)) || !safe(nc, nr)) continue
-      seen.add(key(nc, nr))
+      if (prev.has(key(nc, nr)) || !passable(nc, nr)) continue
+      prev.set(key(nc, nr), key(c, r))
       queue.push([nc, nr])
     }
   }
-  return false
+  return null
+}
+
+// Pure reachability: from the entry hole, can the player reach the exit hole
+// stepping only on SAFE cells (not solid, not a mine)? Orthogonal moves only —
+// matches the player. Side-effect-free → used both as the generation guard and
+// directly in tests to prove "at least one safe path exists".
+export function isFieldSolvable(map: TileMap, startRow: number, exitRow: number): boolean {
+  return bfsPath(map, startRow, exitRow, false) !== null
+}
+
+/**
+ * Last-resort repair for a field that every regeneration attempt left sealed.
+ * Raw unsolvability rises steeply with density (measured 2026-07-03: ~1% of
+ * raw boards at L1, ~53% at L3, ~90% at L4+), so all MAX_FIELD_ATTEMPTS
+ * rerolls can fail together — measured ~0.7% of L4+ `createGame` calls,
+ * seeded dailies included. This walks the shortest entry→exit route over
+ * solid-free cells (mines allowed) and defuses exactly the mines on it,
+ * turning "always winnable" from a probabilistic outcome into a construction
+ * guarantee. Deterministic (fixed BFS order, no RNG) → a repaired daily is
+ * identical for everyone; solvable fields never reach this function.
+ * Buildings keep 1-cell edge margins and inter-building gaps, so the
+ * solid-free graph always connects the two fence gaps in practice; if it ever
+ * didn't, the field is left as generated (and the solvability tests scream).
+ */
+function carveSafePath(map: TileMap, startRow: number, exitRow: number, terrain: TerrainType): void {
+  const path = bfsPath(map, startRow, exitRow, true)
+  if (path === null) return
+  for (const k of path) {
+    const col = k % COLS
+    const row = Math.floor(k / COLS)
+    if (map.getTile(col, row)?.id === 'mine') {
+      map.setTile(col, row, makeTileGround(cellVariant(col, row), terrain))
+    }
+  }
 }
 
 interface BuiltField {
@@ -487,13 +527,19 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
   const baseSeed = seed ?? randomSeed()
   // Solvability guard: build the field, then prove a safe entry→exit path exists
   // (BFS). If a field happens to seal the exit off, rebuild from a derived seed —
-  // still fully reproducible per daily seed. The local entry/exit safe zones make
-  // the first attempt succeed almost always, so this rarely loops.
+  // still fully reproducible per daily seed. At high mine densities most raw
+  // boards are sealed (~90% at L4+), so the reroll is only the fast path — the
+  // carve below is what actually guarantees the invariant.
   let field = buildField(baseSeed, level, cfg)
   for (let attempt = 1;
     attempt < MAX_FIELD_ATTEMPTS && !isFieldSolvable(field.map, field.startRow, field.exitRow);
     attempt++) {
     field = buildField(`${baseSeed}:r${attempt}`, level, cfg)
+  }
+  // If every attempt stayed sealed (measured ~0.7% at L4+ before this existed),
+  // repair the last field instead of shipping an unwinnable one.
+  if (!isFieldSolvable(field.map, field.startRow, field.exitRow)) {
+    carveSafePath(field.map, field.startRow, field.exitRow, field.terrain)
   }
   const { map, startRow, exitRow, terrain, firstAcMs } = field
 

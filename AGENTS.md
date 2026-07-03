@@ -16,10 +16,10 @@ across) is the in-world reason the daily field changes and the aircraft keeps dr
 
 ## Name
 
-The game's name is **The Strip**; the on-screen title (`STR_TITLE`) reads `THE STRIP`. The repository,
-npm package, GitHub Pages base and capture paths still read `minefield` — a full rename is a deliberate,
-deferred step. **Keep the internal save key `minefield`** through any rename (same origin ⇒ existing saves
-and high-scores survive).
+The game's name is **The Strip**; the on-screen title (`STR_TITLE`) and the document `<title>` in
+`index.html` both read `THE STRIP` (since 2026-07-03). The repository, npm package, GitHub Pages base and
+capture paths still read `minefield` — a full rename is a deliberate, deferred step. **Keep the internal
+save key `minefield`** through any rename (same origin ⇒ existing saves and high-scores survive).
 
 ## Permanent Audio Rule
 
@@ -28,6 +28,21 @@ the aircraft drone. The **AY chip is reserved for the story intro's per-card sco
 `startIntroMusic` via zx-kit `seq`/`playAYLoop`). Do not add AY to gameplay. New intro sounds are additive —
 never retune the existing beeper SFX without the owner. The **intro score + tempo are tuned by ear by the
 owner** (`introTrack` in `audio.ts`).
+
+## Permanent Accessibility Invariants
+
+v1.0 publicly commits to full blind + deaf playability (README → Accessibility). These rules are
+permanent from 2026-07-03:
+
+- **Channel parity.** Every gameplay-critical signal must reach both eyes and ears. The audio warning
+  and the HUD detector carry the same information today; any future signal (e.g. directional stereo
+  warnings) must land in a visual channel too — never sound-only, never sight-only.
+- **The ARIA layer is load-bearing.** `index.html`'s live regions (`#sr-announcer` assertive,
+  `#sr-status` polite) and the canvas `role`/`aria-label` must not be removed or hidden with
+  `display:none`/`visibility:hidden` (that silences screen readers). `.sr-only` is the only valid
+  way to hide them visually.
+- **Keyboard-complete.** Every screen and action must remain reachable by keyboard alone (gamepad is
+  an addition, never a requirement).
 
 ## Read Order
 
@@ -84,8 +99,10 @@ native 256×192. Tile/visual changes that affect movement need a regression test
 - **Movement is orthogonal**, one cell per step (animated tween). Win = cross the right edge
   (`newCol >= COLS`) through the single **exit gap** in the right fence.
 - **A daily field is always winnable** — guaranteed at generation (`isFieldSolvable` BFS + deterministic
-  regeneration) **and** at runtime (the airplane discards any drop that would seal the field). Mines never
-  land on the player's `visited` trail, so the player can always retreat and re-route.
+  regeneration + the deterministic `carveSafePath` repair when every reroll stays sealed — a construction
+  guarantee, not a probabilistic one) **and** at runtime (the airplane discards any drop that would seal
+  the field). Mines never land on the player's `visited` trail, so the player can always retreat and
+  re-route.
 - **Warning count** = 4 orthogonal neighbours (dist 1, any mine) + beacon mines at orthogonal dist 2
   (from L3), `min(count, 8)`. **Diagonals never count** (the player can't move into them).
 - **No save-scumming:** saves are cleared on game over.

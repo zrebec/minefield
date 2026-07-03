@@ -1,8 +1,9 @@
 # THE STRIP — ZX Spectrum Edition
 
-> *The game's name is **The Strip** — shown on the title screen and told in the story intro. The
-> repository, npm package and live URL are still `minefield` until a focused rename (dir + GitHub +
-> Pages base); the internal save key stays `minefield` so existing saves survive. See [ROADMAP](ROADMAP.md).*
+> *The game's name is **The Strip** — shown on the title screen, in the browser tab (`<title>`)
+> and told in the story intro. The repository, npm package and live URL are still `minefield` until
+> a focused rename (dir + GitHub + Pages base); the internal save key stays `minefield` so existing
+> saves survive. See [ROADMAP](ROADMAP.md).*
 
 > A retro browser game inspired by 1980s ZX Spectrum titles. Cross a blind minefield by **listening** —
 > the closer the mines, the more urgent the sound — backed by a visual danger detector for players
@@ -12,7 +13,7 @@
 ![ZX Spectrum 256×192](https://img.shields.io/badge/ZX_Spectrum-256×192-00CD00?style=flat-square&labelColor=000000)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.x-0000FF?style=flat-square&labelColor=000000)
 ![Vite](https://img.shields.io/badge/Vite-8.x-FFFF00?style=flat-square&labelColor=000000)
-![zx-kit](https://img.shields.io/badge/zx--kit-0.34-00CDCD?style=flat-square&labelColor=000000)
+![zx-kit](https://img.shields.io/badge/zx--kit-0.36-00CDCD?style=flat-square&labelColor=000000)
 
 **Live:** GitHub Pages · auto-released via semantic-release on push to `main`.
 
@@ -39,8 +40,8 @@
 | Stack | TypeScript · Vite · Canvas · Web Audio · zx-kit |
 | Native resolution | 256×192 (integer ×4) |
 | Runtime dependencies | `zx-kit` only |
-| Tests | 295 (Vitest) |
-| Last verified | 2026-06-24 |
+| Tests | 341 (Vitest) |
+| Last verified | 2026-07-03 |
 
 ---
 
@@ -84,10 +85,11 @@ single gap: the **entry** (your seeded start row) and the **exit** (a different 
 least a few rows apart, so there's never a straight line across). The exit is the only way out — you
 have to *find a route* to it, not just walk right. Crucially, **the field is traversable under all
 circumstances**: at generation a flood-fill proves a full safe entry→exit route (regenerating
-deterministically on the rare board that lacks one), and **the aircraft can never seal it either** —
-every airdrop is checked and any mine that would cut the last safe route is discarded. A field is
-therefore **always winnable** — the challenge is finding the path, not getting handed (or dropped) an
-impossible board.
+deterministically on a board that lacks one, and — if every reroll stays sealed — **deterministically
+defusing the mines on one shortest route**, so solvability is guaranteed by construction, not by
+luck), and **the aircraft can never seal it either** — every airdrop is checked and any mine that
+would cut the last safe route is discarded. A field is therefore **always winnable** — the challenge
+is finding the path, not getting handed (or dropped) an impossible board.
 
 Two ways to play:
 
@@ -106,6 +108,7 @@ It's a deliberate homage to the ZX Spectrum (1982): pixel art with no anti-alias
 |-----|--------|
 | `←` `→` `↑` `↓` | Move (key-repeat: 150 ms delay, 80 ms interval). Also full **gamepad** support. |
 | `F` | Flag / unflag the cell **in front** of the player |
+| `SHIFT + ←→↑↓` | Flag / unflag the adjacent cell in that **absolute** direction (no turning needed) |
 | `P` | Pause / resume |
 | `SHIFT + S` | Manual save |
 | `D` | Debug: reveal all mines — **idle only** (scout before you start; off once you move). **Disabled on the daily** (it would leak the scored solution); on **random/practice** it's capped (5 per level). |
@@ -113,8 +116,8 @@ It's a deliberate homage to the ZX Spectrum (1982): pixel art with no anti-alias
 | `+` / `-` | Volume up / down |
 
 **On the title screen:** `SPACE` / `ENTER` / `S` (or gamepad Start) = **daily** run · `R` = **random** run
-· **`I`** = (re)play the story intro. The title is the landing screen; a save-resume goes straight into the
-game.
+· **`I`** = (re)play the story intro · **`L`** = switch language (EN/SK, persisted; also updates the page's
+`lang` for screen readers). The title is the landing screen; a save-resume goes straight into the game.
 
 **The story intro** plays as a pre-roll when it's "due" (first time, after a content refresh, or once per
 window — daily until v1.0) or on demand via `I`. During it, **any key** finishes typing the current card /
@@ -225,12 +228,15 @@ LFO-modulated for an authentic drone.
 - **Perimeter fence & always-guaranteed solvability** — a solid wall encloses the left/right edges with
   one entry gap (start row) and one exit gap (a seeded row kept ≥ `MIN_ENTRY_EXIT_ROW_GAP` apart). At
   **generation** a flood-fill (`isFieldSolvable`) proves a full safe entry→exit route, deterministically
-  regenerating per seed if a board ever seals the exit off. At **runtime**, the **aircraft is guarded
-  too**: every airdrop runs the same flood-fill and discards any mine that would cut the last safe route
-  (the drop just doesn't happen — a pass can place 0 mines). Combined with the invariant that mines never
-  land on the player's `visited` trail, the field is winnable under all circumstances. Covered by
-  solvability tests (300 seeded + 100 random fields; 40 seeds × 8 airplane passes) plus
-  structure/determinism/movement-funnel tests.
+  regenerating per seed if a board ever seals the exit off — and if **every** reroll stays sealed (raw
+  unsolvability reaches ~90% per attempt at L4+ densities, so it happens: measured ~0.7% of L4+ fields
+  before the fix), a deterministic **carve repair** defuses the mines on one shortest route, making
+  solvability a construction guarantee (fixed 2026-07-03; see `docs/known-issues.md`). At **runtime**,
+  the **aircraft is guarded too**: every airdrop runs the same flood-fill and discards any mine that
+  would cut the last safe route (the drop just doesn't happen — a pass can place 0 mines). Combined
+  with the invariant that mines never land on the player's `visited` trail, the field is winnable
+  under all circumstances. Covered by solvability tests (300 seeded + 100 random fields; 40 seeds × 8
+  airplane passes; named carve-repair regressions) plus structure/determinism/movement-funnel tests.
 - **Debug overlay** — `zx-kit/debug` (`createDebugMonitor` / `beginFrame` / `endFrame` /
   `sampleDebug` / `drawDebugOverlay`); toggled with `O`. Shows FPS, frame ms, JS CPU load, and
   custom fields (phase, run state, level, mine count). Minefield is zx-kit's first `debug` consumer.
@@ -256,14 +262,14 @@ src/
 └── main.ts        ← game loop (requestAnimationFrame), phase switching ('story'→'intro'→'ingame'), debug overlay
 ```
 
-**Dependencies:** `zx-kit@^0.34.0` only — everything else is the Web Platform.
+**Dependencies:** `zx-kit@^0.36.0` only — everything else is the Web Platform.
 
 **Local dev:**
 ```bash
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # production build → dist/
-npm test         # unit tests (Vitest) — 295 tests
+npm test         # unit tests (Vitest) — 341 tests
 npm run capture  # refresh docs/img screenshots (Playwright)
 ```
 
@@ -287,11 +293,11 @@ npm run capture  # refresh docs/img screenshots (Playwright)
 | Area | State | Notes |
 |---|---|---|
 | Core loop | Complete | cross → levels → highscore → save |
-| Fence + solvability | Complete | winnable under all circumstances (generation + airdrop guard) |
+| Fence + solvability | Complete | winnable under all circumstances (generation + airdrop guard + carve repair, 2026-07-03) |
 | Story + intro | **Done (music tuning pending)** | 5-chapter typewriter intro + per-card AY score + 5 hand-drawn scenes + chapter titles; music tuned by ear |
 | Save / load | Complete | version 5; auto-resume; cleared on game over |
-| Tests | 295 | seeded solvability + property tests; + intro/audio coverage |
-| Accessibility | Partial | visual detector done; stereo/TTS planned (Roadmap) |
+| Tests | 341 | seeded solvability + property tests; + intro/audio + a11y contract coverage |
+| Accessibility | In progress | visual detector done; **ARIA skeleton + live document `lang` shipped 2026-07-03**; stereo/TTS/beacon next (v1.0 scope) |
 | Visuals | Readable | screenshots may be refreshed to show the fence + intro |
 
 ## Related Links
@@ -306,10 +312,22 @@ npm run capture  # refresh docs/img screenshots (Playwright)
 
 ## Accessibility
 
-The game is audio-primary but **not** audio-only: the HUD detector mirrors every warning visually,
-so deaf players get the same information. Planned next: stereo/spatial warning (mine direction in the
-L/R channels), an ARIA live region + TTS for screen readers, and an exit beacon — an audio-first
-"playable blind" deductive traversal is an under-served niche. See `retro/docs/sk/minefield.md` §7.
+**Our public commitment: v1.0 (The Strip, `2026-09-07`) will be fully playable by blind and by
+deaf players.** Not "compatible" — playable, start to finish, including the menus.
+
+- **Deaf players — done.** The game is audio-primary but **not** audio-only: the HUD detector
+  (shipped 2026-06-17) mirrors every warning visually — a 4-segment adjacent-mine meter plus a
+  separate beacon LED — so no information exists in sound alone.
+- **Blind players — in progress, v1.0 scope.** Coming with v1.0: **stereo/spatial warnings** (mine
+  direction in the L/R channels — the engine primitive shipped in zx-kit 0.36), a **screen-reader
+  live region + TTS** for warnings, state and every screen of the shell (title, pause, high-score
+  entry, intro), an **exit beacon** tone, and an **assist-mode** flag so assisted runs are marked
+  on the leaderboard. The ARIA skeleton (live regions, canvas labelling, live document `lang`)
+  landed 2026-07-03; the game is already fully keyboard-driven.
+
+An audio-first "playable blind" deductive traversal is an under-served niche — this is the
+strongest moat the game has, and it ships with 1.0, not "someday". See `ROADMAP.md` (P1) and
+`retro/docs/sk/minefield.md` §7.
 
 ## License
 

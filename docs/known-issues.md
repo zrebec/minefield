@@ -2,20 +2,36 @@
 
 ## Active Issues
 
-### P3 — Respawn keeps `runState='running'` (no idle re-scout after death)
-
-- **Status:** open — owner decision (likely intended).
-- **Player impact:** low. After a mine death you respawn at the entry, but the run stays `running`, so
-  there is no fresh idle scout and the timer keeps ticking (unlike the start of a level).
-- **Reproduction:** start a level (idle), move (→ running), step on a mine, respawn → you are at the entry
-  in `running` with the clock still going.
-- **Expected (one option):** respawn re-enters `idle` for a brief re-scout, freezing the timer.
-- **Actual:** `respawnPlayer` does not reset `runState`; it stays `running`.
-- **Notes:** could be a deliberate death penalty. Decide before any change. Related: `ROADMAP.md`
-  (Technical Debt). A secondary, negligible companion: `revealsUsed` is not reset on respawn (reveal is
-  idle-only and daily = 0, so impact is nil).
+*(none)*
 
 ## Resolved Issues
+
+### `createGame` could return an unsolvable field when every reroll failed (former P0)
+
+- **Resolved:** 2026-07-03 with a deterministic **carve repair** (`carveSafePath` in `game.ts`).
+- **What happened:** raw unsolvability rises steeply with mine density — measured ~1% of raw boards at
+  L1, ~53% at L3, **~90% at L4+** — so all `MAX_FIELD_ATTEMPTS` (64) rerolls could fail together and
+  `createGame` shipped the last (unwinnable) board: measured **~0.7% of L4+ calls, seeded dailies
+  included**. This is also what made the "random (unseeded) fields are always solvable" test flake —
+  it was a real bug, not statistical noise.
+- **Fix:** the reroll loop stays as the fast path; if the last attempt is still sealed, a BFS over
+  solid-free cells (mines allowed) finds the shortest entry→exit route and defuses exactly the mines
+  on it. Deterministic (fixed BFS order, no RNG) → a repaired daily is identical for everyone;
+  already-solvable fields are never touched. "Always winnable" is now a construction guarantee.
+- **Regression coverage:** `src/game.test.ts` — the three hunting seeds (`hunt3:187/574/1680`) that
+  reproduced it stay solvable; a repaired daily is byte-identical across calls; validated on a
+  9 000-field sample (0 unsolvable).
+
+### Respawn keeps `runState='running'` (no idle re-scout after death) — resolved by design decision
+
+- **Resolved:** 2026-07-03, **by owner decision — this is intended behaviour**, not a bug. Death costs
+  you the scout: after a mine death you respawn at the entry with the run still `running` and the timer
+  ticking; the free idle scout exists only at the start of a level. See `ROADMAP.md` (Decisions,
+  2026-07-03).
+- **Follow-up:** state this on the future RULES screen (ROADMAP P1/P2 #8) so players read it as a rule,
+  not a bug.
+- **Companion note (unchanged, negligible):** `revealsUsed` is not reset on respawn — reveal is
+  idle-only and daily = 0, so impact is nil (`ROADMAP.md` Technical Debt, P4).
 
 ### `airplanePassIndex` not persisted (airplane sequence reset on reload)
 
