@@ -3,7 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MINEFIELD — ZX Spectrum Edition</title>
+    <!-- The game's name is THE STRIP (repo/package/URL keep `minefield` until the focused rename). -->
+    <title>THE STRIP — ZX Spectrum Edition</title>
+    <meta
+      name="description"
+      content="THE STRIP — an audio-first ZX Spectrum-style game: cross a blind minefield by listening. One daily field for the whole world. Built to be playable blind and deaf."
+    />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -28,10 +33,39 @@
         /* Thin white border like a CRT screen */
         outline: 4px solid #CDCDCD;
       }
+
+      /* Screen-reader-only content: visually hidden but still read by assistive
+         tech. Never use display:none / visibility:hidden here — those remove the
+         nodes from the accessibility tree and silence the live regions. */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
     </style>
   </head>
   <body>
-    <canvas id="game"></canvas>
+    <canvas
+      id="game"
+      role="img"
+      aria-label="The Strip — a minefield-crossing game rendered on this canvas. Game announcements are read aloud below."
+    ></canvas>
+
+    <!-- ARIA live regions (accessibility skeleton, 2026-07-03). The game writes
+         here so screen readers speak what the beeper beeps — the v1.0 promise.
+         #sr-announcer: urgent, interrupts — mine warnings, explosions, danger.
+         #sr-status: polite, queued — score, level, mode, menu state. -->
+    <div id="sr-announcer" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
+    <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
+
+    <noscript>THE STRIP needs JavaScript to run — it is a browser game rendered on a canvas with Web Audio sound.</noscript>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

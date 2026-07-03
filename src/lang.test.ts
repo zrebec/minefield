@@ -59,6 +59,13 @@ describe('setLocale', () => {
     setLocale('en')
     expect(L).toBe(ref)
   })
+
+  it('mirrors the locale onto <html lang> for assistive tech', () => {
+    setLocale('sk')
+    expect(document.documentElement.lang).toBe('sk')
+    setLocale('en')
+    expect(document.documentElement.lang).toBe('en')
+  })
 })
 
 describe('cycleLocale', () => {

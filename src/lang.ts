@@ -74,7 +74,17 @@ function resolveKnownCode(rawCode: string): string {
 // default behaviour for anyone who's never touched the runtime toggle).
 let currentCode = resolveKnownCode(readPersistedLocale() ?? LANGUAGE_CODE ?? 'en')
 
+/**
+ * Mirrors the active locale onto `<html lang>` so assistive tech (screen
+ * readers, the future TTS voice pick) pronounces the page in the game's
+ * current language. Guarded so the pure-logic tests can run without a DOM.
+ */
+function applyDocumentLang(): void {
+  if (typeof document !== 'undefined') document.documentElement.lang = currentCode
+}
+
 export const L: StringPack = { ...pickLocale(en, LOCALES, currentCode) }
+applyDocumentLang()
 
 /** Current locale code, lowercase (e.g. `'en'`, `'sk'`). */
 export function getLocale(): string {
@@ -93,6 +103,7 @@ export function setLocale(code: string): void {
   Object.assign(L, pickLocale(en, LOCALES, resolved))
   currentCode = resolved
   persistLocale(currentCode)
+  applyDocumentLang()
 }
 
 /** Advances to the next locale in `LOCALE_ORDER` (wrapping around). */
