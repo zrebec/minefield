@@ -75,7 +75,10 @@ jobs:
         run: cat dist/index.html
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        # v5 (2026-04): Node 24 + current Pages artifact format. The 2024-era v3
+        # artifact started being rejected by the Pages backend on 2026-07-03
+        # ("Deployment failed, try again later" seconds after creation).
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./dist
 
@@ -88,4 +91,6 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        # v5 (2026-03): Node 24 native (v4 triggered the "forced to run on Node 24"
+        # deprecation annotation) and paired with upload-pages-artifact@v5.
+        uses: actions/deploy-pages@v5
