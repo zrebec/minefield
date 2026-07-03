@@ -60,7 +60,10 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    raw mine counts track Mined-Out (the model), but Mined-Out had no buildings — our buildings + fence
    shrink the open area, so the *effective* density is meaningfully higher at the same mine count.
    Once tuned, guard the criterion with a seeded generation-health test so density can't silently
-   creep back.
+   creep back. **Full analysis, candidate solutions (A: density-normalised mine budget over free
+   cells — recommended; B: cap building area; C: lower raw counts; D: guard test) and the risk
+   table (daily determinism, variable HUD count, pinned tests, airdrop balance) live in
+   [`docs/generation-density.md`](docs/generation-density.md).**
 3. **Green-gem special — decide + implement.** One behaviour, data-driven in `config.ts`/`GEM_KINDS`,
    tested. Options: time-only / "disarm a threat ahead" / shield. No combinatorial sprawl.
 4. **Confirm the jingle relocation** (now once-per-session on a direct game-start, not on first gesture) —
