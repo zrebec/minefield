@@ -11,6 +11,13 @@
 - **Player fantasy:** cross a blind minefield by listening; an aircraft keeps dropping more.
 - **Stack:** Vanilla TypeScript · Vite · HTML5 Canvas · Web Audio API, on **`zx-kit@^0.36.0`** (only dep).
 - **Release:** semantic-release on push to `main` (app pattern, `npmPublish: false`) → build → GitHub Pages.
+  **Pages actions must stay `upload-pages-artifact@v5+` / `deploy-pages@v5+`** — the Pages backend
+  rejects v3-era artifacts since 2026-07-03 (generic "Deployment failed, try again later", no
+  description, build/tests green). Check these versions FIRST on any such deploy failure.
+  **Gate quirk:** the CI release gate reads only the push's HEAD commit message — a releasable
+  `fix:`/`feat:` pushed *underneath* a `docs:`/`chore:` commit won't release until the next
+  releasable push (this happened to `4541bf7`). Push releasable commits last or alone;
+  `workflow_dispatch` deploys the current main without cutting a release.
 - **Main branch:** `main`. **Owner commits/releases** — never push/bump/deploy without being asked.
 
 ## Commands
