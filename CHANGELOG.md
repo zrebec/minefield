@@ -1,3 +1,11 @@
+# [0.51.0](https://github.com/zrebec/minefield/compare/v0.50.0...v0.51.0) (2026-07-04)
+
+
+### Features
+
+* **airplane:** friendly recon plane as the green-gem reward ([bbbf967](https://github.com/zrebec/minefield/commit/bbbf96789c1222e64c59b4fb61cdf6b2e3d02f13))
+* **debug:** mine-reveal becomes a budgeted peek, usable while standing ([c8ed4ce](https://github.com/zrebec/minefield/commit/c8ed4ce8c5388999e6f2fc5f9df258258ee71927))
+
 # [0.50.0](https://github.com/zrebec/minefield/compare/v0.49.1...v0.50.0) (2026-07-04)
 
 
