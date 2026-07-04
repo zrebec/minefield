@@ -642,6 +642,14 @@ describe('respawnPlayer', () => {
     expect(state.comboTimer).toBe(0)
     expect(state.inventory).toEqual({ cyan: 2 })  // backpack untouched — gems stay collected
   })
+
+  it('keeps revealed mines across death — a lit row stays lit for the whole level', () => {
+    const state = makeState()
+    state.lives = 2
+    state.revealedMines = [{ col: 4, row: 8 }, { col: 7, row: 8 }]
+    respawnPlayer(state)
+    expect(state.revealedMines).toEqual([{ col: 4, row: 8 }, { col: 7, row: 8 }])
+  })
 })
 
 // ── day/night cycle ───────────────────────────────────────────────────────────

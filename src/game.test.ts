@@ -502,6 +502,13 @@ describe('createGame initial state', () => {
     const state = createGame(0)
     expect(state.bufferedDir).toBeNull()
   })
+
+  it('starts a level with no revealed mines and no friendly plane in flight', () => {
+    const state = createGame(0)
+    expect(state.revealedMines).toEqual([])   // reveals are per-level — a new level starts dark
+    expect(state.friendlyPlane).toBeNull()
+    expect(state.friendlyPassIndex).toBe(0)   // fresh seed stream per level
+  })
 })
 
 // ── Terrain — tile factory colors ──────────────────────────────────────────��──

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { spawnFriendlyPlane, updateFriendlyPlane } from './airplane.ts'
-import { createGame, type GameState, type MineType } from './game.ts'
+import { spawnFriendlyPlane, updateFriendlyPlane, updateAirplane } from './airplane.ts'
+import { createGame, type GameState, type MineType, type AirplaneState } from './game.ts'
 import { AIRPLANE_ROW_MIN, AIRPLANE_ROW_MAX, AIRPLANE_CROSS_MS } from './config.ts'
-import { COLS, ROWS, CANVAS_W } from './constants.ts'
+import { COLS, ROWS, CELL, CANVAS_W } from './constants.ts'
 import { makeTileGround, makeTileMine } from './sprites.ts'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -77,6 +77,71 @@ describe('spawnFriendlyPlane — seeding', () => {
     state.dropSeedBase = null
     expect(() => spawnFriendlyPlane(state)).not.toThrow()
     expect(state.friendlyPlane).not.toBeNull()
+  })
+})
+
+// ── Daily fairness ────────────────────────────────────────────────────────────
+// The core promise: the flight depends on the SEED alone, never on the board
+// state at trigger time — so two players of the same daily get identical rows
+// no matter when (or after what) they collect the greens.
+
+describe('spawnFriendlyPlane — daily fairness', () => {
+  it('same daily → same flight, whatever the board looks like at trigger time', () => {
+    const a = freshGame('daily-fair')                       // player A: triggers on a pristine board
+    const b = freshGame('daily-fair')                       // player B: triggers on a heavily-played board
+    b.revealedMines = [{ col: 3, row: 2 }, { col: 9, row: 12 }]
+    setMine(b.map, 5, 5)
+    b.map.setTile(1, 1, makeTileGround('a', 'grass'))
+
+    spawnFriendlyPlane(a)
+    spawnFriendlyPlane(b)
+
+    expect(a.friendlyPlane!.row).toBe(b.friendlyPlane!.row)
+    expect(a.friendlyPlane!.dir).toBe(b.friendlyPlane!.dir)
+  })
+
+  it('successive flights walk a stable seeded sequence across diverging runs', () => {
+    const p1 = freshGame('daily-seq')
+    const p2 = freshGame('daily-seq')
+    spawnFriendlyPlane(p1); p1.friendlyPlane = null                              // p1 flies pass 0…
+    spawnFriendlyPlane(p2); p2.friendlyPlane = null; p2.revealedMines = [{ col: 0, row: 0 }]  // …p2 too, but from a different state
+    spawnFriendlyPlane(p1)                                                       // …now pass 1 on each
+    spawnFriendlyPlane(p2)
+    expect(p1.friendlyPlane!.row).toBe(p2.friendlyPlane!.row)
+    expect(p1.friendlyPlane!.dir).toBe(p2.friendlyPlane!.dir)
+  })
+})
+
+// ── Coexistence with the enemy plane ─────────────────────────────────────────
+
+describe('friendly + enemy planes coexist', () => {
+  // An enemy plane already past its bomb run, parked mid-field so a single frame
+  // moves it without flying it offscreen (which would trigger a save write).
+  function enemyMidField(): AirplaneState {
+    return { x: CANVAS_W / 2, y: 5 * CELL, dir: 1, active: true, dropDone: true, warningBlink: true, scheduledDropCount: 0 }
+  }
+
+  it('both advance on the same frame without disturbing each other', () => {
+    const state = freshGame()
+    spawnFriendlyPlane(state)
+    state.airplane = enemyMidField()
+    const fx = state.friendlyPlane!.x
+    const ex = state.airplane.x
+    updateAirplane(state, 16)
+    updateFriendlyPlane(state, 16)
+    expect(state.airplane).not.toBeNull()
+    expect(state.friendlyPlane).not.toBeNull()
+    expect(state.airplane!.x).not.toBe(ex)       // enemy moved
+    expect(state.friendlyPlane!.x).not.toBe(fx)  // friendly moved
+  })
+
+  it('the friendly plane leaving does not clear the enemy plane', () => {
+    const state = freshGame()
+    spawnFriendlyPlane(state)
+    state.airplane = enemyMidField()
+    updateFriendlyPlane(state, AIRPLANE_CROSS_MS)   // fly ONLY the friendly off the far edge
+    expect(state.friendlyPlane).toBeNull()
+    expect(state.airplane).not.toBeNull()           // enemy still airborne — its own drone untouched
   })
 })
 
