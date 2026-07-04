@@ -117,7 +117,7 @@ It's a deliberate homage to the ZX Spectrum (1982): pixel art with no anti-alias
 | `SHIFT + ←→↑↓` | Flag / unflag the adjacent cell in that **absolute** direction (no turning needed) |
 | `P` | Pause / resume |
 | `SHIFT + S` | Manual save |
-| `D` | Debug: reveal all mines — **idle only** (scout before you start; off once you move). **Disabled on the daily** (it would leak the scored solution); on **random/practice** it's capped (5 per level). |
+| `D` | Debug: reveal all mines **while standing** — any time, not just before the first step; your next step hides them again (a budgeted *peek*). On **random/practice** it's capped (1 activation per level, `RANDOM_REVEAL_LIMIT`); **disabled on the daily** (it would leak the scored solution). A refused press plays a low "denied" beep. *(Testing-phase mode — may return to start-of-level-only before v1.0.)* |
 | `O` | Toggle the **FPS / CPU debug overlay** (zx-kit `debug` module) |
 | `+` / `-` | Volume up / down |
 
@@ -280,7 +280,9 @@ src/
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # production build → dist/
-npm test         # unit tests (Vitest) — 341 tests
+npm test         # unit tests (Vitest) — 345 tests
+npm run smoke    # browser smoke test (Playwright; run AFTER npm run build) — boots the real
+                 # bundle: title/ARIA → random run → flag → night → save → reload → resume
 npm run capture  # refresh docs/img screenshots (Playwright)
 ```
 

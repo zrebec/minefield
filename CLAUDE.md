@@ -25,8 +25,9 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (341 tests)
+npm test          # Vitest (345 tests)
 npm run build     # dist/
+npm run smoke     # browser smoke test over dist/ (Playwright; run after build, before a release)
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
 ```
 
@@ -210,10 +211,22 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
 - **i18n:** EN/SK packs (`strings.ts`/`strings.sk.ts`). **CRT:** `curveDisplay()` + `drawScanlines()`.
 
 ### Debug keys (two different things)
-- **`D`** = `state.debugMode` — reveals all mines, **idle only** (off once moving). **Budget-gated**
-  (`tryToggleReveal`): daily `DAILY_REVEAL_LIMIT = 0` (does nothing); random `RANDOM_REVEAL_LIMIT` per level
-  (`null` = unlimited); turning OFF is free, each ON consumes one. zx-kit `Ctrl+Shift+B` / gamepad **Y** map
-  here too.
+- **`D`** = `state.debugMode` — reveals all mines **while standing, any time** (a step hides them
+  again — a budgeted *peek*). **Budget-gated** (`tryToggleReveal`, returns false = denied → main
+  plays `playDenied`): daily `DAILY_REVEAL_LIMIT = 0` (always denied); random `RANDOM_REVEAL_LIMIT`
+  activations per level (`null` = unlimited); turning OFF is free, each ON consumes one. zx-kit
+  `Ctrl+Shift+B` / gamepad **Y** map here too.
+  **D-reveal mode (TESTING-PHASE — final mode decided before v1.0).** The "any time" gate is ONE
+  line in `main.ts` marked `[D-GATE]` (top of the `phase === 'playing'` block). **Revert recipe to
+  the original idle-scout-only behaviour** (safe for any model to follow):
+  1. In `main.ts`, cut the single `if (consumeDebug() && …) playDenied()` line at `[D-GATE]` and
+     paste it at the `[D-GATE-IDLE-ANCHOR]` comment inside the `runState === 'idle'` branch;
+     delete the big `[D-GATE]` comment block.
+  2. Do NOT touch the `consumeDebug()` drains in the running/paused branches — they are kept alive
+     exactly for this revert (they stop a mid-run press from firing at the next idle).
+  3. The `state.debugMode = false` lines on movement (idle + running branches) stay in both modes.
+  4. Update the `D` row in README's controls table back to "idle only (scout before you start)".
+  5. `npm test` — the `tryToggleReveal` tests are mode-independent and must stay green.
 - **`O`** = `showDebug` — toggles the zx-kit `debug` FPS/CPU overlay (Minefield is its first consumer).
   Single letters because browsers reserve `F3`/`Ctrl+Shift+B`/`F12`.
 
