@@ -1,3 +1,10 @@
+# [0.50.0](https://github.com/zrebec/minefield/compare/v0.49.1...v0.50.0) (2026-07-04)
+
+
+### Features
+
+* **flags:** decouple flags from the map — a pure visual overlay layer ([52b7bb5](https://github.com/zrebec/minefield/commit/52b7bb52c433168b747222c486d43633a4480971))
+
 ## [0.49.1](https://github.com/zrebec/minefield/compare/v0.49.0...v0.49.1) (2026-07-04)
 
 
