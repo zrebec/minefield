@@ -140,6 +140,17 @@ export function playReveal(): void {
   ])
 }
 
+export function playDenied(): void {
+  // Flat low "uh-uh" — a key was understood but refused (e.g. the D reveal
+  // with its budget spent, or on the daily). Ends the silent no-op era: the
+  // player always hears that the key is alive and simply not allowed.
+  playPattern([
+    { freq: 110, dur: 60 },
+    { freq: 0, dur: 40 },
+    { freq: 98, dur: 90 },
+  ])
+}
+
 export function startApproachSound(): void {
   const ctx = getAudioContext()
   if (!ctx || approachOsc || airplaneOsc) return

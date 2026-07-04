@@ -65,6 +65,10 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    tested. Options: time-only / "disarm a threat ahead" / shield. No combinatorial sprawl.
 4. **Confirm the jingle relocation** (now once-per-session on a direct game-start, not on first gesture) —
    quick owner sign-off.
+4b. **Decide the final `D`-reveal mode before v1.0.** Currently (2026-07-04, testing-phase): usable
+   any time while standing — a budgeted peek for playtest route/flag verification. The alternative
+   is the original idle-scout-only gate. The switch is a **one-line move** (`[D-GATE]` in `main.ts`);
+   the full revert recipe lives in `CLAUDE.md` → "D-reveal mode". Effort XS either way.
 
 ### P1 — Accessibility moat (in v1.0 because we chose option C — the strongest differentiator)
 5. **Stereo / spatial warning** — encode mine direction in the L/R channels (genuinely playable blind).

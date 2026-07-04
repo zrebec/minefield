@@ -644,14 +644,18 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
  * reveal OFF is always free; turning it ON consumes one reveal and is blocked once
  * the budget is spent. Daily fields get DAILY_REVEAL_LIMIT (0 → the key does nothing,
  * because revealing every mine would leak the scored daily solution); random/practice
- * gets RANDOM_REVEAL_LIMIT (`null` = unlimited). Call only while idle (scout phase).
+ * gets RANDOM_REVEAL_LIMIT (`null` = unlimited). WHEN the key may fire (idle-only
+ * vs any time while standing) is the caller's policy — see the [D-GATE] block in
+ * main.ts. Returns whether anything happened (toggled on or off); false = denied
+ * (budget spent / daily), so the caller can give audible feedback.
  */
-export function tryToggleReveal(state: GameState): void {
-  if (state.debugMode) { state.debugMode = false; return }   // turning off is free
+export function tryToggleReveal(state: GameState): boolean {
+  if (state.debugMode) { state.debugMode = false; return true }   // turning off is free
   const limit = state.dropSeedBase === null ? RANDOM_REVEAL_LIMIT : DAILY_REVEAL_LIMIT
-  if (limit !== null && state.revealsUsed >= limit) return    // budget spent → no-op
+  if (limit !== null && state.revealsUsed >= limit) return false  // budget spent → denied
   state.debugMode = true
   state.revealsUsed++
+  return true
 }
 
 /**

@@ -1437,29 +1437,29 @@ describe('perimeter fence — determinism', () => {
 })
 
 describe('debug mine-reveal budget (tryToggleReveal)', () => {
-  it('daily mode: D does nothing — reveal never turns on, however many presses', () => {
+  it('daily mode: D does nothing — reveal never turns on, every press reports denied', () => {
     expect(DAILY_REVEAL_LIMIT).toBe(0)
     const s = createGame(0, 0, 'reveal-daily')   // seeded → daily
     expect(s.dropSeedBase).not.toBeNull()
-    for (let i = 0; i < 10; i++) tryToggleReveal(s)
+    for (let i = 0; i < 10; i++) expect(tryToggleReveal(s)).toBe(false)  // denied → the caller beeps
     expect(s.debugMode).toBe(false)
     expect(s.revealsUsed).toBe(0)
   })
 
-  it('random mode: each ON consumes one reveal, OFF is free, blocked after the limit', () => {
+  it('random mode: each ON consumes one reveal, OFF is free, denied after the limit', () => {
     const s = createGame(0)            // no seed → random/practice
     expect(s.dropSeedBase).toBeNull()
     expect(typeof RANDOM_REVEAL_LIMIT).toBe('number')   // current default is finite
     const limit = RANDOM_REVEAL_LIMIT as number
     for (let i = 0; i < limit; i++) {
-      tryToggleReveal(s)                       // ON — consumes one
+      expect(tryToggleReveal(s)).toBe(true)    // ON — consumes one
       expect(s.debugMode).toBe(true)
       expect(s.revealsUsed).toBe(i + 1)
-      tryToggleReveal(s)                       // OFF — free
+      expect(tryToggleReveal(s)).toBe(true)    // OFF — free
       expect(s.debugMode).toBe(false)
       expect(s.revealsUsed).toBe(i + 1)        // off did not consume
     }
-    tryToggleReveal(s)                         // budget spent → no-op
+    expect(tryToggleReveal(s)).toBe(false)     // budget spent → denied (beep)
     expect(s.debugMode).toBe(false)
     expect(s.revealsUsed).toBe(limit)
   })

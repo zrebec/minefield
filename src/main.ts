@@ -2,7 +2,7 @@ import { C, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS, INTRO_PAGE_MS } from './config.ts'
 import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap, consumeDirFlag, isHeld } from './input.ts'
-import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playDenied, startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane } from './airplane.ts'
@@ -256,17 +256,31 @@ function gameLoop(timestamp: number): void {
     // the key so an in-game press can't linger and trigger a random start later.
     consumeRandomMap()
 
+    // ── [D-GATE] mine-reveal gate — TESTING-PHASE MODE (2026-07-04) ──────────
+    // D is usable ANY TIME while standing: the budget still applies (random =
+    // RANDOM_REVEAL_LIMIT, daily = 0 → always denied) and the next step hides
+    // the reveal again ("debug off" on move in BOTH the idle and running
+    // branches) — a budgeted PEEK. This exists for the playtesting phase
+    // (verifying routes and flag placement mid-run). A denied press beeps
+    // (playDenied) — never a silent no-op. Paused = frozen: drained + dropped.
+    //
+    // BEFORE v1.0 the owner picks the final mode. TO REVERT to idle-scout-only:
+    // move ONLY this one `if` line to the [D-GATE-IDLE-ANCHOR] mark inside the
+    // idle branch below (the consumeDebug() drains in the running/paused
+    // branches are kept alive exactly so this stays a one-line move), and
+    // update README (controls, `D` row) + CLAUDE.md ("Debug keys") — full
+    // recipe in CLAUDE.md → "D-reveal mode".
+    if (consumeDebug() && state.runState !== 'paused' && !tryToggleReveal(state)) playDenied()
+
     if (state.runState === 'idle') {
-      // Debug reveal available only in idle — scout before starting. Budget-gated:
-      // disabled on the scored daily, finite on random/practice (see tryToggleReveal).
-      if (consumeDebug()) tryToggleReveal(state)
+      // [D-GATE-IDLE-ANCHOR] — revert target for the [D-GATE] line above.
       consumePause()  // drain P — can't pause before starting
       const dir = tickMovement(dt, WALK_DURATION_MS)
       // SHIFT held → the arrow was a directional-flag press, not a movement
       // attempt (see the SHIFT+arrow handling in input.ts / toggleFlag below).
       if (dir && !isHeld('Shift')) {
         state.runState = 'running'
-        state.debugMode = false   // debug off permanently for this level
+        state.debugMode = false   // a step hides the reveal again (the peek ends; budget decides if D can re-arm)
         movePlayer(state, dir)
       }
       if (consumeFlag()) toggleFlag(state)
@@ -276,7 +290,7 @@ function gameLoop(timestamp: number): void {
 
     } else if (state.runState === 'running') {
       tickTimer(state, dt)  // clock ticks only while actively running
-      consumeDebug()  // drain — debug not available while running
+      consumeDebug()  // no-op today ([D-GATE] consumes first); REQUIRED again after an idle-only revert — keep
       if (consumePause()) { state.runState = 'paused'; pausePage = 0 }
 
       if (state.comboTimer > 0) {
@@ -289,7 +303,10 @@ function gameLoop(timestamp: number): void {
       }
       tickPlayer(state, dt)
       const dir = tickMovement(dt, WALK_DURATION_MS)
-      if (dir && !isHeld('Shift')) movePlayer(state, dir)
+      if (dir && !isHeld('Shift')) {
+        state.debugMode = false  // a step hides the reveal (peek semantics — see [D-GATE])
+        movePlayer(state, dir)
+      }
       if (consumeFlag()) toggleFlag(state)
       const dirFlag = consumeDirFlag()
       if (dirFlag) toggleFlag(state, dirFlag)
@@ -298,7 +315,7 @@ function gameLoop(timestamp: number): void {
 
     } else {
       // paused — paged help screen; arrows leaf the pages, P resumes
-      consumeDebug()
+      consumeDebug()  // no-op today ([D-GATE] consumes first); REQUIRED again after an idle-only revert — keep
       if (consumePause()) state.runState = 'running'
       const pdir = tickMovement(dt, WALK_DURATION_MS)
       if (!isHeld('Shift')) {
