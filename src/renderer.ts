@@ -22,11 +22,11 @@ import {
 //   0 backpack · 1 timer · 2 score+detector · 3 mines+level · 4 day/night · 5 lives
 const STATUS_TOP = ROWS * CELL          // top of the HUD strip (first row: backpack)
 const ROW_BACKPACK = STATUS_TOP             // gem inventory (can fill the full width)
-const ROW_TIMER    = STATUS_TOP + 1 * CELL  // countdown clock (left)
-const ROW_SCORE    = STATUS_TOP + 2 * CELL  // score (left) + mine detector / aircraft (right)
-const ROW_MINES    = STATUS_TOP + 3 * CELL  // remaining mines (left) + level/combo/idle (right)
-const ROW_CYCLE    = STATUS_TOP + 4 * CELL  // day/night counter
-const ROW_LIVES    = STATUS_TOP + 5 * CELL  // lives label + hearts (left) + random tag (right)
+const ROW_TIMER = STATUS_TOP + 1 * CELL  // countdown clock (left)
+const ROW_SCORE = STATUS_TOP + 2 * CELL  // score (left) + mine detector / aircraft (right)
+const ROW_MINES = STATUS_TOP + 3 * CELL  // remaining mines (left) + level/combo/idle (right)
+const ROW_CYCLE = STATUS_TOP + 4 * CELL  // day/night counter
+const ROW_LIVES = STATUS_TOP + 5 * CELL  // lives label + hearts (left) + random tag (right)
 
 function drawTextCentered(
   ctx: CanvasRenderingContext2D,
@@ -63,7 +63,7 @@ function renderAirplane(ctx: CanvasRenderingContext2D, plane: AirplaneState): vo
   const x = Math.floor(plane.x)
   const y = plane.y
   const sprite = plane.dir === -1 ? AIRPLANE_LEFT : AIRPLANE_RIGHT
-  drawSprite(ctx, sprite, x, y, C.B_WHITE, C.BLACK)
+  drawSprite(ctx, sprite, x, y, C.B_RED, C.BLACK)
 }
 
 // ─── Status bar ───────────────────────────────────────────────────────────────
