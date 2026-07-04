@@ -1,3 +1,10 @@
+## [0.49.1](https://github.com/zrebec/minefield/compare/v0.49.0...v0.49.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* **render:** flags stay visible at night — night sweep goes through hiddenAtNight ([1872e29](https://github.com/zrebec/minefield/commit/1872e29e3d0a184ab180d77014d2925863e8aca9))
+
 # [0.49.0](https://github.com/zrebec/minefield/compare/v0.48.0...v0.49.0) (2026-07-04)
 
 
