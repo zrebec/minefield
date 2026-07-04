@@ -188,9 +188,16 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
 ### Buildings, terrain, aircraft, audio, save, input
 - **Buildings:** pseudo-3D, solid + mine-free; count rises per level. `fixObstacleTraps()` prevents
   *obstacle ahead + mines on both perpendicular sides* around any solid (buildings **and** fence).
-- **Terrain** grass/snow/dust (L1 grass). **Day/night**: night blacks out unvisited, UNFLAGGED
-  ground+mine — `hiddenAtNight` in `renderer.ts` is the single visibility predicate (flags, gems,
-  visited trail, explosions stay lit; regression note on the function).
+- **Flags (overlay model, 2026-07-04):** `GameState.flags` is a `Set<cellKey>` — flags live entirely
+  OUTSIDE the map, so no tile rewrite (walking, airdrops, blasts) can eat one. `toggleFlag` only
+  adds/removes set entries (flaggable: non-solid except exploded — incl. the visited trail); the
+  ONLY other removal is a detonation on that cell (`commitMove` mine branch, `applyClusterBlast`).
+  Rendered by `drawFlags` after the night sweep (visible at night by draw order), before the player.
+  Persisted through the v5 per-cell chars (`f/m/c/b`, gem digits 5-8, new `'v'` = flagged visited).
+  Flags never gate game logic (not a shield vs airdrops); sole read-only exception: revealMine dedup.
+- **Terrain** grass/snow/dust (L1 grass). **Day/night**: night blacks out unvisited ground+mine —
+  `hiddenAtNight` in `renderer.ts` is the single visibility predicate (gems, visited trail,
+  explosions stay lit; flags are drawn over the sweep by `drawFlags`).
 - **Aircraft:** flies rows `AIRPLANE_ROW_MIN..MAX` (1..14); drops `acMineDropMin..Max` mines on unvisited
   non-building cells, **solvability-guarded**, columns **forward-biased** (`max` of two seeded draws).
   `airplanePassIndex` drives the seeded `:pass`/`:drop`/`:next` seeds and is persisted.

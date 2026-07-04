@@ -10,7 +10,7 @@ import {
   PLAYER_LEFT_A, PLAYER_LEFT_B,
   PLAYER_UP_A, PLAYER_UP_B,
   PLAYER_DOWN_A, PLAYER_DOWN_B,
-  MINE, GEM, EXPLOSION_1, EXPLOSION_2,
+  MINE, GEM, FLAG, EXPLOSION_1, EXPLOSION_2,
   AIRPLANE_RIGHT, AIRPLANE_LEFT,
   HEART, GROUND_A, GROUND_B,
   LED_ON, LED_OFF,
@@ -471,21 +471,33 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
 // ─── Main render entry ────────────────────────────────────────────────────────
 
 /**
- * What the night hides: unvisited, UNFLAGGED terrain (ground and undetonated
- * mines). A flag is the player's own annotation — their memory is never blacked
- * out, same logic as the visited trail staying lit.
+ * What the night hides: unvisited terrain — ground and undetonated mines.
+ * Flags are NOT part of this decision anymore: they live in `state.flags`
+ * (a pure overlay outside the map) and are drawn by `drawFlags` AFTER the
+ * night sweep, so the player's own annotations can never be blacked out —
+ * same logic as the visited trail staying lit.
  *
- * REGRESSION NOTE (2026-07-04): flags used to survive the night for free because
- * they carried their own tile id; 0.47.0 made flagging a pure metadata overlay
- * (the tile keeps its true id — the right call), which silently put flagged tiles
- * back into the overlay's findById('ground'/'mine') sweeps. Night then painted
- * flags black: existing flags vanished and a freshly placed one looked like the
- * key did nothing (worse — a second press silently toggled it off again). This
- * predicate is the single place that decides night visibility; keep every night
- * sweep going through it.
+ * REGRESSION NOTE (2026-07-04): when flags still lived inside tiles
+ * (`metadata.flagged`, pre-overlay), the night sweeps painted them black —
+ * placed flags vanished and a fresh one looked like the key did nothing.
+ * The overlay model fixes this class of bug by construction; this predicate
+ * stays as the single decision point for what the night sweeps may hide.
  */
 export function hiddenAtNight(tile: Tile): boolean {
-  return (tile.id === 'ground' || tile.id === 'mine') && !tile.metadata?.flagged
+  return tile.id === 'ground' || tile.id === 'mine'
+}
+
+/**
+ * The flag overlay — drawn after the map and the night sweep (flags are always
+ * visible, day or night) and before the player sprite (standing on your own
+ * flag covers it). Flags never live in tiles; see GameState.flags.
+ */
+function drawFlags(ctx: CanvasRenderingContext2D, state: GameState): void {
+  for (const key of state.flags) {
+    const col = key % COLS
+    const row = Math.floor(key / COLS)
+    drawSprite(ctx, FLAG, col * CELL, row * CELL, C.B_CYAN, C.BLACK)
+  }
 }
 
 export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState, pausePage = 0): void {
@@ -496,7 +508,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState, pau
   // Game world — TileMap renders all cells in one call
   state.map.render(ctx)
 
-  // Night overlay — paint unvisited terrain black. Visited path, FLAGS, gems and
+  // Night overlay — paint unvisited terrain black. Visited path, gems and
   // exploded tiles remain visible; what exactly the night hides is decided by
   // hiddenAtNight (one place — see the regression note on it).
   if (state.isNight) {
@@ -508,6 +520,10 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState, pau
       if (hiddenAtNight(tile)) ctx.fillRect(x * CELL, y * CELL, CELL, CELL)
     }
   }
+
+  // Flag overlay — after the night sweep (flags shine through the dark), before
+  // everything that should sit above them (debug mines, the player sprite).
+  drawFlags(ctx, state)
 
   // Debug overlay: draw mine sprites on top of ground-looking mine tiles
   if (state.debugMode) {

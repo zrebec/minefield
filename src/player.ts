@@ -1,9 +1,9 @@
 import { CELL, COLS, ROWS } from './constants.ts'
 import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, GEM_TIME_BONUS_MS, GOLD_SCORE_BONUS, RED_GEMS_PER_LIFE, CYAN_GEMS_PER_REVEAL, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS, atLevel } from './config.ts'
-import { type GameState, countWarningMines, applyClusterBlast, revealMine, gemColor, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
+import { type GameState, countWarningMines, applyClusterBlast, revealMine, cellKey, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
 import type { Direction } from './input.ts'
 import { playWarning, playExplosion, playGemCollect, playFootstep, playExtraLife, playReveal, isAmbientSoundActive } from './audio.ts'
-import { makeTileVisited, makeTileGround, makeTileMine, makeTileGem, flagTile, TILE_EXPLODED } from './sprites.ts'
+import { makeTileVisited, TILE_EXPLODED } from './sprites.ts'
 import { createTween, tickTween, tickAnimation, resetAnimation } from 'zx-kit'
 
 function cellVariant(col: number, row: number): 'a' | 'b' {
@@ -87,6 +87,7 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
     const mineType = tile.metadata?.mineType as MineType
     if (mineType === 'cluster') applyClusterBlast(state, newCol, newRow)
     state.map.setTile(newCol, newRow, TILE_EXPLODED)
+    state.flags.delete(cellKey(newCol, newRow)) // detonation — the only way a flag dies
     state.explodedMines++
     state.playerCol = newCol
     state.playerRow = newRow
@@ -180,6 +181,12 @@ export function respawnPlayer(state: GameState): void {
 // regardless of which way the player currently faces — needed for triangulation
 // play, where the facing direction after walking around rarely matches the
 // side the mine turned out to be on.
+//
+// Flags are a PURE VISUAL OVERLAY (state.flags — see GameState): toggling one
+// never touches the tile, so it cannot change what's really there and nothing
+// that rewrites tiles can ever eat it. Flaggable: anything non-solid except an
+// exploded crater (ground, mine, gem — and the visited trail; the player may
+// annotate whatever they like, whether or not they care what's underneath).
 export function toggleFlag(state: GameState, dir: Direction = state.playerDir): void {
   if (state.phase !== 'playing') return
   if (state.walkTween) return  // can't flag mid-step
@@ -187,24 +194,12 @@ export function toggleFlag(state: GameState, dir: Direction = state.playerDir): 
   const dr = dir === 'down' ? 1 : dir === 'up' ? -1 : 0
   const fc = state.playerCol + dc
   const fr = state.playerRow + dr
-  const tile = state.map.getTile(fc, fr)
-  if (tile === null) return
-
-  if (tile.metadata?.flagged) {
-    // Unflag: regenerate the tile's true appearance from its own id +
-    // metadata — flagging is a pure visual overlay, so neither ever changed.
-    const variant = (tile.metadata?.variant as 'a' | 'b') ?? cellVariant(fc, fr)
-    if (tile.id === 'mine') {
-      const mineType = (tile.metadata?.mineType as string | undefined) ?? 'normal'
-      state.map.setTile(fc, fr, makeTileMine(mineType, variant, state.terrain))
-    } else if (tile.id === 'gem') {
-      const kind = (tile.metadata?.gemKind as string) ?? 'cyan'
-      state.map.setTile(fc, fr, makeTileGem(kind, gemColor(kind)))
-    } else {
-      state.map.setTile(fc, fr, makeTileGround(variant, state.terrain))
-    }
-  } else if (tile.id === 'ground' || tile.id === 'mine' || tile.id === 'gem') {
-    state.map.setTile(fc, fr, flagTile(tile))
+  const key = cellKey(fc, fr)
+  if (state.flags.has(key)) {
+    state.flags.delete(key)
+    return
   }
-  // 'visited' and 'exploded' cells cannot be flagged
+  const tile = state.map.getTile(fc, fr)
+  if (tile === null || tile.solid || tile.id === 'exploded') return
+  state.flags.add(key)
 }

@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, cellKey, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from './game.ts'
 import { movePlayer } from './player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import { GEM_COUNT, BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS, LEVEL_CONFIGS, atLevel } from './config.ts'
-import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, makeTileFence, flagTile, TILE_EXPLODED, type TerrainType } from './sprites.ts'
+import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, makeTileFence, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
 
@@ -27,10 +27,13 @@ function setMine(map: TileMap, col: number, row: number, type: MineType = 'norma
   map.setTile(col, row, makeTileMine(type, cellVariant(col, row), 'grass'))
 }
 
-// Same as setMine, but flagged — flagging is a pure visual overlay, so this
-// must behave identically to setMine for every game-logic purpose.
+// Same as setMine — kept as a named helper so the tests below keep documenting
+// the invariant: a "flagged" mine must behave identically to a plain mine for
+// every game-logic purpose. Since the overlay model, that holds by construction:
+// flags live in state.flags and cannot even TOUCH the map, so at the map level
+// a flagged mine IS a plain mine.
 function setFlaggedMine(map: TileMap, col: number, row: number, type: MineType = 'normal'): void {
-  map.setTile(col, row, flagTile(makeTileMine(type, cellVariant(col, row), 'grass')))
+  map.setTile(col, row, makeTileMine(type, cellVariant(col, row), 'grass'))
 }
 
 // ── countWarningMines ─────────────────────────────────────────────────────────
@@ -383,18 +386,34 @@ describe('applyClusterBlast', () => {
   })
 
   // Regression: flagging used to change a mine's id to 'flag', so a flagged
-  // mine caught in a cluster blast silently failed to chain-detonate.
-  it('chain-explodes a flagged mine too', () => {
+  // mine caught in a cluster blast silently failed to chain-detonate. Since the
+  // overlay model the blast must also clear the flag — detonation is the ONE
+  // event allowed to remove a player's flag.
+  it('chain-explodes a flagged mine too — and the detonation clears its flag', () => {
     const state = createGame(0)
     for (let r = 4; r <= 6; r++)
       for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r), 'grass'))
     setFlaggedMine(state.map, 6, 5)
+    state.flags.add(cellKey(6, 5))
     const minesBefore = state.explodedMines
 
     applyClusterBlast(state, 5, 5)
 
     expect(state.explodedMines).toBe(minesBefore + 1)
     expect(state.map.getTile(6, 5)?.id).toBe('exploded')
+    expect(state.flags.has(cellKey(6, 5))).toBe(false)  // detonation removed the flag
+  })
+
+  it('a cluster blast REVEALING flagged ground keeps the flag (only detonation removes it)', () => {
+    const state = createGame(0)
+    for (let r = 4; r <= 6; r++)
+      for (let c = 4; c <= 6; c++) state.map.setTile(c, r, makeTileGround(cellVariant(c, r), 'grass'))
+    state.flags.add(cellKey(4, 5))  // flagged plain ground in the blast radius
+
+    applyClusterBlast(state, 5, 5)
+
+    expect(state.map.getTile(4, 5)?.id).toBe('visited')  // revealed by the blast…
+    expect(state.flags.has(cellKey(4, 5))).toBe(true)    // …but the annotation survives
   })
 
   it('chain-exploded cells are not marked as visited', () => {
@@ -1151,8 +1170,8 @@ describe('revealMine — cyan-gem reward', () => {
     expect(mines.length).toBeGreaterThan(1)
     // Flag every mine except the last one, leaving exactly one legal candidate.
     for (let i = 0; i < mines.length - 1; i++) {
-      const { x, y, tile } = mines[i]
-      state.map.setTile(x, y, flagTile(tile))
+      const { x, y } = mines[i]
+      state.flags.add(cellKey(x, y))
     }
     const onlyUnflagged = mines[mines.length - 1]
     expect(revealMine(state)).toBe(true)
@@ -1161,8 +1180,8 @@ describe('revealMine — cyan-gem reward', () => {
 
   it('returns false when every remaining mine is flagged', () => {
     const state = createGame(0, 0, 'reveal-seed')
-    for (const { x, y, tile } of state.map.findById('mine')) {
-      state.map.setTile(x, y, flagTile(tile))
+    for (const { x, y } of state.map.findById('mine')) {
+      state.flags.add(cellKey(x, y))
     }
     expect(revealMine(state)).toBe(false)
     expect(state.revealedMines).toHaveLength(0)
@@ -1514,6 +1533,27 @@ function dropState(map: TileMap, startRow: number, exitRow: number, seed: string
 }
 
 describe('airplane drops — solvability guard', () => {
+  // Owner rules (2026-07-04): a flag is never a shield — the plane drops on flagged
+  // ground exactly like on plain ground (skipping would be a trivial exploit: flag
+  // your corridor and it can never be seeded) — AND the flag must survive the drop
+  // (it lives in state.flags, outside the map, so the tile swap can't eat it).
+  it('drops land on flagged ground, and every such flag survives the drop', () => {
+    const state = createGame(0, 0, 'flag-drop-seed')
+    // Flag every ground cell → any successful drop necessarily hits a flagged cell.
+    const flaggedBefore = new Set<number>()
+    for (const { x, y } of state.map.findById('ground')) {
+      state.flags.add(cellKey(x, y))
+      flaggedBefore.add(cellKey(x, y))
+    }
+    addDropMinesInBand(state, 6, 1, 16)
+    expect(state.droppedMines.length).toBeGreaterThan(0)  // flags did NOT shield the field
+    for (const { col, row } of state.droppedMines) {
+      expect(flaggedBefore.has(cellKey(col, row))).toBe(true)      // it really hit flagged ground
+      expect(state.map.getTile(col, row)?.id).toBe('mine')         // the mine is real
+      expect(state.flags.has(cellKey(col, row))).toBe(true)        // the annotation survived
+    }
+  })
+
   it('the field stays solvable after repeated airplane drops (40 seeds × 8 passes)', () => {
     for (let s = 0; s < 40; s++) {
       const state = createGame(s % 5, 0, `air-${s}`)

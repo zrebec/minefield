@@ -105,6 +105,11 @@ native 256×192. Tile/visual changes that affect movement need a regression test
   re-route.
 - **Warning count** = 4 orthogonal neighbours (dist 1, any mine) + beacon mines at orthogonal dist 2
   (from L3), `min(count, 8)`. **Diagonals never count** (the player can't move into them).
+- **Flags are a pure visual overlay** (`GameState.flags`, never stored in tiles): they never affect
+  gameplay — movement, airdrops (a flag is not a shield), solvability, warnings — and they are
+  removed ONLY by the player toggling them off or by a mine detonating on that cell. Never let a
+  tile rewrite touch them; never gate game logic on them (sole grandfathered exception: revealMine's
+  reward dedup reads them). Flaggable: anything non-solid except an exploded crater.
 - **No save-scumming:** saves are cleared on game over.
 - **Anti-cheat:** random runs (`dropSeedBase === null`) never reach the leaderboard, persisted + re-synced.
 - **Daily debug reveal is disabled** (`DAILY_REVEAL_LIMIT = 0`) — revealing every mine would leak the

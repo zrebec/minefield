@@ -363,21 +363,10 @@ export function makeTileVisited(variant: CellVariant, terrain: TerrainType): Til
   }
 }
 
-// A flag is a PURE VISUAL OVERLAY — id and the rest of metadata (mineType/
-// gemKind/variant/terrain) pass through untouched, so every consumer that
-// checks tile.id (explosion, mine counting, solvability, HUD counts...)
-// keeps seeing the tile's true identity whether or not it's flagged. Only
-// the drawn sprite/ink/paper change, plus metadata.flagged for toggleFlag's
-// own on/off detection and for save.ts's encode/decode.
-export function flagTile(tile: Tile): Tile {
-  return {
-    ...tile,
-    sprite: FLAG,
-    ink: C.B_CYAN,
-    paper: C.BLACK,
-    metadata: { ...tile.metadata, flagged: true },
-  }
-}
+// NOTE: flags are NOT tiles. They live in GameState.flags (a pure overlay set,
+// keyed by game.ts cellKey) and are drawn by the renderer's drawFlags on top of
+// the map — so no tile rewrite can ever eat one. The FLAG sprite above is their
+// only footprint in this file.
 
 // 'brick' = bright front face, 'side' = the box's darker edge columns (same
 // sprite, dimmer ink). 'roof' picks a weathering shade from the cell position.

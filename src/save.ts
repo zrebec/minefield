@@ -5,11 +5,11 @@
 import { createSaveProfile, createAnimation, createTileMap, type TileMap, type SaveProfile } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
 import { GEM_COUNT, START_ROW, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS } from './config.ts'
-import { type GameState, type Dir, gemColor } from './game.ts'
+import { type GameState, type Dir, gemColor, cellKey } from './game.ts'
 import {
   type TerrainType, type CellVariant, type BuildingPart,
   makeTileGround, makeTileVisited, makeTileMine, makeTileGem,
-  makeTileBuilding, flagTile, makeTileFence, TILE_EXPLODED,
+  makeTileBuilding, makeTileFence, TILE_EXPLODED,
 } from './sprites.ts'
 
 // Building parts ↔ save chars (none collide with the mine/flag/terrain codes below).
@@ -89,13 +89,18 @@ function deriveExitRow(map: TileMap): number {
   return START_ROW
 }
 
+// Flags live in state.flags (pure overlay, never in tiles) but are still
+// persisted through the per-cell chars: lowercase/alt codes mean "same tile,
+// plus a flag" ('f'/'m'/'c'/'b', gem digits 5-8, and 'v' for flagged visited —
+// a state only possible since the overlay model). Same 1 char/cell format,
+// old saves decode unchanged → no version bump.
 function encodeCell(state: GameState, col: number, row: number): string {
   const tile = state.map.getTile(col, row)
   if (!tile) return '_'
-  const flagged = tile.metadata?.flagged === true
+  const flagged = state.flags.has(cellKey(col, row))
   switch (tile.id) {
     case 'ground': return flagged ? 'f' : '.'
-    case 'visited': return 'V'
+    case 'visited': return flagged ? 'v' : 'V'
     case 'fence': return '#'
     case 'building': return BUILDING_PART_CHAR[tile.metadata?.part as BuildingPart] ?? '_'
     case 'gem': {
@@ -120,12 +125,14 @@ function placeFromChar(
 ): void {
   const variant = cellVariant(col, row)
   const t = target.terrain
+  // Flag codes place the TRUE tile and mark the overlay — never a special tile.
+  const flag = (): void => { target.flags.add(cellKey(col, row)) }
   const part = CHAR_BUILDING_PART[ch]
   if (part) { target.map.setTile(col, row, makeTileBuilding(part, col, row)); return }
   const gemGround = CHAR_GEM_GROUND[ch]
   if (gemGround) { target.map.setTile(col, row, makeTileGem(gemGround, gemColor(gemGround))); return }
   const gemFlag = CHAR_GEM_FLAG[ch]
-  if (gemFlag) { target.map.setTile(col, row, flagTile(makeTileGem(gemFlag, gemColor(gemFlag)))); return }
+  if (gemFlag) { target.map.setTile(col, row, makeTileGem(gemFlag, gemColor(gemFlag))); flag(); return }
   switch (ch) {
     case '.': target.map.setTile(col, row, makeTileGround(variant, t)); return
     case '#': target.map.setTile(col, row, makeTileFence()); return
@@ -135,11 +142,12 @@ function placeFromChar(
     case 'M': target.map.setTile(col, row, makeTileMine('normal', variant, t)); return
     case 'C': target.map.setTile(col, row, makeTileMine('cluster', variant, t)); return
     case 'B': target.map.setTile(col, row, makeTileMine('beacon', variant, t)); return
-    case 'f': target.map.setTile(col, row, flagTile(makeTileGround(variant, t))); return
-    case 'm': target.map.setTile(col, row, flagTile(makeTileMine('normal', variant, t))); return
-    case 'c': target.map.setTile(col, row, flagTile(makeTileMine('cluster', variant, t))); return
-    case 'b': target.map.setTile(col, row, flagTile(makeTileMine('beacon', variant, t))); return
-    case 'g': target.map.setTile(col, row, flagTile(makeTileGem())); return
+    case 'f': target.map.setTile(col, row, makeTileGround(variant, t)); flag(); return
+    case 'v': target.map.setTile(col, row, makeTileVisited(variant, t)); flag(); return
+    case 'm': target.map.setTile(col, row, makeTileMine('normal', variant, t)); flag(); return
+    case 'c': target.map.setTile(col, row, makeTileMine('cluster', variant, t)); flag(); return
+    case 'b': target.map.setTile(col, row, makeTileMine('beacon', variant, t)); flag(); return
+    case 'g': target.map.setTile(col, row, makeTileGem()); flag(); return
     // '_' or unknown: leave empty
   }
 }
@@ -215,9 +223,10 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   // older saves → keep the daily seed the fresh game was created with.
   if (data.dropSeedBase !== undefined) target.dropSeedBase = data.dropSeedBase
 
-  // Replace map wholesale
+  // Replace map wholesale; flags are re-populated by the flag chars below.
   const fresh = createTileMap(COLS, ROWS)
   target.map = fresh
+  target.flags = new Set()
   for (let row = 0; row < ROWS; row++) {
     const line = data.map[row] ?? ''
     for (let col = 0; col < COLS; col++) {

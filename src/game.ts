@@ -154,6 +154,16 @@ export interface GameState {
   inventory: Record<string, number>
   /** Mines permanently revealed by the cyan-gem reward, this level only. */
   revealedMines: Array<{ col: number; row: number }>
+  /**
+   * Player flags — a PURE VISUAL OVERLAY living entirely outside the TileMap
+   * (keys via {@link cellKey}). Tiles are never modified by flagging, so no
+   * tile rewrite (walking, airdrops, cluster blasts) can ever eat a flag —
+   * the owner's rule "a flag never disappears" holds by construction. The
+   * only removals: the player toggling it off, and a mine DETONATING on that
+   * cell. Flags never affect gameplay decisions (movement, drops, solvability);
+   * the single read-only exception is revealMine's reward dedup below.
+   */
+  flags: Set<number>
   droppedMines: Array<{ col: number; row: number }>
   dropFlashTimer: number
   runState: RunState
@@ -167,6 +177,12 @@ export interface GameState {
 
 function cellVariant(col: number, row: number): CellVariant {
   return (col + row) % 2 === 0 ? 'a' : 'b'
+}
+
+/** Canonical cell → integer key (row-major). Shared by the flag overlay
+ *  (`state.flags`), BFS path-finding and the save codec — one keying, no drift. */
+export function cellKey(col: number, row: number): number {
+  return row * COLS + col
 }
 
 function buildMap(terrain: TerrainType): TileMap {
@@ -371,13 +387,13 @@ function pickExitRow(rng: Rng, startRow: number): number {
 // serves both the solvability guard and the carve repair — one source of truth
 // for "how the player can move"; only the mine predicate differs.
 function bfsPath(map: TileMap, startRow: number, exitRow: number, throughMines: boolean): number[] | null {
-  const key = (c: number, r: number): number => r * COLS + c
+  const key = cellKey
   const passable = (c: number, r: number): boolean => {
     if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false
     const t = map.getTile(c, r)
     if (!t || t.solid) return false
-    // Flagging is a pure visual overlay — a flagged mine still has id 'mine',
-    // so this one check already covers it (no separate flag special-case needed).
+    // Flags live entirely outside the map (state.flags overlay), so tiles here
+    // always carry their true identity — no flag special-case is possible.
     return throughMines || t.id !== 'mine'
   }
   if (!passable(START_COL, startRow)) return null
@@ -515,7 +531,9 @@ export function applyClusterBlast(state: GameState, centerCol: number, centerRow
       if (tile.id === 'mine') {
         state.map.setTile(cc, cr, TILE_EXPLODED)
         state.explodedMines++
+        state.flags.delete(cellKey(cc, cr)) // detonation — the only way a flag dies
       } else if (tile.id === 'ground' || tile.id === 'gem') {
+        // Revealed, not detonated — a flag here survives (it's the player's note).
         state.map.setTile(cc, cr, makeTileVisited(cellVariant(cc, cr), state.terrain))
       }
     }
@@ -535,7 +553,7 @@ export function applyClusterBlast(state: GameState, centerCol: number, centerRow
 export function revealMine(state: GameState): boolean {
   const shown = new Set(state.revealedMines.map((m) => `${m.col},${m.row}`))
   const candidates = state.map.findById('mine')
-    .filter(({ tile }) => !tile.metadata?.flagged)
+    .filter(({ x, y }) => !state.flags.has(cellKey(x, y))) // reward dedup: don't spend the reveal on a mine the player already marked
     .map(({ x, y }) => ({ col: x, row: y }))
     .filter((m) => !shown.has(`${m.col},${m.row}`))
     .sort((a, b) => a.row - b.row || a.col - b.col) // stable order before the seeded pick
@@ -609,6 +627,7 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
     gemsCollected: 0,
     inventory: { ...initialInventory },
     revealedMines: [],
+    flags: new Set(),
     droppedMines: [],
     dropFlashTimer: 0,
     runState: 'idle',
@@ -664,6 +683,10 @@ export function addDropMinesInBand(state: GameState, count: number, minRow: numb
     // columns are already skipped by the ground-only check below).
     if (Math.abs(col - (COLS - 1)) <= SAFE_RADIUS && Math.abs(row - state.exitRow) <= SAFE_RADIUS) continue
     const tile = state.map.getTile(col, row)
+    // A drop may land on FLAGGED ground too — a flag is never a shield (that would
+    // be a trivial exploit: flag your corridor and the plane can't seed it). The
+    // flag itself lives in state.flags, not in the tile, so it survives untouched
+    // and the player's annotation simply becomes true.
     if (tile?.id !== 'ground') continue
     // Solvability guard: tentatively drop, then keep the mine ONLY if a safe entry→exit
     // path still exists. Mines never land on the player's `visited` trail, so entry→exit

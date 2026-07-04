@@ -6,7 +6,34 @@
 
 ## Resolved Issues
 
+### Flags were eaten by tile rewrites (walking onto a flagged cell, airdrops) — fixed by the overlay model
+
+- **Resolved:** 2026-07-04 by moving flags OUT of the map entirely: `GameState.flags` is a
+  `Set<cellKey>` overlay; tiles are never modified by flagging, and `drawFlags` paints the FLAG
+  sprite over the map (after the night sweep, before the player).
+- **What happened (owner's repro):** walk, flag a neighbouring cell (`SHIFT+arrow`), then step onto
+  it — `commitMove`'s `setTile(visited)` replaced the tile and the flag silently vanished, leaving
+  plain trail. The same class of bug applied to every tile rewrite (airplane drops onto flagged
+  ground, cluster blasts). Root cause: the flag lived *inside* the tile (`metadata.flagged`), so
+  every tile writer was a potential flag eraser — patching consumers one by one was whack-a-mole.
+- **The rules now (owner, 2026-07-04):** a flag is a pure visual overlay that never changes game
+  behaviour (movement, drops, solvability — it is NOT a shield: the plane drops on flagged ground
+  exactly like on plain ground, anything else would be a flag-your-corridor exploit); a flag can be
+  placed on anything non-solid except an exploded crater (ground, mine, gem, visited trail); and a
+  flag NEVER disappears except when a mine detonates on that cell (step or cluster chain) or the
+  player toggles it off. Save format v5 unchanged — the existing per-cell flag chars persist the
+  overlay, plus a new `'v'` code for the now-possible flagged-visited state (old saves load as-is).
+- **Regression coverage:** `player.test.ts` (the owner's repro verbatim: walk onto a flagged cell →
+  visited + flag survives; flag/unflag never mutates the tile — reference-identical; detonation
+  clears the flag; visited flaggable, solid/exploded refused), `game.test.ts` (drops land on
+  flagged ground AND the flag survives; cluster blast clears only detonated cells' flags),
+  `save.test.ts` (round-trips incl. flagged visited). Owner play-tested in the browser.
+
 ### Flags invisible (and seemingly unplaceable) at night — regression from the 0.47.0 flag refactor
+
+> **Superseded 2026-07-04:** the metadata-based fix described below was replaced the next day by
+> the overlay model (entry above) — night visibility now comes from draw order (`drawFlags` runs
+> after the night sweep), which cannot regress per-consumer. Kept for history.
 
 - **Resolved:** 2026-07-04 with `hiddenAtNight(tile)` in `renderer.ts` — the single predicate the
   night overlay sweeps go through: night hides unvisited, **unflagged** terrain only.

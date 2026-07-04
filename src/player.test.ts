@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
-import { hiddenAtNight } from './renderer.ts'
-import { createGame, INVENTORY_CAP, type GameState } from './game.ts'
+import { createGame, cellKey, INVENTORY_CAP, type GameState } from './game.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import {
   START_COL,
@@ -12,7 +11,7 @@ import {
   WALK_DURATION_MS,
 } from './config.ts'
 import type { Direction } from './input.ts'
-import { makeTileGround, makeTileMine, makeTileVisited, makeTileGem, type TerrainType } from './sprites.ts'
+import { makeTileGround, makeTileMine, makeTileVisited, makeTileGem, makeTileFence, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 vi.mock('./audio.ts', () => ({
   playWarning: vi.fn(),
@@ -159,10 +158,11 @@ describe('movePlayer — mine hit', () => {
 
   // Regression test: flagging used to change a mine's tile.id to 'flag',
   // which meant this explosion check (tile.id === 'mine') silently missed it
-  // — walking onto a flagged mine was treated as safe, scored ground. Flagging
-  // is now a pure visual overlay (metadata.flagged), so id stays 'mine' and
-  // this must still explode exactly like an unflagged mine.
-  it('still explodes when the mine is flagged', () => {
+  // — walking onto a flagged mine was treated as safe, scored ground. Flags
+  // now live entirely OUTSIDE the map (state.flags overlay), so the tile is a
+  // real mine by construction, it must explode exactly like an unflagged one —
+  // and the detonation is the one event allowed to remove the flag.
+  it('still explodes when the mine is flagged — and the detonation clears the flag', () => {
     const state = makeState(5, 5)
     state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
     state.playerDir = 'right'
@@ -171,6 +171,7 @@ describe('movePlayer — mine hit', () => {
     step(state, 'right')
     expect(state.phase).toBe('exploding')
     expect(state.map.getTile(6, 5)?.id).toBe('exploded')
+    expect(state.flags.has(cellKey(6, 5))).toBe(false)  // detonation removed the flag
   })
 
   it('marks mine cell as exploded', () => {
@@ -686,48 +687,49 @@ describe('day/night cycle — counter ticks only on new cells', () => {
 // ── toggleFlag ────────────────────────────────────────────────────────────────
 
 describe('toggleFlag', () => {
-  it('flags the unvisited cell directly in front (right) — id stays "ground"', () => {
+  it('flags the cell directly in front (right) — the tile itself is NEVER touched', () => {
     const state = makeState(5, 5)
     state.playerDir = 'right'
+    const before = state.map.getTile(6, 5)
     toggleFlag(state)
-    expect(state.map.getTile(6, 5)?.id).toBe('ground')  // pure visual overlay — id never changes
-    expect(state.map.getTile(6, 5)?.metadata?.flagged).toBe(true)
+    expect(state.flags.has(cellKey(6, 5))).toBe(true)
+    expect(state.map.getTile(6, 5)).toBe(before)  // reference-identical: pure overlay
+    expect(state.map.getTile(6, 5)?.id).toBe('ground')
   })
 
   // REGRESSION (2026-07-04, "can't place flags at night"): placement never had a
   // night gate — the flag landed but the night sweep painted it black, so the key
-  // looked dead (and a second press silently toggled it off again). The fix lives
-  // in the renderer (hiddenAtNight); this pins the whole chain: place at night →
-  // flagged → the night sweep must leave it visible.
-  it('a flag placed at night lands and stays visible through the night sweep', () => {
+  // looked dead (and a second press silently toggled it off again). Flags now live
+  // in state.flags and drawFlags paints them AFTER the night sweep, so visibility
+  // holds by draw order; this pins the state side of the chain.
+  it('a flag placed at night lands and survives (drawFlags renders after the night sweep)', () => {
     const state = makeState(5, 5)
     state.isNight = true
     state.playerDir = 'right'
     toggleFlag(state)
-    const flagged = state.map.getTile(6, 5)!
-    expect(flagged.metadata?.flagged).toBe(true)
-    expect(hiddenAtNight(flagged)).toBe(false)
+    expect(state.flags.has(cellKey(6, 5))).toBe(true)
+    expect(state.map.getTile(6, 5)?.id).toBe('ground')  // tile untouched — nothing to black out or eat
   })
 
   it('flags cell in front when facing up', () => {
     const state = makeState(5, 5)
     state.playerDir = 'up'
     toggleFlag(state)
-    expect(state.map.getTile(5, 4)?.metadata?.flagged).toBe(true)
+    expect(state.flags.has(cellKey(5, 4))).toBe(true)
   })
 
   it('flags cell in front when facing down', () => {
     const state = makeState(5, 5)
     state.playerDir = 'down'
     toggleFlag(state)
-    expect(state.map.getTile(5, 6)?.metadata?.flagged).toBe(true)
+    expect(state.flags.has(cellKey(5, 6))).toBe(true)
   })
 
   it('flags cell in front when facing left', () => {
     const state = makeState(5, 5)
     state.playerDir = 'left'
     toggleFlag(state)
-    expect(state.map.getTile(4, 5)?.metadata?.flagged).toBe(true)
+    expect(state.flags.has(cellKey(4, 5))).toBe(true)
   })
 
   it('flagging a mine keeps id "mine" (the bug this fixes: a flagged mine must still explode)', () => {
@@ -737,25 +739,61 @@ describe('toggleFlag', () => {
     toggleFlag(state)
     const tile = state.map.getTile(6, 5)
     expect(tile?.id).toBe('mine')
-    expect(tile?.metadata?.flagged).toBe(true)
+    expect(state.flags.has(cellKey(6, 5))).toBe(true)
   })
 
-  it('unflags already-flagged cell (toggle) — id unaffected throughout, flagged clears', () => {
+  it('unflags already-flagged cell (toggle) — the tile is identical throughout', () => {
     const state = makeState(5, 5)
     state.playerDir = 'right'
+    const before = state.map.getTile(6, 5)
     toggleFlag(state)
     toggleFlag(state)
-    const tile = state.map.getTile(6, 5)
-    expect(tile?.id).toBe('ground')
-    expect(tile?.metadata?.flagged).toBeFalsy()
+    expect(state.flags.has(cellKey(6, 5))).toBe(false)
+    expect(state.map.getTile(6, 5)).toBe(before)  // flag+unflag = zero tile writes
   })
 
-  it('does not flag a visited cell', () => {
+  // Owner decision (2026-07-04): a flag is the player's own note — they may mark
+  // anything non-solid, whether or not they care what's underneath. That now
+  // includes the visited trail (e.g. "don't come back this way").
+  it('flags the VISITED trail too', () => {
     const state = makeState(5, 5)
     state.playerDir = 'right'
     state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5), 'grass'))
     toggleFlag(state)
+    expect(state.flags.has(cellKey(6, 5))).toBe(true)
     expect(state.map.getTile(6, 5)?.id).toBe('visited')
+  })
+
+  it('refuses solid cells (fence/building) and exploded craters', () => {
+    const state = makeState(5, 5)
+    state.playerDir = 'right'
+    state.map.setTile(6, 5, makeTileFence())
+    toggleFlag(state)
+    expect(state.flags.size).toBe(0)
+    state.map.setTile(6, 5, TILE_EXPLODED)
+    toggleFlag(state)
+    expect(state.flags.size).toBe(0)
+  })
+
+  // THE OWNER'S REPRO (2026-07-04): walk, flag a neighbouring cell, then step onto
+  // it — the cell becomes walked trail, but the flag MUST survive. Before the
+  // overlay model, commitMove's setTile(visited) silently ate the flag.
+  it('walking onto a flagged cell converts it to visited AND keeps the flag', () => {
+    const state = makeState(5, 5)
+    toggleFlag(state, 'right')                       // flag (6,5)
+    expect(state.flags.has(cellKey(6, 5))).toBe(true)
+    step(state, 'right')                             // now walk onto it
+    expect(state.map.getTile(6, 5)?.id).toBe('visited')
+    expect(state.flags.has(cellKey(6, 5))).toBe(true)  // the annotation survived the walk
+  })
+
+  it('collecting a gem on a flagged cell keeps the flag', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileGem('green', C.GREEN))
+    toggleFlag(state, 'right')
+    step(state, 'right')
+    expect(state.map.getTile(6, 5)?.id).toBe('visited')  // gem collected, cell walked
+    expect(state.flags.has(cellKey(6, 5))).toBe(true)
   })
 
   it('does nothing when phase is not playing', () => {
@@ -763,13 +801,14 @@ describe('toggleFlag', () => {
     state.phase = 'gameover'
     state.playerDir = 'right'
     toggleFlag(state)
-    expect(state.map.getTile(6, 5)?.id).toBe('ground')
+    expect(state.flags.size).toBe(0)
   })
 
   it('does not crash when player faces grid edge', () => {
     const state = makeState(COLS - 1, 5)
     state.playerDir = 'right'
     expect(() => toggleFlag(state)).not.toThrow()
+    expect(state.flags.size).toBe(0)  // off-map cell is not flaggable
   })
 
   it('does nothing while player is mid-walk', () => {
@@ -777,8 +816,7 @@ describe('toggleFlag', () => {
     state.playerDir = 'right'
     movePlayer(state, 'right')   // start walk → walkTween active
     toggleFlag(state)
-    // Walk target (6, 5) should not become a flag
-    expect(state.map.getTile(6, 5)?.id).toBe('ground')
+    expect(state.flags.size).toBe(0)
   })
 
   // Explicit `dir` — SHIFT+arrow triangulation flagging, independent of facing.
@@ -786,8 +824,8 @@ describe('toggleFlag', () => {
     const state = makeState(5, 5)
     state.playerDir = 'up'          // facing up
     toggleFlag(state, 'right')      // but flag to the right instead
-    expect(state.map.getTile(6, 5)?.metadata?.flagged).toBe(true)
-    expect(state.map.getTile(5, 4)?.metadata?.flagged).toBeFalsy()   // "up" (facing) untouched
+    expect(state.flags.has(cellKey(6, 5))).toBe(true)
+    expect(state.flags.has(cellKey(5, 4))).toBe(false)   // "up" (facing) untouched
   })
 
   it('leaves playerDir unchanged after an explicit-direction flag', () => {
@@ -802,14 +840,14 @@ describe('toggleFlag', () => {
     state.playerDir = 'up'
     toggleFlag(state, 'left')
     toggleFlag(state, 'left')
-    expect(state.map.getTile(4, 5)?.id).toBe('ground')
+    expect(state.flags.has(cellKey(4, 5))).toBe(false)
   })
 
   it('omitting dir still defaults to playerDir (backward compatible)', () => {
     const state = makeState(5, 5)
     state.playerDir = 'down'
     toggleFlag(state)
-    expect(state.map.getTile(5, 6)?.metadata?.flagged).toBe(true)
+    expect(state.flags.has(cellKey(5, 6))).toBe(true)
   })
 
   it('explicit direction still respects phase/walk guards', () => {
@@ -817,7 +855,7 @@ describe('toggleFlag', () => {
     state.playerDir = 'up'
     state.phase = 'gameover'
     toggleFlag(state, 'right')
-    expect(state.map.getTile(6, 5)?.id).toBe('ground')
+    expect(state.flags.size).toBe(0)
   })
 })
 
@@ -872,73 +910,5 @@ describe('terrain — movePlayer visited tile path color', () => {
       step(state, 'right')
       expect(state.map.getTile(6, 5)?.metadata?.terrain).toBe(terrain)
     }
-  })
-})
-
-// ── terrain — toggleFlag unflag restores correct terrain ink ──────────────────
-
-describe('terrain — toggleFlag unflag restores correct terrain ink', () => {
-  const groundCases: Array<[TerrainType, string]> = [
-    ['grass', 'GREEN' ],
-    ['snow',  'WHITE' ],
-    ['dust',  'YELLOW'],
-  ]
-
-  for (const [terrain, inkName] of groundCases) {
-    it(`unflagging a ground tile on ${terrain} restores ${inkName} ink`, () => {
-      const state = makeState(5, 5)
-      state.terrain = terrain
-      state.playerDir = 'right'
-      state.map.setTile(6, 5, makeTileGround(cellVariant(6, 5), terrain))
-      toggleFlag(state)
-      expect(state.map.getTile(6, 5)?.id).toBe('ground')
-      expect(state.map.getTile(6, 5)?.metadata?.flagged).toBe(true)
-      toggleFlag(state)
-      const restored = state.map.getTile(6, 5)
-      expect(restored?.id).toBe('ground')
-      expect(restored?.metadata?.flagged).toBeFalsy()
-      expect(restored?.ink).toBe(C[inkName as keyof typeof C])
-    })
-  }
-
-  const mineCases: Array<[TerrainType, string]> = [
-    ['grass', 'GREEN' ],
-    ['snow',  'WHITE' ],
-    ['dust',  'YELLOW'],
-  ]
-
-  for (const [terrain, inkName] of mineCases) {
-    it(`unflagging a mine tile on ${terrain} restores ${inkName} ink`, () => {
-      const state = makeState(5, 5)
-      state.terrain = terrain
-      state.playerDir = 'right'
-      state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), terrain))
-      toggleFlag(state)
-      expect(state.map.getTile(6, 5)?.id).toBe('mine')
-      expect(state.map.getTile(6, 5)?.metadata?.flagged).toBe(true)
-      toggleFlag(state)
-      const restored = state.map.getTile(6, 5)
-      expect(restored?.id).toBe('mine')
-      expect(restored?.metadata?.flagged).toBeFalsy()
-      expect(restored?.ink).toBe(C[inkName as keyof typeof C])
-    })
-  }
-
-  it('unflagged ground tile on grass has different ink than on snow', () => {
-    const grassState = makeState(5, 5)
-    grassState.terrain = 'grass'
-    grassState.playerDir = 'right'
-    grassState.map.setTile(6, 5, makeTileGround(cellVariant(6, 5), 'grass'))
-    toggleFlag(grassState)
-    toggleFlag(grassState)
-
-    const snowState = makeState(5, 5)
-    snowState.terrain = 'snow'
-    snowState.playerDir = 'right'
-    snowState.map.setTile(6, 5, makeTileGround(cellVariant(6, 5), 'snow'))
-    toggleFlag(snowState)
-    toggleFlag(snowState)
-
-    expect(grassState.map.getTile(6, 5)?.ink).not.toBe(snowState.map.getTile(6, 5)?.ink)
   })
 })

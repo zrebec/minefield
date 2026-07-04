@@ -2,8 +2,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { writeSave, readSaveLatest } from 'zx-kit'
 import { saveProfile, setStateGetter } from './save.ts'
-import { createGame } from './game.ts'
-import { makeTileMine, makeTileGround, flagTile } from './sprites.ts'
+import { createGame, cellKey } from './game.ts'
+import { makeTileMine, makeTileGround, makeTileVisited } from './sprites.ts'
 
 function cellVariant(col: number, row: number): 'a' | 'b' {
   return (col + row) % 2 === 0 ? 'a' : 'b'
@@ -48,16 +48,17 @@ describe('save round-trip', () => {
     expect(loaded.score).toBe(1234)
   })
 
-  // Flagging is a pure visual overlay (metadata.flagged) — the per-cell save
-  // encoding has its own separate characters for flagged variants (f/m/c/b/g),
-  // so this exercises a fully independent code path from the map-generation
-  // tests above. Regression coverage: previously these chars reconstructed a
-  // tile with id 'flag' (makeTileFlag), which silently defused the mine —
-  // after load, a flagged mine must still be a real, exploding mine.
-  it('a flagged mine survives save→load as a real mine, not defused', () => {
+  // Flags are a pure visual overlay (state.flags, never in tiles) but persist
+  // through the per-cell chars ('f'/'m'/'c'/'b', gem digits 5-8, 'v') — a fully
+  // independent code path from the map-generation tests above. Regression
+  // coverage: these chars once reconstructed a tile with id 'flag', which
+  // silently defused the mine — after load, a flagged mine must still be a
+  // real, exploding mine AND the overlay flag must be back.
+  it('a flagged mine survives save→load as a real mine, not defused — and keeps its flag', () => {
     const saved = createGame(0, 0, 'flag-rt-seed')
     const variant = cellVariant(5, 5)
-    saved.map.setTile(5, 5, flagTile(makeTileMine('normal', variant, saved.terrain)))
+    saved.map.setTile(5, 5, makeTileMine('normal', variant, saved.terrain))
+    saved.flags.add(cellKey(5, 5))
     setStateGetter(() => saved)
     writeSave(saveProfile, 'auto')
 
@@ -67,13 +68,14 @@ describe('save round-trip', () => {
 
     const tile = loaded.map.getTile(5, 5)
     expect(tile?.id).toBe('mine')
-    expect(tile?.metadata?.flagged).toBe(true)
+    expect(loaded.flags.has(cellKey(5, 5))).toBe(true)
   })
 
-  it('a flagged ground cell survives save→load with id "ground"', () => {
+  it('a flagged ground cell survives save→load with id "ground" and its flag', () => {
     const saved = createGame(0, 0, 'flag-rt-seed-2')
     const variant = cellVariant(5, 5)
-    saved.map.setTile(5, 5, flagTile(makeTileGround(variant, saved.terrain)))
+    saved.map.setTile(5, 5, makeTileGround(variant, saved.terrain))
+    saved.flags.add(cellKey(5, 5))
     setStateGetter(() => saved)
     writeSave(saveProfile, 'auto')
 
@@ -83,7 +85,36 @@ describe('save round-trip', () => {
 
     const tile = loaded.map.getTile(5, 5)
     expect(tile?.id).toBe('ground')
-    expect(tile?.metadata?.flagged).toBe(true)
+    expect(loaded.flags.has(cellKey(5, 5))).toBe(true)
+  })
+
+  it('a flag on the VISITED trail survives save→load (the new "v" cell code)', () => {
+    const saved = createGame(0, 0, 'flag-rt-seed-3')
+    const variant = cellVariant(5, 5)
+    saved.map.setTile(5, 5, makeTileVisited(variant, saved.terrain))
+    saved.flags.add(cellKey(5, 5))
+    setStateGetter(() => saved)
+    writeSave(saveProfile, 'auto')
+
+    const loaded = createGame(0, 0, 'flag-rt-seed-3')
+    setStateGetter(() => loaded)
+    readSaveLatest(saveProfile)
+
+    const tile = loaded.map.getTile(5, 5)
+    expect(tile?.id).toBe('visited')
+    expect(loaded.flags.has(cellKey(5, 5))).toBe(true)
+  })
+
+  it('an UNFLAGGED cell never gains a flag through a save round-trip', () => {
+    const saved = createGame(0, 0, 'flag-rt-seed-4')
+    setStateGetter(() => saved)
+    writeSave(saveProfile, 'auto')
+
+    const loaded = createGame(0, 0, 'flag-rt-seed-4')
+    setStateGetter(() => loaded)
+    readSaveLatest(saveProfile)
+
+    expect(loaded.flags.size).toBe(0)
   })
 
   it('persists revealsUsed (regression: reload used to reset the debug-reveal budget, letting save-scumming bypass RANDOM_REVEAL_LIMIT)', () => {
