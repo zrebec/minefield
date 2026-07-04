@@ -112,6 +112,20 @@ export interface AirplaneState {
   scheduledDropCount: number
 }
 
+/** Friendly (white) recon plane — the green-gem reward. Purely cosmetic once
+ *  spawned: its reveals are committed to `revealedMines` at spawn time (so a
+ *  mid-flight save never loses the reward); this object only drives the sprite
+ *  and the reveal-behind-the-plane animation, and is never persisted. */
+export interface FriendlyPlaneState {
+  x: number
+  row: number
+  dir: 1 | -1
+  blink: boolean
+  /** The mines this flight revealed — the renderer hides exactly these while
+   *  they are still AHEAD of the plane, so they light up as it passes. */
+  reveals: Array<{ col: number; row: number }>
+}
+
 export interface GameState {
   phase: GamePhase
   map: TileMap
@@ -139,6 +153,7 @@ export interface GameState {
    *  daily = 0, random = RANDOM_REVEAL_LIMIT). Reset per level by createGame. */
   revealsUsed: number
   airplane: AirplaneState | null
+  friendlyPlane: FriendlyPlaneState | null
   nextAircraftMs: number
   blink: boolean
   blinkTimer: number
@@ -171,6 +186,9 @@ export interface GameState {
   cycleSteps: number
   dropSeedBase: string | null
   airplanePassIndex: number
+  /** Seeded friendly-plane counter — drives the `:friendly` seed stream. Like
+   *  airplanePassIndex it is per-level (each level has its own dropSeedBase). */
+  friendlyPassIndex: number
   /** Per-level countdown budget in ms. Ticks only while running; 0 → game over. */
   timeLeftMs: number
 }
@@ -615,6 +633,7 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
     debugMode: false,
     revealsUsed: 0,
     airplane: null,
+    friendlyPlane: null,
     nextAircraftMs: firstAcMs,
     blink: true,
     blinkTimer: BLINK_INTERVAL_MS,
@@ -635,6 +654,7 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
     cycleSteps: DAY_STEPS,
     dropSeedBase: seed !== undefined ? String(seed) : null,
     airplanePassIndex: 0,
+    friendlyPassIndex: 0,
     timeLeftMs: TIMER_BASE_MS,
   }
 }

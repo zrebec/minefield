@@ -48,6 +48,26 @@ describe('save round-trip', () => {
     expect(loaded.score).toBe(1234)
   })
 
+  it('persists friendlyPassIndex and the revealed row that the plane exposed', () => {
+    const saved = createGame(2, 0, 'friendly-seed')
+    saved.friendlyPassIndex = 2
+    // Simulate a friendly flyover that permanently revealed two mines in a row.
+    saved.map.setTile(4, 8, makeTileMine('normal', cellVariant(4, 8), saved.terrain))
+    saved.map.setTile(7, 8, makeTileMine('normal', cellVariant(7, 8), saved.terrain))
+    saved.revealedMines = [{ col: 4, row: 8 }, { col: 7, row: 8 }]
+    setStateGetter(() => saved)
+    expect(writeSave(saveProfile, 'auto').ok).toBe(true)
+
+    const loaded = createGame(2, 0, 'friendly-seed')
+    expect(loaded.friendlyPassIndex).toBe(0)
+    setStateGetter(() => loaded)
+    expect(readSaveLatest(saveProfile).ok).toBe(true)
+
+    expect(loaded.friendlyPassIndex).toBe(2)
+    // The reveal survives reload (and loses no entries) — the row stays lit.
+    expect(loaded.revealedMines).toEqual([{ col: 4, row: 8 }, { col: 7, row: 8 }])
+  })
+
   // Flags are a pure visual overlay (state.flags, never in tiles) but persist
   // through the per-cell chars ('f'/'m'/'c'/'b', gem digits 5-8, 'v') — a fully
   // independent code path from the map-generation tests above. Regression

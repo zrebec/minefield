@@ -20,6 +20,12 @@ let airplaneLfo: OscillatorNode | null = null
 let airplaneGain: GainNode | null = null
 let approachOsc: OscillatorNode | null = null
 let approachGain: GainNode | null = null
+// Friendly recon-plane engine — its own node set so it can run alongside the
+// enemy plane and be stopped independently (see startFriendlyPlane).
+let friendlyOsc: OscillatorNode | null = null
+let friendlyOsc2: OscillatorNode | null = null
+let friendlyLfo: OscillatorNode | null = null
+let friendlyGain: GainNode | null = null
 let lastWarnTime = 0
 
 // One-shot horror sting — plays once on first user interaction
@@ -184,7 +190,7 @@ export function isApproachSoundActive(): boolean {
 }
 
 export function isAmbientSoundActive(): boolean {
-  return approachOsc !== null || airplaneOsc !== null
+  return approachOsc !== null || airplaneOsc !== null || friendlyOsc !== null
 }
 
 export function playFootstep(terrain: TerrainType = 'grass'): void {
@@ -236,8 +242,9 @@ export function startAirplane(): void {
   airplaneLfo = lfo
 }
 
-export function stopAmbientSounds(): void {
-  stopApproachSound()
+// Stop ONLY the enemy engine (leaves the friendly plane and approach beep
+// untouched) — called when the enemy plane flies offscreen.
+export function stopAirplane(): void {
   const ctx = getAudioContext()
   if (!ctx || !airplaneGain || !airplaneOsc || !airplaneLfo) return
   const now = ctx.currentTime
@@ -247,6 +254,86 @@ export function stopAmbientSounds(): void {
   airplaneOsc = null
   airplaneLfo = null
   airplaneGain = null
+}
+
+// The friendly recon plane (green-gem reward) — a smooth, low, CONTINUOUS
+// turbine drone, deliberately unlike the enemy's fast warbling square (which
+// reads as a propeller). Two slightly detuned sawtooths through a low-pass give
+// a gentle "spy jet" beat; a slow, shallow vibrato adds air without the prop's
+// aggressive warble. Kept low in pitch so it can never be confused with the
+// high square warning tone.
+export function startFriendlyPlane(): void {
+  const ctx = getAudioContext()
+  if (!ctx || friendlyOsc) return
+  const now = ctx.currentTime
+
+  const gain = ctx.createGain()
+  gain.gain.setValueAtTime(0, now)
+  gain.gain.linearRampToValueAtTime(0.26, now + 0.4)   // a touch quieter than the enemy (0.4)
+
+  // Low-pass tames the sawtooth into a smooth hum with no buzzy top edge. The
+  // node stays alive via the graph (osc → gain → filter → master) while the
+  // oscillators run, so it needs no separate handle — stopping the oscillators
+  // lets it be collected.
+  const filter = ctx.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.frequency.value = 620
+  filter.Q.value = 5
+  filter.connect(getMasterGain()!)
+  gain.connect(filter)
+
+  // Detuned pair → a slow ~1 Hz beat = the "engine body".
+  const osc = ctx.createOscillator()
+  osc.type = 'sawtooth'
+  osc.frequency.value = 138                             // low drone
+  const osc2 = ctx.createOscillator()
+  osc2.type = 'sawtooth'
+  osc2.frequency.value = 138
+  osc2.detune.value = -14                               // ~1 Hz apart
+
+  // Slow, shallow vibrato — a breath of air, not the prop's fast 12 Hz warble.
+  const lfo = ctx.createOscillator()
+  lfo.type = 'sine'
+  lfo.frequency.value = 5
+  const lfoGain = ctx.createGain()
+  lfoGain.gain.value = 5
+  lfo.connect(lfoGain)
+  lfoGain.connect(osc.frequency)
+  lfoGain.connect(osc2.frequency)
+
+  osc.connect(gain)
+  osc2.connect(gain)
+  lfo.start(now)
+  osc.start(now)
+  osc2.start(now)
+
+  friendlyGain = gain
+  friendlyOsc = osc
+  friendlyOsc2 = osc2
+  friendlyLfo = lfo
+}
+
+export function stopFriendlyPlane(): void {
+  const ctx = getAudioContext()
+  if (!ctx || !friendlyOsc) return
+  const now = ctx.currentTime
+  friendlyGain?.gain.linearRampToValueAtTime(0, now + 0.3)
+  friendlyOsc.stop(now + 0.35)
+  friendlyOsc2?.stop(now + 0.35)
+  friendlyLfo?.stop(now + 0.35)
+  friendlyOsc = null
+  friendlyOsc2 = null
+  friendlyLfo = null
+  friendlyGain = null
+}
+
+// Kill every ambient loop at once — used on level/phase transitions. Per-plane
+// despawns instead call stopAirplane / stopFriendlyPlane so the two never cut
+// each other off mid-flight.
+export function stopAmbientSounds(): void {
+  stopApproachSound()
+  stopAirplane()
+  stopFriendlyPlane()
 }
 
 // ── Story intro audio ("The Strip") ────────────────────────────────────────

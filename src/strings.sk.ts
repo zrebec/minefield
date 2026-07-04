@@ -52,6 +52,8 @@ export const STR_LIVES_LABEL = 'ZIV:'                       // 4 znaky (skráten
 
 export const STR_AIRCRAFT = '** LIETADLO **'                // 14 znakov
 
+export const STR_FRIENDLY = '** PRIESKUM **'                // 14 znakov (spriatelené lietadlo)
+
 // ── Game over overlay ─────────────────────────────────────────────────────
 
 export const STR_GAME_OVER     = 'KONIEC  HRY'              // 11 znakov

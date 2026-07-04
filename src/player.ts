@@ -1,6 +1,7 @@
 import { CELL, COLS, ROWS } from './constants.ts'
-import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, GEM_TIME_BONUS_MS, GOLD_SCORE_BONUS, RED_GEMS_PER_LIFE, CYAN_GEMS_PER_REVEAL, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS, atLevel } from './config.ts'
+import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, GEM_TIME_BONUS_MS, GOLD_SCORE_BONUS, RED_GEMS_PER_LIFE, CYAN_GEMS_PER_REVEAL, GREEN_GEMS_PER_PLANE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS, atLevel } from './config.ts'
 import { type GameState, countWarningMines, applyClusterBlast, revealMine, cellKey, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
+import { spawnFriendlyPlane } from './airplane.ts'
 import type { Direction } from './input.ts'
 import { playWarning, playExplosion, playGemCollect, playFootstep, playExtraLife, playReveal, isAmbientSoundActive } from './audio.ts'
 import { makeTileVisited, TILE_EXPLODED } from './sprites.ts'
@@ -142,6 +143,12 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
     if (gemKind === 'cyan' && state.inventory.cyan >= CYAN_GEMS_PER_REVEAL && revealMine(state)) {
       state.inventory.cyan -= CYAN_GEMS_PER_REVEAL
       playReveal()
+    }
+    // Every GREEN_GEMS_PER_PLANE green gems summon the friendly recon plane,
+    // which reveals every mine in one seeded row. Spend only if it actually
+    // took off (one in the air at a time — otherwise retry on the next green).
+    if (gemKind === 'green' && state.inventory.green >= GREEN_GEMS_PER_PLANE && spawnFriendlyPlane(state)) {
+      state.inventory.green -= GREEN_GEMS_PER_PLANE
     }
     // GOLD: a one-off score bonus on top of the flat GEM_SCORE above.
     if (gemKind === 'gold') {

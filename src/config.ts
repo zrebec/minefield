@@ -288,6 +288,13 @@ export const CYAN_GEMS_PER_REVEAL = 3
 // every gem grants. Gold is rare (1/level), so it stays special. Tunable.
 export const GOLD_SCORE_BONUS = 5000
 
+// Collecting this many GREEN gems summons the friendly (white) recon plane: it
+// crosses one seeded row and permanently reveals every mine currently in it
+// (snapshot — mines airdropped into that row LATER stay hidden). A level seeds
+// exactly 2 greens (GEM_KINDS 12·20/50/10/20), so at 2 the reward fires about
+// once per full-cleared level; the backpack carries leftovers across levels.
+export const GREEN_GEMS_PER_PLANE = 2
+
 // ── Timer ─────────────────────────────────────────────────────────────────────
 
 // Per-level countdown budget. Resets to this at the start of every level (leftover

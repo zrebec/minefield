@@ -1,6 +1,6 @@
 import { CANVAS_W, CANVAS_H, ROWS, STATUS_ROWS, COLS, CELL, C } from './constants.ts'
 import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS, DROP_FLASH_BLINK_MS } from './config.ts'
-import type { GameState, AirplaneState } from './game.ts'
+import type { GameState, AirplaneState, FriendlyPlaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor, type Tile } from 'zx-kit'
 import { loadHighScores } from './assets/highscore.ts'
@@ -66,6 +66,15 @@ function renderAirplane(ctx: CanvasRenderingContext2D, plane: AirplaneState): vo
   drawSprite(ctx, sprite, x, y, C.B_RED, C.BLACK)
 }
 
+// The friendly recon plane is the same sprite in white (vs the enemy's red), so
+// the two are never confused. It carries no bombs, so no warning colour.
+function renderFriendlyPlane(ctx: CanvasRenderingContext2D, plane: FriendlyPlaneState): void {
+  const x = Math.floor(plane.x)
+  const y = plane.row * CELL
+  const sprite = plane.dir === -1 ? AIRPLANE_LEFT : AIRPLANE_RIGHT
+  drawSprite(ctx, sprite, x, y, C.B_WHITE, C.BLACK)
+}
+
 // ─── Status bar ───────────────────────────────────────────────────────────────
 
 // Mine-detector — an accessible visual twin of the proximity beep, split into
@@ -120,10 +129,14 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
     drawText(ctx, L.STR_TIME(state.timeLeftMs), 0, ROW_TIMER, lowTime ? C.B_RED : C.B_WHITE, C.BLACK)
   }
 
-  // H3 — score (left) + mine detector, or the aircraft warning in its place (right)
+  // H3 — score (left) + mine detector, or an aircraft banner in its place (right).
+  // The enemy warning (yellow) always wins over the friendly banner (white) when
+  // both planes are up — the danger cue matters more than the reward cue.
   drawText(ctx, L.STR_SCORE(state.score), 0, ROW_SCORE, C.B_WHITE, C.BLACK)
   if (state.airplane && state.airplane.warningBlink) {
     drawTextCentered(ctx, L.STR_AIRCRAFT, ROW_SCORE, C.B_YELLOW, C.BLACK)
+  } else if (state.friendlyPlane && state.friendlyPlane.blink && !state.airplane) {
+    drawTextCentered(ctx, L.STR_FRIENDLY, ROW_SCORE, C.B_WHITE, C.BLACK)
   } else {
     renderDetector(
       ctx,
@@ -536,9 +549,25 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState, pau
     }
   }
 
-  // Permanently revealed mines (cyan-gem reward) — drawn after the night overlay
-  // so they stay visible even at night, in their type colour like the debug view.
+  // Permanently revealed mines (cyan-gem reveal + friendly-plane snapshot) —
+  // drawn after the night overlay so they stay visible even at night, in their
+  // type colour like the debug view.
+  //
+  // While the friendly plane is mid-flight, its own reveals light up only once
+  // it has PASSED over them (progressive reveal behind the plane); mines still
+  // ahead are masked. Reveals from earlier sources in that row are unaffected.
+  const flying = state.friendlyPlane
+  const masked = new Set<number>()
+  if (flying) {
+    for (const { col, row } of flying.reveals) {
+      const ahead = flying.dir === 1
+        ? col * CELL >= flying.x       // plane moving right: not yet reached this column
+        : (col + 1) * CELL <= flying.x // plane moving left: not yet reached this column
+      if (ahead) masked.add(row * COLS + col)
+    }
+  }
   for (const { col, row } of state.revealedMines) {
+    if (masked.has(row * COLS + col)) continue
     const tile = state.map.getTile(col, row)
     if (tile?.id !== 'mine') continue   // already detonated / cleared → nothing to show
     const mineType = tile.metadata?.mineType as string
@@ -564,8 +593,9 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState, pau
   // Player sprite (always on top of world tiles)
   renderPlayer(ctx, state)
 
-  // Airplane
+  // Airplanes — enemy (red) and the friendly recon plane (white)
   if (state.airplane) renderAirplane(ctx, state.airplane)
+  if (state.friendlyPlane) renderFriendlyPlane(ctx, state.friendlyPlane)
 
   // Status bar
   renderStatusBar(ctx, state)

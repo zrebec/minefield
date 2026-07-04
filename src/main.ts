@@ -5,7 +5,7 @@ import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consu
 import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playDenied, startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
-import { updateAirplane } from './airplane.ts'
+import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
 import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen } from './intro.ts'
 import { isHighScore, saveHighScore } from './assets/highscore.ts'
@@ -311,6 +311,7 @@ function gameLoop(timestamp: number): void {
       const dirFlag = consumeDirFlag()
       if (dirFlag) toggleFlag(state, dirFlag)
       updateAirplane(state, dt)
+      updateFriendlyPlane(state, dt)
       setBorderColor(C.BLACK)
 
     } else {

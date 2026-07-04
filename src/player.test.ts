@@ -7,6 +7,7 @@ import {
   SCORE_PER_CELL, SCORE_MULTIPLIERS,
   EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS,
   COMBO_DURATION_MS, GEM_SCORE, GEM_TIME_BONUS_MS, GOLD_SCORE_BONUS,
+  GREEN_GEMS_PER_PLANE,
   DAY_STEPS, NIGHT_STEPS,
   WALK_DURATION_MS,
 } from './config.ts'
@@ -21,6 +22,13 @@ vi.mock('./audio.ts', () => ({
   playExtraLife: vi.fn(),
   playReveal: vi.fn(),
   isAmbientSoundActive: vi.fn().mockReturnValue(false),
+  // Pulled in transitively via airplane.ts (spawnFriendlyPlane → startFriendlyPlane).
+  startAirplane: vi.fn(),
+  stopAirplane: vi.fn(),
+  startFriendlyPlane: vi.fn(),
+  stopFriendlyPlane: vi.fn(),
+  startApproachSound: vi.fn(),
+  isApproachSoundActive: vi.fn().mockReturnValue(false),
 }))
 
 function cellVariant(col: number, row: number): 'a' | 'b' {
@@ -448,6 +456,35 @@ describe('movePlayer — gem collection', () => {
     step(state, 'right')
     expect(state.revealedMines).toHaveLength(0)
     expect(state.inventory.cyan).toBe(2)
+  })
+
+  it('summons the friendly plane on the Nth green gem (and consumes the N)', () => {
+    const state = makeState(5, 5)
+    for (let i = 0; i < GREEN_GEMS_PER_PLANE; i++) state.map.setTile(6 + i, 5, makeTileGem('green', C.GREEN))
+    for (let i = 0; i < GREEN_GEMS_PER_PLANE; i++) step(state, 'right')
+    expect(state.friendlyPlane).not.toBeNull()
+    expect(state.inventory.green ?? 0).toBe(0)
+    expect(state.friendlyPassIndex).toBe(1)
+  })
+
+  it('does not summon the plane one gem short of the threshold', () => {
+    const state = makeState(5, 5)
+    const short = GREEN_GEMS_PER_PLANE - 1
+    for (let i = 0; i < short; i++) state.map.setTile(6 + i, 5, makeTileGem('green', C.GREEN))
+    for (let i = 0; i < short; i++) step(state, 'right')
+    expect(state.friendlyPlane).toBeNull()
+    expect(state.inventory.green ?? 0).toBe(short)
+  })
+
+  it('keeps the green gems when a plane is already airborne (retries later)', () => {
+    const state = makeState(5, 5)
+    // A plane is already in the air — a fresh trigger must not consume the gems.
+    state.friendlyPlane = { x: 0, row: 3, dir: 1, blink: true, reveals: [] }
+    const n = GREEN_GEMS_PER_PLANE
+    for (let i = 0; i < n; i++) state.map.setTile(6 + i, 5, makeTileGem('green', C.GREEN))
+    for (let i = 0; i < n; i++) step(state, 'right')
+    expect(state.inventory.green).toBe(n)      // not spent — the reward will fire on the next green
+    expect(state.friendlyPassIndex).toBe(0)    // seed stream untouched
   })
 })
 

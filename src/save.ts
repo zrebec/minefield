@@ -61,6 +61,10 @@ export interface MinefieldSave {
   /** Seeded airplane pass counter — drives the `:pass`/`:drop`/`:next` seeds.
    *  Optional: saves written before it was persisted resume at 0 (old behaviour). */
   airplanePassIndex?: number
+  /** Seeded friendly recon-plane counter — drives the `:friendly` seed. Optional:
+   *  saves written before it was persisted resume at 0. The reveal it produces is
+   *  already carried by `revealedMines`, so no extra map state is needed. */
+  friendlyPassIndex?: number
   /** Debug mine-reveal budget already spent this level (see RANDOM_REVEAL_LIMIT
    *  in config.ts). Optional: saves written before it was persisted resume at 0
    *  — a one-time free reveal on old saves, not worth a migration for. */
@@ -184,6 +188,7 @@ function serializeState(state: GameState): MinefieldSave {
     comboCount: state.comboCount,
     nextAircraftMs: state.nextAircraftMs,
     airplanePassIndex: state.airplanePassIndex,
+    friendlyPassIndex: state.friendlyPassIndex,
     revealsUsed: state.revealsUsed,
     dropSeedBase: state.dropSeedBase,
     map,
@@ -219,6 +224,7 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.comboTimer = 0
   target.nextAircraftMs = data.nextAircraftMs
   target.airplanePassIndex = data.airplanePassIndex ?? 0
+  target.friendlyPassIndex = data.friendlyPassIndex ?? 0
   // null is meaningful (random run) so check presence, not truthiness; absent in
   // older saves → keep the daily seed the fresh game was created with.
   if (data.dropSeedBase !== undefined) target.dropSeedBase = data.dropSeedBase
@@ -243,6 +249,7 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   target.walkAnim = createAnimation(2, WALK_FRAME_MS, { loop: true })
   target.bufferedDir = null
   target.airplane = null
+  target.friendlyPlane = null
   target.droppedMines = []
   target.dropFlashTimer = 0
   target.flashTimer = 0

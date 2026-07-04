@@ -74,6 +74,9 @@ export const STR_LIVES_LABEL = 'LIVES:'
 // Airplane warning banner, centred. Blinks. Max ~22 chars.
 export const STR_AIRCRAFT = '** AIRCRAFT **'
 
+// Friendly recon-plane banner (green-gem reward), centred. Blinks white. Same slot.
+export const STR_FRIENDLY = '**  RECON  **'
+
 // ── Game-over overlay ─────────────────────────────────────────────────────
 
 export const STR_GAME_OVER     = 'GAME  OVER'         // double-space styling
