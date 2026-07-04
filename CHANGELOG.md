@@ -1,3 +1,15 @@
+# [0.49.0](https://github.com/zrebec/minefield/compare/v0.48.0...v0.49.0) (2026-07-04)
+
+
+### Bug Fixes
+
+* upgrade to v5 actions/deploy-pages ([4541bf7](https://github.com/zrebec/minefield/commit/4541bf7a09fab088c07cf35180c0877f0426159a))
+
+
+### Features
+
+* **game:** density-based mine budget over mine-eligible cells ([f5d197e](https://github.com/zrebec/minefield/commit/f5d197e1019517b88519e13c5078de13b9d5de4f)), closes [#2](https://github.com/zrebec/minefield/issues/2) [1/#2](https://github.com/zrebec/minefield/issues/2) [#2](https://github.com/zrebec/minefield/issues/2)
+
 # [0.48.0](https://github.com/zrebec/minefield/compare/v0.47.1...v0.48.0) (2026-07-03)
 
 
