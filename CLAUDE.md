@@ -188,7 +188,9 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
 ### Buildings, terrain, aircraft, audio, save, input
 - **Buildings:** pseudo-3D, solid + mine-free; count rises per level. `fixObstacleTraps()` prevents
   *obstacle ahead + mines on both perpendicular sides* around any solid (buildings **and** fence).
-- **Terrain** grass/snow/dust (L1 grass). **Day/night** darkens ground+mine.
+- **Terrain** grass/snow/dust (L1 grass). **Day/night**: night blacks out unvisited, UNFLAGGED
+  ground+mine — `hiddenAtNight` in `renderer.ts` is the single visibility predicate (flags, gems,
+  visited trail, explosions stay lit; regression note on the function).
 - **Aircraft:** flies rows `AIRPLANE_ROW_MIN..MAX` (1..14); drops `acMineDropMin..Max` mines on unvisited
   non-building cells, **solvability-guarded**, columns **forward-biased** (`max` of two seeded draws).
   `airplanePassIndex` drives the seeded `:pass`/`:drop`/`:next` seeds and is persisted.

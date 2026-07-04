@@ -2,7 +2,7 @@ import { CANVAS_W, CANVAS_H, ROWS, STATUS_ROWS, COLS, CELL, C } from './constant
 import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS, DROP_FLASH_BLINK_MS } from './config.ts'
 import type { GameState, AirplaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
-import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor } from 'zx-kit'
+import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor, type Tile } from 'zx-kit'
 import { loadHighScores } from './assets/highscore.ts'
 import { L, getLocale } from './lang.ts'
 import {
@@ -470,6 +470,24 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
 
 // ─── Main render entry ────────────────────────────────────────────────────────
 
+/**
+ * What the night hides: unvisited, UNFLAGGED terrain (ground and undetonated
+ * mines). A flag is the player's own annotation — their memory is never blacked
+ * out, same logic as the visited trail staying lit.
+ *
+ * REGRESSION NOTE (2026-07-04): flags used to survive the night for free because
+ * they carried their own tile id; 0.47.0 made flagging a pure metadata overlay
+ * (the tile keeps its true id — the right call), which silently put flagged tiles
+ * back into the overlay's findById('ground'/'mine') sweeps. Night then painted
+ * flags black: existing flags vanished and a freshly placed one looked like the
+ * key did nothing (worse — a second press silently toggled it off again). This
+ * predicate is the single place that decides night visibility; keep every night
+ * sweep going through it.
+ */
+export function hiddenAtNight(tile: Tile): boolean {
+  return (tile.id === 'ground' || tile.id === 'mine') && !tile.metadata?.flagged
+}
+
 export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState, pausePage = 0): void {
   // Clear
   ctx.fillStyle = C.BLACK
@@ -478,15 +496,16 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState, pau
   // Game world — TileMap renders all cells in one call
   state.map.render(ctx)
 
-  // Night overlay — paint unvisited terrain black (ground, mine, gem invisible)
-  // Visited path, flags, and exploded tiles remain visible
+  // Night overlay — paint unvisited terrain black. Visited path, FLAGS, gems and
+  // exploded tiles remain visible; what exactly the night hides is decided by
+  // hiddenAtNight (one place — see the regression note on it).
   if (state.isNight) {
     ctx.fillStyle = C.BLACK
-    for (const { x, y } of state.map.findById('ground')) {
-      ctx.fillRect(x * CELL, y * CELL, CELL, CELL)
+    for (const { x, y, tile } of state.map.findById('ground')) {
+      if (hiddenAtNight(tile)) ctx.fillRect(x * CELL, y * CELL, CELL, CELL)
     }
-    for (const { x, y } of state.map.findById('mine')) {
-      ctx.fillRect(x * CELL, y * CELL, CELL, CELL)
+    for (const { x, y, tile } of state.map.findById('mine')) {
+      if (hiddenAtNight(tile)) ctx.fillRect(x * CELL, y * CELL, CELL, CELL)
     }
   }
 

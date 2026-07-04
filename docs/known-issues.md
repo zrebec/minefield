@@ -6,6 +6,25 @@
 
 ## Resolved Issues
 
+### Flags invisible (and seemingly unplaceable) at night — regression from the 0.47.0 flag refactor
+
+- **Resolved:** 2026-07-04 with `hiddenAtNight(tile)` in `renderer.ts` — the single predicate the
+  night overlay sweeps go through: night hides unvisited, **unflagged** terrain only.
+- **What happened:** 0.47.0 correctly turned flagging into a pure metadata overlay (the tile keeps
+  its true id — the fix for "flagging a mine defused it"). Side effect: flagged tiles reappeared in
+  the night overlay's `findById('ground'/'mine')` sweeps, so night painted them black. Existing
+  flags vanished at nightfall; a flag placed at night landed but looked like the key did nothing —
+  and a confused second press silently toggled it off again. Placement itself never had a night
+  gate. (Regression window: 0.47.0 → 0.48.x. The overlay's own comment — "flags remain visible" —
+  documented the original intent all along; tell-tale inconsistency: a flag on a *gem* stayed
+  visible at night, because only ground/mine ids were swept.)
+- **Why it slipped through:** coding practice #5 in person — the flag refactor changed what
+  `tile.id` means for flagged cells and updated five consumers; the night overlay was the sixth.
+- **Regression coverage:** `src/renderer.test.ts` (the `hiddenAtNight` contract: flagged
+  ground/mine visible, gems/visited/exploded/fence never hidden) + `src/player.test.ts` ("a flag
+  placed at night lands and stays visible through the night sweep"). Verified end-to-end in a real
+  browser: walking into night and flagging adds the flag's exact 112 bright-cyan pixels on canvas.
+
 ### Pages deploy failed 5× with "Deployment failed, try again later" (stale Pages actions)
 
 - **Resolved:** 2026-07-03 by upgrading `actions/upload-pages-artifact@v3 → @v5` and

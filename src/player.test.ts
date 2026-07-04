@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
+import { hiddenAtNight } from './renderer.ts'
 import { createGame, INVENTORY_CAP, type GameState } from './game.ts'
 import { C, COLS, ROWS } from './constants.ts'
 import {
@@ -691,6 +692,21 @@ describe('toggleFlag', () => {
     toggleFlag(state)
     expect(state.map.getTile(6, 5)?.id).toBe('ground')  // pure visual overlay — id never changes
     expect(state.map.getTile(6, 5)?.metadata?.flagged).toBe(true)
+  })
+
+  // REGRESSION (2026-07-04, "can't place flags at night"): placement never had a
+  // night gate — the flag landed but the night sweep painted it black, so the key
+  // looked dead (and a second press silently toggled it off again). The fix lives
+  // in the renderer (hiddenAtNight); this pins the whole chain: place at night →
+  // flagged → the night sweep must leave it visible.
+  it('a flag placed at night lands and stays visible through the night sweep', () => {
+    const state = makeState(5, 5)
+    state.isNight = true
+    state.playerDir = 'right'
+    toggleFlag(state)
+    const flagged = state.map.getTile(6, 5)!
+    expect(flagged.metadata?.flagged).toBe(true)
+    expect(hiddenAtNight(flagged)).toBe(false)
   })
 
   it('flags cell in front when facing up', () => {
