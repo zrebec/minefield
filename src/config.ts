@@ -86,10 +86,10 @@ export const MIN_ENTRY_EXIT_ROW_GAP = 6
 export const DAILY_REVEAL_LIMIT: number | null = 0
 export const RANDOM_REVEAL_LIMIT: number | null = 1
 
-// Max field-rebuild attempts before accepting whatever generated (the solvability
-// guard rebuilds from a derived seed if a field seals its own exit). Mine density
-// is far below the percolation threshold, so retries are rare; this just bounds
-// the astronomically unlikely worst case.
+// Max field-rebuild attempts (the solvability guard rebuilds from a derived seed
+// if a field seals its own exit). With MINE_DENSITY calibrated below the
+// percolation knee, retries are rare again; if every attempt still fails, the
+// deterministic carve repair (game.ts carveSafePath) guarantees solvability.
 export const MAX_FIELD_ATTEMPTS = 64
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
@@ -106,8 +106,16 @@ export const SCORE_MULTIPLIERS = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
 // Each level can have its own settings.
 // Levels beyond the last index repeat the last configuration.
 
+// Mine budget per level as a fraction of MINE-ELIGIBLE cells — the cells that can
+// actually host a mine after buildings and the entry/exit safe zones (solution A,
+// docs/generation-density.md). The count follows the board that exists, so more
+// buildings no longer silently harden the field. Calibrated 2026-07-03 (400
+// boards/level): L1–L2 match the old fixed counts and their feel (≈50 / ≈80
+// mines, raw-solvable 99.5% / 87.5%); L3 ≈74 (77.8%), L4+ ≈61–63 (61.5–71.5%) —
+// all safely past the ≥50% generation-health criterion, guarded in game.test.ts.
+export const MINE_DENSITY = [0.105, 0.19, 0.19, 0.18]
+
 export interface LevelConfig {
-  mines: number         // number of mines on the field
   lives: number         // starting lives for this level
   acFirstMs: number     // minimum time before first airplane (ms)
   acFirstMaxMs: number  // maximum time before first airplane (ms)
@@ -120,7 +128,6 @@ export interface LevelConfig {
 export const LEVEL_CONFIGS: LevelConfig[] = [
   // Level 1 — intro, fewer mines, slower airplanes
   {
-    mines: 50,
     lives: 3,
     acFirstMs: 15_000,
     acFirstMaxMs: 30_000,
@@ -131,7 +138,6 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
   },
   // Level 2 — more mines, slightly more frequent airplanes
   {
-    mines: 80,
     lives: 3,
     acFirstMs: 12_000,
     acFirstMaxMs: 20_000,
@@ -142,7 +148,6 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
   },
   // Level 3 — challenge, many mines, airplane every ~15–30 s
   {
-    mines: 100,
     lives: 2,
     acFirstMs: 10_000,
     acFirstMaxMs: 15_000,
@@ -153,7 +158,6 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
   },
   // Level 4+ — hardcore, frequent airplanes, dense minefield
   {
-    mines: 110,
     lives: 2,
     acFirstMs: 8_000,
     acFirstMaxMs: 12_000,

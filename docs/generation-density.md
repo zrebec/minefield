@@ -3,6 +3,15 @@
 > Design note, 2026-07-03. Companion to the **generation-health criterion** in `ROADMAP.md` (P1 #2)
 > and the carve-repair entry in `known-issues.md`. Owner's observation that triggered it: our raw
 > mine counts look nearly identical to **Mined-Out** (the model) — so why does our generation choke?
+>
+> **STATUS: ✅ IMPLEMENTED (2026-07-03, same day) — solution A + guard test D.** Owner drafted the
+> first implementation; finished together. `MINE_DENSITY = [0.105, 0.19, 0.19, 0.18]` in
+> `config.ts`; the budget = density × `countMineEligibleCells` (exact count sharing the
+> `canHostMine` predicate with `placeMines` — one source of truth, `game.ts`). `LEVEL_CONFIGS.mines`
+> removed. Measured after calibration (400 boards/level): mines ≈50/80/74/61–63, raw-solvable
+> **99.5 / 87.5 / 77.8 / 61.5 / 71.5 %** (L1…L4+) — L1–L2 keep their old feel, everything clears the
+> ≥50% criterion, guarded by the deterministic seeded test in `game.test.ts` ("generation health").
+> The analysis below is kept as the rationale.
 
 ## The insight
 

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from './game.ts'
 import { movePlayer } from './player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
-import { GEM_COUNT, BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS } from './config.ts'
+import { GEM_COUNT, BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS, LEVEL_CONFIGS, atLevel } from './config.ts'
 import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, makeTileFence, flagTile, TILE_EXPLODED, type TerrainType } from './sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
@@ -1363,6 +1363,27 @@ describe('perimeter fence — solvability (BFS, large sample)', () => {
     expect(a.exitRow).toBe(b.exitRow)
     expect(mines(a)).toBe(mines(b))
     expect(a.totalMines).toBe(b.totalMines) // HUD count reflects the post-carve board
+  })
+
+  // GENERATION-HEALTH GUARD (the ≥50% criterion from ROADMAP P1 #2 / generation-density.md).
+  // RAW boards — buildField directly, no reroll loop and no carve — must be solvable at
+  // least half the time at every level, or the generator is *selecting* boards instead of
+  // *generating* them (the pre-density state: ~90% of raw L4+ boards were sealed). Measured
+  // rates at the calibrated MINE_DENSITY are 61.5–99.5% (400 boards/level), so the ≥50%
+  // assertion sits ≥4.7σ from the worst level — a failure means density really regressed
+  // (e.g. buildings grew without the budget following), not sampling noise.
+  it('generation health: ≥50% of RAW boards per level are solvable without rerolls', () => {
+    const N = 400
+    for (let level = 0; level <= 4; level++) {
+      const cfg = atLevel(LEVEL_CONFIGS, level)
+      let solvable = 0
+      for (let k = 0; k < N; k++) {
+        const f = buildField(`health${level}:${k}`, level, cfg)
+        if (isFieldSolvable(f.map, f.startRow, f.exitRow)) solvable++
+      }
+      expect(solvable / N, `level ${level}: raw-solvable ${(100 * solvable / N).toFixed(1)}%`)
+        .toBeGreaterThanOrEqual(0.5)
+    }
   })
 
   it('isFieldSolvable returns false when the exit hole is walled off by mines', () => {

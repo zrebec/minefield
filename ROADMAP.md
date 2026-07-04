@@ -54,16 +54,13 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 2. **Difficulty tuning pass.** A daily L1–L2 **reliably beatable** within `TIMER_BASE_MS` by a careful
    player. Knobs only: `LEVEL_CONFIGS`, `acMineDrop*`, building size/count.
    **Generation-health criterion (added 2026-07-03): at least ~50% of RAW generated boards per level
-   must be solvable without rerolls.** Measured today: L1 99% · L2 87% · L3 47% · L4+ **10%** — L3/L4+
-   sit past the percolation sweet spot, so the game currently *selects* playable boards instead of
-   *generating* them; the carve repair must stay a one-in-a-thousand safety net, not a crutch. Note:
-   raw mine counts track Mined-Out (the model), but Mined-Out had no buildings — our buildings + fence
-   shrink the open area, so the *effective* density is meaningfully higher at the same mine count.
-   Once tuned, guard the criterion with a seeded generation-health test so density can't silently
-   creep back. **Full analysis, candidate solutions (A: density-normalised mine budget over free
-   cells — recommended; B: cap building area; C: lower raw counts; D: guard test) and the risk
-   table (daily determinism, variable HUD count, pinned tests, airdrop balance) live in
-   [`docs/generation-density.md`](docs/generation-density.md).**
+   must be solvable without rerolls.** ✅ **Criterion implemented + guarded same day** — solution A
+   (density-normalised mine budget, `MINE_DENSITY` × mine-eligible cells) landed with a deterministic
+   seeded guard test in `game.test.ts`; measured raw-solvable is now 99.5/87.5/77.8/61.5/71.5%
+   (L1…L4+) vs the pre-fix 99/87/47/**10**%. L1–L2 keep their old counts/feel (≈50/≈80 mines).
+   What REMAINS for this pass: the **by-feel playtest** (timer budget, airplane pressure vs the new
+   L3/L4+ counts — knobs: `MINE_DENSITY`, `acMineDrop*`, buildings) — numbers are calibrated, feel
+   is the owner's call. Full analysis + risk table: [`docs/generation-density.md`](docs/generation-density.md).
 3. **Green-gem special — decide + implement.** One behaviour, data-driven in `config.ts`/`GEM_KINDS`,
    tested. Options: time-only / "disarm a threat ahead" / shield. No combinatorial sprawl.
 4. **Confirm the jingle relocation** (now once-per-session on a direct game-start, not on first gesture) —

@@ -62,7 +62,7 @@ These are non-negotiable. Each has already cost a real bug in this codebase.
 
 ```
 src/
-├── config.ts      # all tunable params: LEVEL_CONFIGS, gems, buildings, timings, reveal/airplane consts; atLevel() per-level lookup
+├── config.ts      # all tunable params: LEVEL_CONFIGS, MINE_DENSITY, gems, buildings, timings, reveal/airplane consts; atLevel() per-level lookup
 ├── constants.ts   # resolution + palette re-export from zx-kit (COLS=32, ROWS=18, STATUS_ROWS=6)
 ├── font.ts        # ZX ROM font re-export
 ├── sprites.ts     # all sprites + tile factories as Uint8Array (8×8); makeTileFence, etc.
@@ -140,6 +140,12 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
 ### Field, fence & solvability
 - Playfield **32×18 cells**; the bottom **6 HUD rows**: backpack · timer · score+detector · mines+level ·
   day/night · lives+random-tag. Canvas height fixed at 192.
+- **Mine budget is density-based (2026-07-03):** `round(atLevel(MINE_DENSITY, level) ×
+  countMineEligibleCells(map, …))`, computed AFTER placeBuildings — the budget follows the space that
+  exists, so buildings can't silently harden the field. `canHostMine` is the single predicate shared
+  by the budget counter and `placeMines` (they can never drift). Deterministic (seeded board only).
+  `LEVEL_CONFIGS.mines` is GONE — tune density, not counts. Guarded by the seeded generation-health
+  test (≥50% of raw boards solvable per level; measured 61.5–99.5%).
 - **Perimeter fence:** solid `fence` down col 0 and the last col, each with ONE walkable gap — entry
   (seeded `startRow`, spawn) and exit (seeded `exitRow`, ≥ `MIN_ENTRY_EXIT_ROW_GAP` away). Win = cross the
   right edge through the exit gap (`movePlayer` funnels it; the rest of the wall is solid).

@@ -167,13 +167,18 @@ LED for ranged (2-cell) mines — see [`docs/accessibility-detector.md`](docs/ac
 
 | Level | Mines | Lives | Terrain | First aircraft | Aircraft interval |
 |-------|-------|-------|---------|----------------|-------------------|
-| 1 | 50 | 3 | always grass | 15–30 s | 20–45 s |
-| 2 | 80 | 3 | random | 12–20 s | 15–30 s |
-| 3 | 100 | 2 | random | 10–15 s | 10–20 s |
-| 4+ | 110 | 2 | random | 8–12 s | 8–15 s |
+| 1 | ≈50 (10.5%) | 3 | always grass | 15–30 s | 20–45 s |
+| 2 | ≈80 (19%) | 3 | random | 12–20 s | 15–30 s |
+| 3 | ≈74 (19%) | 2 | random | 10–15 s | 10–20 s |
+| 4+ | ≈61 (18%) | 2 | random | 8–12 s | 8–15 s |
 
-Terrain (grass / snow / dust) sets the background and trail colour. **Cluster** mines appear from
-level 2, **beacon** (ranged, cyan) mines from level 3. Building count rises per level.
+Mine counts are **density-based** (since 2026-07-03): each board gets `MINE_DENSITY[level]` ×
+its *mine-eligible* cells — the space left after buildings and the entry/exit safe zones — so a
+building-heavy board no longer silently turns into a sealed one (see
+[`docs/generation-density.md`](docs/generation-density.md)). Terrain (grass / snow / dust) sets
+the background and trail colour. **Cluster** mines appear from level 2, **beacon** (ranged, cyan)
+mines from level 3. Building count rises per level — and the mine budget follows the space that
+remains, which is why L3/L4+ carry fewer mines than L2 at a similar density.
 
 ### Timer
 

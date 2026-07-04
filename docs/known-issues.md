@@ -6,6 +6,23 @@
 
 ## Resolved Issues
 
+### Pages deploy failed 5× with "Deployment failed, try again later" (stale Pages actions)
+
+- **Resolved:** 2026-07-03 by upgrading `actions/upload-pages-artifact@v3 → @v5` and
+  `actions/deploy-pages@v4 → @v5` (owner commit `4541bf7`; Node 24 follow-up `76540a5`).
+- **What happened:** the 0.48.0 release built and tested green, but every deploy attempt (5 in a
+  row, including reruns) failed seconds after the Pages deployment was created — deployment
+  statuses went `waiting → queued → in_progress → failure` in ~15 s with an **empty description**.
+  The artifact itself was verified clean (valid `artifact.tar`, 4 regular files, no symlinks);
+  no GitHub incident was active; the workflow was unchanged since a successful deploy on
+  2026-07-01. Root cause: both Pages actions got new majors in spring 2026 (deploy-pages v5.0.0
+  on 2026-03-25, upload-pages-artifact v5.0.0 on 2026-04-10, Node 24 native) and the Pages
+  backend stopped accepting the 2024-era v3 artifact flavour on 2026-07-03. The Node-20
+  deprecation annotation in the logs was a red herring (warning only).
+- **Rule going forward:** keep `upload-pages-artifact@v5+` and `deploy-pages@v5+`; on any deploy
+  failure with this generic message, check these two action versions FIRST. The same fix was
+  applied to every zx-kit game repo with a Pages workflow (chaosbunny, iceroads, submarine).
+
 ### `createGame` could return an unsolvable field when every reroll failed (former P0)
 
 - **Resolved:** 2026-07-03 with a deterministic **carve repair** (`carveSafePath` in `game.ts`).

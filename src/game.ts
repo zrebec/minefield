@@ -1,6 +1,6 @@
 import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
 import { COLS, ROWS, C, type SpectrumColor } from './constants.ts'
-import { GEM_COUNT, START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS, DROP_FLASH_MS, MAX_FIELD_ATTEMPTS, atLevel } from './config.ts'
+import { GEM_COUNT, START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS, DROP_FLASH_MS, MAX_FIELD_ATTEMPTS, MINE_DENSITY, atLevel } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileFence, TILE_EXPLODED,
   type CellVariant, type TerrainType,
@@ -184,6 +184,36 @@ function randomInt(rng: Rng, min: number, max: number): number {
   return rng.range(min, max + 1)
 }
 
+/**
+ * Can this cell legally host a mine? The single source of truth shared by
+ * placeMines (rejecting random tries) and countMineEligibleCells (the density
+ * budget) — the budget counts exactly what the placer accepts, so the two can
+ * never drift apart. Rules, in placement order:
+ *  - never the perimeter fence columns (stamped solid later),
+ *  - never the entry safe zone (around the spawn / entry hole),
+ *  - never the exit safe zone — mirror of the entry guarantee, so the approach
+ *    to the exit can never be a forced mine,
+ *  - only bare ground (buildings are solid; gems are placed after mines).
+ */
+function canHostMine(map: TileMap, col: number, row: number, safeCol: number, safeRow: number, exitRow: number): boolean {
+  if (col === 0 || col === COLS - 1) return false
+  if (Math.abs(col - safeCol) <= SAFE_RADIUS && Math.abs(row - safeRow) <= SAFE_RADIUS) return false
+  if (Math.abs(col - (COLS - 1)) <= SAFE_RADIUS && Math.abs(row - exitRow) <= SAFE_RADIUS) return false
+  return map.getTile(col, row)?.id === 'ground'
+}
+
+/** Exact count of mine-eligible cells on the board as generated so far (after
+ *  placeBuildings, before mines/gems/fence) — the denominator of MINE_DENSITY. */
+function countMineEligibleCells(map: TileMap, safeCol: number, safeRow: number, exitRow: number): number {
+  let eligible = 0
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      if (canHostMine(map, col, row, safeCol, safeRow, exitRow)) eligible++
+    }
+  }
+  return eligible
+}
+
 function placeMines(map: TileMap, count: number, safeCol: number, safeRow: number, exitRow: number, level: number, terrain: TerrainType, rng: Rng): void {
   const clusterRatio = level >= CLUSTER_MINE_LEVEL ? CLUSTER_MINE_RATIO : 0
   const beaconRatio = level >= BEACON_MINE_LEVEL ? BEACON_MINE_RATIO : 0
@@ -193,15 +223,9 @@ function placeMines(map: TileMap, count: number, safeCol: number, safeRow: numbe
     attempts++
     const col = randomInt(rng, 0, COLS - 1)
     const row = randomInt(rng, 0, ROWS - 1)
-    // Perimeter fence columns are stamped solid later — never spend a mine there.
-    if (col === 0 || col === COLS - 1) continue
-    // Entry safe zone (around the spawn / entry hole).
-    if (Math.abs(col - safeCol) <= SAFE_RADIUS && Math.abs(row - safeRow) <= SAFE_RADIUS) continue
-    // Exit safe zone (around the exit hole) — mirror of the entry guarantee, so the
-    // approach to the exit can never be a forced mine. This is the canonical rule:
-    // skip the attempt without counting it (count stays exact, field stays seeded).
-    if (Math.abs(col - (COLS - 1)) <= SAFE_RADIUS && Math.abs(row - exitRow) <= SAFE_RADIUS) continue
-    if (map.getTile(col, row)?.id !== 'ground') continue
+    // Rejected attempts are skipped without counting — count stays exact, the
+    // field stays seeded. The rules live in canHostMine (shared with the budget).
+    if (!canHostMine(map, col, row, safeCol, safeRow, exitRow)) continue
     const r = rng.next()
     const mineType: MineType = r < clusterRatio ? 'cluster'
       : r < clusterRatio + beaconRatio ? 'beacon'
@@ -421,17 +445,27 @@ interface BuiltField {
 
 // Builds one complete field from a single seeded RNG stream. Pulled out of
 // createGame so the solvability guard can rebuild deterministically from a derived
-// seed when a field happens to seal the exit off.
-function buildField(seed: string | number, level: number, cfg: LevelConfig): BuiltField {
+// seed when a field happens to seal the exit off. Exported ONLY for the
+// generation-health guard test (raw boards, no reroll/carve — see game.test.ts).
+export function buildField(seed: string | number, level: number, cfg: LevelConfig): BuiltField {
   const rng = createRng(seed)
   // Drawn first so buildings, mines and gems carve their safe zones around them.
   const startRow = randomInt(rng, 0, ROWS - 1)
   const exitRow = pickExitRow(rng, startRow)
   // Level 0 is always grass so the player learns the default look first.
   const terrain: TerrainType = level === 0 ? 'grass' : rng.pick(TERRAIN_TYPES)
+
   const map = buildMap(terrain)
   placeBuildings(map, level, rng, startRow, exitRow)
-  placeMines(map, cfg.mines, START_COL, startRow, exitRow, level, terrain, rng)
+  // Density-normalised mine budget (generation-density.md, solution A): the count
+  // scales with the cells that can actually host a mine ON THIS BOARD — more
+  // buildings shrink the space and the budget follows, so effective density stays
+  // on the per-level target instead of silently hardening. Deterministic: the
+  // eligible count derives from the seeded board alone.
+  const mineCount = Math.max(1, Math.round(
+    atLevel(MINE_DENSITY, level) * countMineEligibleCells(map, START_COL, startRow, exitRow),
+  ))
+  placeMines(map, mineCount, START_COL, startRow, exitRow, level, terrain, rng)
   placeGems(map, GEM_COUNT, START_COL, startRow, rng)
   stampFence(map, startRow, exitRow, terrain)
   map.setTile(START_COL, startRow, makeTileVisited(cellVariant(START_COL, startRow), terrain))
