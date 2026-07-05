@@ -27,6 +27,31 @@ describe('controls / i18n consistency', () => {
   it('pause page titles count matches across languages', () => {
     expect(en.STR_PAUSE_TITLES.length).toBe(sk.STR_PAUSE_TITLES.length)
   })
+
+  it('accessibility strings exist and are non-empty in both languages', () => {
+    for (const pack of [en, sk]) {
+      expect(pack.STR_A11Y_LEGEND.length).toBeGreaterThan(40)   // a real explanatory paragraph
+      expect(pack.STR_A11Y_SAFE).toBeTruthy()
+      expect(pack.STR_A11Y_BEACON).toBeTruthy()
+      expect(pack.STR_A11Y_GAMEOVER).toBeTruthy()
+      expect(pack.STR_A11Y_ADJ(2)).toBeTruthy()
+      expect(pack.STR_A11Y_MORE('x')).toBeTruthy()
+      for (const d of ['n', 's', 'e', 'w'] as const) {
+        expect(pack.STR_A11Y_DIR(d), `dir word ${d}`).toBeTruthy()
+      }
+    }
+  })
+
+  it('the audio legend mentions both ears and both pitches (matches the real encoding)', () => {
+    // Guards against the legend drifting away from playDirectionCue's pan×pitch scheme.
+    for (const pack of [en, sk]) {
+      const legend = pack.STR_A11Y_LEGEND.toLowerCase()
+      const ear = /(right ear|left ear|uchu)/.test(legend)
+      const pitch = /(high|low|vysok|nizk|nízk)/.test(legend)
+      expect(ear, 'legend names the ears').toBe(true)
+      expect(pitch, 'legend names pitch').toBe(true)
+    }
+  })
 })
 
 // The story intro is typed char-by-char with the ZX ROM font (ASCII only) and

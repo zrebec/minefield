@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, cellKey, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from './game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, dominantMineDir, mineCountToward, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, cellKey, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from './game.ts'
 import { movePlayer } from './player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
 import { C, COLS, ROWS } from './constants.ts'
@@ -1683,5 +1683,61 @@ describe('nextDailySeed — a daily run keeps its origin date across levels', ()
   })
   it('falls back to today for a malformed daily seed', () => {
     expect(nextDailySeed('weird', 1)).toBe(`${todaySeed()}:L1`)
+  })
+})
+
+// ── Directional compass (accessibility) ──────────────────────────────────────
+// The one signal feeding the audio cue, the HUD arrow and the ARIA sentence.
+// Player at (8,8) so the radius-4 scan box fits inside the 32×18 field.
+
+describe('dominantMineDir', () => {
+  it('points to a clear cluster (north / east / south / west)', () => {
+    const cases: Array<['n' | 's' | 'e' | 'w', [number, number][]]> = [
+      ['n', [[8, 5], [8, 6], [8, 7]]],   // straight up (same col → only N)
+      ['s', [[8, 9], [8, 10], [8, 11]]], // straight down
+      ['e', [[9, 8], [10, 8], [11, 8]]], // straight right
+      ['w', [[7, 8], [6, 8], [5, 8]]],   // straight left
+    ]
+    for (const [dir, mines] of cases) {
+      const map = emptyMap()
+      for (const [c, r] of mines) setMine(map, c, r)
+      expect(dominantMineDir(map, 8, 8), dir).toBe(dir)
+    }
+  })
+
+  it('returns null on a clear field', () => {
+    expect(dominantMineDir(emptyMap(), 8, 8)).toBeNull()
+  })
+
+  it('returns null when directions tie (no margin) — you must triangulate', () => {
+    const map = emptyMap()
+    setMine(map, 8, 6); setMine(map, 8, 7)   // 2 north
+    setMine(map, 8, 9); setMine(map, 8, 10)  // 2 south
+    expect(dominantMineDir(map, 8, 8)).toBeNull()
+  })
+
+  it('ignores mines outside the scan radius', () => {
+    const map = emptyMap()
+    setMine(map, 8, 2)  // 6 rows up — beyond radius 4
+    expect(dominantMineDir(map, 8, 8)).toBeNull()
+  })
+
+  it('ignores detonated (exploded) mines', () => {
+    const map = emptyMap()
+    setMine(map, 8, 6); setMine(map, 8, 7)
+    map.setTile(8, 5, TILE_EXPLODED)  // an exploded crater is not a live mine
+    // only 2 live mines north; still dominant vs 0 elsewhere (margin 2 met)
+    expect(dominantMineDir(map, 8, 8)).toBe('n')
+    map.setTile(8, 6, TILE_EXPLODED); map.setTile(8, 7, TILE_EXPLODED)
+    expect(dominantMineDir(map, 8, 8)).toBeNull()  // all craters now → nothing live
+  })
+})
+
+describe('mineCountToward', () => {
+  it('counts live mines toward a direction within the radius', () => {
+    const map = emptyMap()
+    setMine(map, 9, 8); setMine(map, 10, 8); setMine(map, 11, 8)
+    expect(mineCountToward(map, 8, 8, 'e')).toBe(3)
+    expect(mineCountToward(map, 8, 8, 'w')).toBe(0)
   })
 })

@@ -5,13 +5,17 @@
 // ARIA attribute, renames the game, or hides the live regions the wrong way
 // fails CI before it reaches a screen-reader user. See AGENTS.md → Permanent
 // Accessibility Invariants.
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 // Vite's ?raw import gives us the page source as a string — works in vitest's
 // transform pipeline and typechecks via the vite/client reference in env.d.ts,
 // with no need for node fs types in a browser-game tsconfig.
 import html from '../index.html?raw'
 import { STR_TITLE } from './strings.ts'
-import { getLocale } from './lang.ts'
+import { getLocale, L } from './lang.ts'
+import { announce, status, setLegend, describeStep } from './a11y.ts'
+import { createGame, type GameState } from './game.ts'
+import { makeTileGround, makeTileMine } from './sprites.ts'
+import { COLS, ROWS } from './constants.ts'
 
 const doc = new DOMParser().parseFromString(html, 'text/html')
 
@@ -95,5 +99,82 @@ describe('ARIA attributes', () => {
 
   it('a <noscript> fallback exists for browsers without JS', () => {
     expect(doc.querySelector('noscript')?.textContent ?? '').toContain('THE STRIP')
+  })
+
+  it('#sr-legend exists as a navigable .sr-only audio guide', () => {
+    const el = doc.getElementById('sr-legend')
+    expect(el).not.toBeNull()
+    expect(el!.classList.contains('sr-only')).toBe(true)
+  })
+})
+
+// ── a11y.ts module — live-region writes + shared formatter ────────────────────
+
+function cleanState(pcol = 8, prow = 8): GameState {
+  const state = createGame(0, 0, 'a11y-seed')
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      state.map.setTile(c, r, makeTileGround((c + r) % 2 === 0 ? 'a' : 'b', 'grass'))
+  state.playerCol = pcol
+  state.playerRow = prow
+  return state
+}
+const mine = (s: GameState, c: number, r: number): void =>
+  void s.map.setTile(c, r, makeTileMine('normal', (c + r) % 2 === 0 ? 'a' : 'b', 'grass'))
+
+describe('a11y live regions', () => {
+  beforeEach(() => {
+    document.body.innerHTML =
+      '<div id="sr-announcer"></div><div id="sr-status"></div><div id="sr-legend"></div>'
+  })
+
+  it('announce writes the assertive region and forces a re-read of identical text', () => {
+    announce('2 mines next to you.')
+    const first = document.getElementById('sr-announcer')!.textContent!
+    expect(first).toContain('2 mines next to you.')
+    announce('2 mines next to you.')                       // same message, player stepped again
+    const second = document.getElementById('sr-announcer')!.textContent!
+    expect(second).toContain('2 mines next to you.')
+    expect(second).not.toBe(first)                         // toggled marker → screen reader re-reads
+  })
+
+  it('status writes the polite region and dedupes identical consecutive lines', () => {
+    status('Daily run started.')
+    expect(document.getElementById('sr-status')!.textContent).toBe('Daily run started.')
+    document.getElementById('sr-status')!.textContent = ''  // prove the next identical call is a no-op
+    status('Daily run started.')
+    expect(document.getElementById('sr-status')!.textContent).toBe('')
+  })
+
+  it('setLegend fills the static guide region', () => {
+    setLegend(L.STR_A11Y_LEGEND)
+    expect(document.getElementById('sr-legend')!.textContent).toBe(L.STR_A11Y_LEGEND)
+  })
+
+  it('every DOM write is guarded — no throw when the regions are absent', () => {
+    document.body.innerHTML = ''
+    expect(() => { announce('x'); status('y'); setLegend('z') }).not.toThrow()
+  })
+})
+
+describe('describeStep — shared ARIA/TTS sentence (mirrors the HUD + beeper)', () => {
+  it('reports a clear cell', () => {
+    expect(describeStep(cleanState())).toBe(L.STR_A11Y_SAFE)
+  })
+
+  it('reports the adjacent count without a direction when none dominates', () => {
+    const s = cleanState()
+    mine(s, 9, 8)                                  // one mine, east, dist-1
+    const text = describeStep(s)
+    expect(text).toContain(L.STR_A11Y_ADJ(1))
+    expect(text).not.toContain(L.STR_A11Y_DIR('e'))  // a lone mine doesn't meet the margin
+  })
+
+  it('adds the dominant direction when a cluster leads', () => {
+    const s = cleanState()
+    mine(s, 9, 8); mine(s, 10, 8); mine(s, 11, 8)  // cluster east (1 adjacent + density lead)
+    const text = describeStep(s)
+    expect(text).toContain(L.STR_A11Y_ADJ(1))
+    expect(text).toContain(L.STR_A11Y_DIR('e'))
   })
 })
