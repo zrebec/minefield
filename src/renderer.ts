@@ -1,7 +1,7 @@
 import { CANVAS_W, CANVAS_H, ROWS, STATUS_ROWS, COLS, CELL, C } from './constants.ts'
 import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS, DROP_FLASH_BLINK_MS } from './config.ts'
-import type { GameState, AirplaneState, FriendlyPlaneState } from './game.ts'
-import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
+import type { GameState, AirplaneState, FriendlyPlaneState, Compass } from './game.ts'
+import { countAdjacentMines, countBeaconSignals, dominantMineDir, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor, type Tile } from 'zx-kit'
 import { loadHighScores } from './assets/highscore.ts'
 import { L, getLocale } from './lang.ts'
@@ -14,6 +14,7 @@ import {
   AIRPLANE_RIGHT, AIRPLANE_LEFT,
   HEART, GROUND_A, GROUND_B,
   LED_ON, LED_OFF,
+  ARROW_N, ARROW_S, ARROW_E, ARROW_W,
 } from './sprites.ts'
 
 // The bottom HUD spans STATUS_ROWS (6) rows below the playfield. One concern per
@@ -88,6 +89,20 @@ function renderFriendlyPlane(ctx: CanvasRenderingContext2D, plane: FriendlyPlane
 // row, sitting to the right of the score.
 const DETECTOR_COL = 24
 
+// Density arrow (accessibility) — the visual twin of the audio compass cue. A dim
+// triangle just left of the detector meter, pointing to where the most mines lie
+// (dominantMineDir); nothing when no direction clearly leads. Deliberately weak
+// (one dim cell) — a hint, not a map. Shares the exact signal the audio cue uses.
+const DENSITY_DIR_COL = 22
+
+const ARROW_SPRITE: Record<Compass, Uint8Array> = { n: ARROW_N, s: ARROW_S, e: ARROW_E, w: ARROW_W }
+
+function renderDensityDir(ctx: CanvasRenderingContext2D, state: GameState, y: number): void {
+  const dir = dominantMineDir(state.map, state.playerCol, state.playerRow)
+  if (!dir) return
+  drawSprite(ctx, ARROW_SPRITE[dir], DENSITY_DIR_COL * CELL, y, C.BLUE, C.BLACK)
+}
+
 function renderDetector(ctx: CanvasRenderingContext2D, adjacent: number, beacon: number, y: number): void {
   drawText(ctx, '[', DETECTOR_COL * CELL, y, C.B_CYAN, C.BLACK)
   const litInk = adjacent <= 2 ? C.B_YELLOW : C.B_RED
@@ -144,6 +159,7 @@ function renderStatusBar(ctx: CanvasRenderingContext2D, state: GameState): void 
       countBeaconSignals(state.map, state.playerCol, state.playerRow),
       ROW_SCORE,
     )
+    renderDensityDir(ctx, state, ROW_SCORE)
   }
 
   // H4 — remaining mines (left) + level / combo / idle (right)

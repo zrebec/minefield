@@ -1,9 +1,9 @@
 import { CELL, COLS, ROWS } from './constants.ts'
 import { START_COL, SCORE_PER_CELL, SCORE_MULTIPLIERS, EXPLOSION_FLASH_MS, LEVEL_COMPLETE_DELAY_MS, GEM_SCORE, GEM_TIME_BONUS_MS, GOLD_SCORE_BONUS, RED_GEMS_PER_LIFE, CYAN_GEMS_PER_REVEAL, GREEN_GEMS_PER_PLANE, COMBO_DURATION_MS, COMBO_MAX_MULTIPLIER, DAY_STEPS, NIGHT_STEPS, WALK_DURATION_MS, atLevel } from './config.ts'
-import { type GameState, countWarningMines, applyClusterBlast, revealMine, cellKey, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
+import { type GameState, countWarningMines, dominantMineDir, mineCountToward, applyClusterBlast, revealMine, cellKey, inventoryTotal, INVENTORY_CAP, type MineType } from './game.ts'
 import { spawnFriendlyPlane } from './airplane.ts'
 import type { Direction } from './input.ts'
-import { playWarning, playExplosion, playGemCollect, playFootstep, playExtraLife, playReveal, isAmbientSoundActive } from './audio.ts'
+import { playWarning, playDirectionCue, playExplosion, playGemCollect, playFootstep, playExtraLife, playReveal, isAmbientSoundActive } from './audio.ts'
 import { makeTileVisited, TILE_EXPLODED } from './sprites.ts'
 import { createTween, tickTween, tickAnimation, resetAnimation } from 'zx-kit'
 
@@ -162,6 +162,11 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
   } else if (!hadGem && !isAmbientSoundActive()) {
     playFootstep(state.terrain)
   }
+  // Directional compass (accessibility) — the dominant mine direction, played after
+  // the lethal warning above. Silent when no direction clearly leads. Its HUD twin
+  // (dim arrow) and the ARIA sentence read the same dominantMineDir → channel parity.
+  const dir = dominantMineDir(state.map, newCol, newRow)
+  if (dir) playDirectionCue(dir, mineCountToward(state.map, newCol, newRow, dir))
 }
 
 export function respawnPlayer(state: GameState): void {

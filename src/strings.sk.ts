@@ -18,7 +18,11 @@
  *
  * Diakritika: ROM font zx-kit má len ASCII. Á É Í Ó Ú Č Š Ž sa nevykreslia
  * správne — používaj len ASCII verzie (A E I O U C S Z).
+ * VÝNIMKA: STR_A11Y_* reťazce sú HOVORENÉ (čítačka obrazovky / TTS), nie
+ * kreslené fontom — tam POUŽÍVAJ plnú diakritiku, nech ich čítačka vysloví správne.
  */
+
+import type { Compass } from './game.ts'
 
 // ── Status bar — horný riadok ─────────────────────────────────────────────
 
@@ -53,6 +57,31 @@ export const STR_LIVES_LABEL = 'ZIV:'                       // 4 znaky (skráten
 export const STR_AIRCRAFT = '** LIETADLO **'                // 14 znakov
 
 export const STR_FRIENDLY = '** PRIESKUM **'                // 14 znakov (spriatelené lietadlo)
+
+// ── Prístupnosť (čítačka obrazovky / TTS) ───────────────────────────────────
+// NEmajú pixel budget — sú hovorené, nie kreslené. Plné vety, plná diakritika.
+// STR_A11Y_LEGEND musí sedieť s reálnym kódovaním v config.ts (DIRCUE_*) a audio.ts.
+export const STR_A11Y_LEGEND =
+  'Zvukový sprievodca. Jemný krok znamená, že si prešiel bezpečne. Opakované pípanie znamená, že živé míny ' +
+  'sú hneď vedľa teba — viac a rýchlejšie pípanie znamená viac mín. Po každom kroku jemný kompasový tón ' +
+  'ukáže, kde je najviac mín v okolí: v pravom uchu znamená východ, v ľavom uchu západ, vysoký tón v strede ' +
+  'znamená sever, nízky tón v strede juh, a ticho znamená, že žiadny smer jednoznačne nevedie — pohni sa, ' +
+  'aby si zistil viac. Buchot je výbuch: stúpil si na mínu.'
+
+export const STR_A11Y_SAFE = 'Čisto.'
+export const STR_A11Y_ADJ = (n: number) =>
+  `${n} ${n === 1 ? 'mína' : n >= 2 && n <= 4 ? 'míny' : 'mín'} vedľa teba.`
+export const STR_A11Y_BEACON = 'Blízko je signál majáka.'
+export const STR_A11Y_DIR = (d: Compass): string => ({ n: 'sever', s: 'juh', e: 'východ', w: 'západ' })[d]
+export const STR_A11Y_MORE = (dir: string) => `Viac mín smerom na ${dir}.`
+
+// Status hlásenia (polite región)
+export const STR_A11Y_LEVEL_DONE = (levelOneBased: number) => `Úroveň ${levelOneBased} dokončená.`
+export const STR_A11Y_LIFE_LOST = (lives: number) =>
+  `Zásah mínou. Zostáva ${lives} ${lives === 1 ? 'život' : lives >= 2 && lives <= 4 ? 'životy' : 'životov'}.`
+export const STR_A11Y_GAMEOVER = 'Koniec hry.'
+export const STR_A11Y_MODE_DAILY = 'Denný beh začal.'
+export const STR_A11Y_MODE_RANDOM = 'Tréningový beh začal.'
 
 // ── Game over overlay ─────────────────────────────────────────────────────
 

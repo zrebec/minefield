@@ -1,5 +1,6 @@
-import { MASTER_VOLUME, WARN_DEBOUNCE_MS } from './config.ts'
+import { MASTER_VOLUME, WARN_DEBOUNCE_MS, DIRCUE_PAN, DIRCUE_FREQ_HIGH, DIRCUE_FREQ_MID, DIRCUE_FREQ_LOW, DIRCUE_DELAY_MS, DIRCUE_GAIN } from './config.ts'
 import type { TerrainType } from './sprites.ts'
+import type { Compass } from './game.ts'
 import {
   initAudio as _initAudio,
   resumeAudio,
@@ -89,6 +90,48 @@ export function playWarning(mineCount: number): void {
     if (i < pips - 1) notes.push({ freq: 0, dur: gap })
   }
   playPattern(notes)
+}
+
+// The compass encoding — dominant mine direction → (pan, pitch). Pure and free of
+// the AudioContext so it can be unit-tested (pinning the mapping against config so
+// it can't silently drift out of sync with STR_A11Y_LEGEND) and reused by the debug
+// readout. Pan = horizontal axis (E right / W left), pitch = vertical (N high / S low),
+// E/W at MID pitch so they never read as N/S. Keep in lockstep with the legend text.
+export function compassAudio(dir: Compass): { pan: number; freq: number } {
+  const freq = dir === 'n' ? DIRCUE_FREQ_HIGH : dir === 's' ? DIRCUE_FREQ_LOW : DIRCUE_FREQ_MID
+  const pan = dir === 'e' ? DIRCUE_PAN : dir === 'w' ? -DIRCUE_PAN : 0
+  return { pan, freq }
+}
+
+// Directional compass cue (accessibility) — the audio twin of the HUD density
+// arrow: the dominant mine direction encoded as pan × pitch. A soft sine (quieter
+// and rounder than the square warning so it never masks the lethal beep), played
+// just AFTER the step. dir=null → silence (no clear cluster). `intensity` = mines
+// toward that direction, nudging the loudness up a touch.
+export function playDirectionCue(dir: Compass | null, intensity = 1): void {
+  if (!dir) return
+  const ctx = getAudioContext()
+  if (!ctx) return
+  const { pan, freq } = compassAudio(dir)
+  const t0 = ctx.currentTime + DIRCUE_DELAY_MS / 1000
+  const dur = 0.14
+  const vol = DIRCUE_GAIN * Math.min(1, 0.55 + 0.15 * intensity)
+
+  const gain = ctx.createGain()
+  gain.gain.setValueAtTime(0, t0)
+  gain.gain.linearRampToValueAtTime(vol, t0 + 0.02)
+  gain.gain.linearRampToValueAtTime(0, t0 + dur)
+  const panner = ctx.createStereoPanner()
+  panner.pan.value = pan
+  gain.connect(panner)
+  panner.connect(getMasterGain()!)
+
+  const osc = ctx.createOscillator()
+  osc.type = 'sine'
+  osc.frequency.value = freq
+  osc.connect(gain)
+  osc.start(t0)
+  osc.stop(t0 + dur + 0.02)
 }
 
 export function playExplosion(): void {

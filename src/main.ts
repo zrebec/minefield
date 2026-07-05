@@ -11,6 +11,7 @@ import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen
 import { isHighScore, saveHighScore } from './assets/highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
 import { L, cycleLocale } from './lang.ts'
+import { announce, status, setLegend, describeStep } from './a11y.ts'
 
 type AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'
 
@@ -96,6 +97,7 @@ function startRun(random: boolean): void {
   state = createGame(0, 0, random ? undefined : dailySeed(0))
   writeSave(saveProfile, 'auto')   // make the run resumable from level 1
   resetInput()
+  status(random ? L.STR_A11Y_MODE_RANDOM : L.STR_A11Y_MODE_DAILY)
   appPhase = 'ingame'
   setBorderColor(C.BLACK)
 }
@@ -282,6 +284,7 @@ function gameLoop(timestamp: number): void {
         state.runState = 'running'
         state.debugMode = false   // a step hides the reveal again (the peek ends; budget decides if D can re-arm)
         movePlayer(state, dir)
+        announce(describeStep(state))   // screen-reader twin of the warning beep + compass cue
       }
       if (consumeFlag()) toggleFlag(state)
       const dirFlag = consumeDirFlag()
@@ -306,6 +309,7 @@ function gameLoop(timestamp: number): void {
       if (dir && !isHeld('Shift')) {
         state.debugMode = false  // a step hides the reveal (peek semantics — see [D-GATE])
         movePlayer(state, dir)
+        announce(describeStep(state))   // screen-reader twin of the warning beep + compass cue
       }
       if (consumeFlag()) toggleFlag(state)
       const dirFlag = consumeDirFlag()
@@ -341,10 +345,12 @@ function gameLoop(timestamp: number): void {
     } else {
       state.flashOn = false
       respawnPlayer(state)
+      if (state.lives > 0) announce(L.STR_A11Y_LIFE_LOST(state.lives))  // lives>0 ⇔ respawned (not game over)
       consumeAnyKey()  // discard mine-step key so gameover doesn't auto-skip
     }
 
   } else if (state.phase === 'levelcomplete') {
+    if (prevGamePhase !== 'levelcomplete') status(L.STR_A11Y_LEVEL_DONE(state.level + 1))
     setBorderColor(C.B_GREEN)
     resetInput()
     state.levelCompleteTimer -= dt
@@ -383,7 +389,10 @@ function gameLoop(timestamp: number): void {
   }
 
   // Play the game-over jingle once on entry (covers both a fatal step and timeout).
-  if (state.phase === 'gameover' && prevGamePhase !== 'gameover') playGameOver()
+  if (state.phase === 'gameover' && prevGamePhase !== 'gameover') {
+    playGameOver()
+    announce(L.STR_A11Y_GAMEOVER)
+  }
 
   prevGamePhase = state.phase
   renderFrame(ctx, state, pausePage)
@@ -400,6 +409,7 @@ function main(): void {
 
   initInput()
   setBorderColor(C.B_BLUE)
+  setLegend(L.STR_A11Y_LEGEND)   // audio guide, in the current language (refreshed on locale change)
 
   window.addEventListener('keydown', () => initAudioOnce(), { once: true })
   window.addEventListener('click', () => initAudioOnce(), { once: true })
@@ -418,6 +428,7 @@ function main(): void {
         introReplayPending = true   // replay the story intro on demand
       } else if (e.key === 'l' || e.key === 'L') {
         cycleLocale()   // synchronous, safe to call directly — no pending flag needed
+        setLegend(L.STR_A11Y_LEGEND)   // keep the audio guide in the new language
       }
     } else if (appPhase === 'hiscore') {
       if (e.key.length === 1 && /[A-Za-z]/.test(e.key)) {

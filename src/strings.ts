@@ -32,6 +32,8 @@
  *   and slightly overflows — keep new translations under 32.
  */
 
+import type { Compass } from './game.ts'
+
 // ── Status bar — top row ──────────────────────────────────────────────────
 
 // Player score, zero-padded to 5 digits.
@@ -76,6 +78,30 @@ export const STR_AIRCRAFT = '** AIRCRAFT **'
 
 // Friendly recon-plane banner (green-gem reward), centred. Blinks white. Same slot.
 export const STR_FRIENDLY = '**  RECON  **'
+
+// ── Accessibility (screen reader / TTS) ─────────────────────────────────────
+// NOT pixel-budgeted — these are spoken, not drawn. Full natural sentences.
+// STR_A11Y_LEGEND is the navigable audio guide; it MUST match the real encoding
+// in config.ts (DIRCUE_*) and audio.ts playDirectionCue.
+export const STR_A11Y_LEGEND =
+  'Sound guide. A soft footstep means you moved safely. Repeated beeps mean live mines are right next to ' +
+  'you — more and faster beeps mean more mines. After each step a gentle compass tone points to where mines ' +
+  'are densest nearby: in your right ear means east, in your left ear means west, a high tone in the centre ' +
+  'means north, a low tone in the centre means south, and silence means no single direction stands out — ' +
+  'move to learn more. A burst of noise is an explosion: you stepped on a mine.'
+
+export const STR_A11Y_SAFE = 'Clear.'
+export const STR_A11Y_ADJ = (n: number) => `${n} ${n === 1 ? 'mine' : 'mines'} next to you.`
+export const STR_A11Y_BEACON = 'Beacon signal nearby.'
+export const STR_A11Y_DIR = (d: Compass): string => ({ n: 'north', s: 'south', e: 'east', w: 'west' })[d]
+export const STR_A11Y_MORE = (dir: string) => `More mines to the ${dir}.`
+
+// Status announcements (polite region)
+export const STR_A11Y_LEVEL_DONE = (levelOneBased: number) => `Level ${levelOneBased} complete.`
+export const STR_A11Y_LIFE_LOST = (lives: number) => `Mine hit. ${lives} ${lives === 1 ? 'life' : 'lives'} left.`
+export const STR_A11Y_GAMEOVER = 'Game over.'
+export const STR_A11Y_MODE_DAILY = 'Daily run started.'
+export const STR_A11Y_MODE_RANDOM = 'Practice run started.'
 
 // ── Game-over overlay ─────────────────────────────────────────────────────
 
