@@ -1,3 +1,10 @@
+# [0.52.0](https://github.com/zrebec/minefield/compare/v0.51.0...v0.52.0) (2026-07-05)
+
+
+### Features
+
+* **a11y:** directional mine compass across audio, HUD and screen reader ([e88cca5](https://github.com/zrebec/minefield/commit/e88cca53454fbd567d6bb9d4d063e6f67b846264)), closes [#sr-legend](https://github.com/zrebec/minefield/issues/sr-legend)
+
 # [0.51.0](https://github.com/zrebec/minefield/compare/v0.50.0...v0.51.0) (2026-07-04)
 
 
