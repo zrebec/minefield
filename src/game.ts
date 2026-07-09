@@ -1,6 +1,6 @@
 import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
 import { COLS, ROWS, C, type SpectrumColor } from './constants.ts'
-import { GEM_COUNT, START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS, DROP_FLASH_MS, MAX_FIELD_ATTEMPTS, MINE_DENSITY, DENSITY_SCAN_RADIUS, DENSITY_MIN_MARGIN, atLevel } from './config.ts'
+import { GEM_COUNT, START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS, DROP_FLASH_MS, MAX_FIELD_ATTEMPTS, MINE_DENSITY, atLevel } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileFence, TILE_EXPLODED,
   type CellVariant, type TerrainType,
@@ -536,47 +536,6 @@ export function countBeaconSignals(map: TileMap, col: number, row: number): numb
 // Kept as one number so the sound is unchanged; the HUD splits it back out.
 export function countWarningMines(map: TileMap, col: number, row: number): number {
   return Math.min(countAdjacentMines(map, col, row) + countBeaconSignals(map, col, row), 8)
-}
-
-// ── Directional compass (accessibility) ───────────────────────────────────────
-// The single source of truth for "which way are the most mines", fed identically
-// to the audio cue (audio.ts), the HUD arrow (renderer.ts) and the ARIA sentence
-// (a11y.ts). Pure + deterministic, so the daily field yields the same hint for all.
-
-export type Compass = 'n' | 's' | 'e' | 'w'
-
-// Count live (undetonated) mines per half-plane within `radius` of (col,row). Cells
-// exactly on the player's row/col contribute to neither of that axis's directions
-// (they aren't "left" or "right"). Returns the four tallies.
-function mineTally(map: TileMap, col: number, row: number, radius: number): Record<Compass, number> {
-  const t: Record<Compass, number> = { n: 0, s: 0, e: 0, w: 0 }
-  for (let dr = -radius; dr <= radius; dr++) {
-    for (let dc = -radius; dc <= radius; dc++) {
-      if (dr === 0 && dc === 0) continue
-      if (map.getTile(col + dc, row + dr)?.id !== 'mine') continue
-      if (dr < 0) t.n++
-      else if (dr > 0) t.s++
-      if (dc > 0) t.e++
-      else if (dc < 0) t.w++
-    }
-  }
-  return t
-}
-
-// Live mines toward `dir` within `radius` — drives the cue's loudness / arrow's weight.
-export function mineCountToward(map: TileMap, col: number, row: number, dir: Compass, radius = DENSITY_SCAN_RADIUS): number {
-  return mineTally(map, col, row, radius)[dir]
-}
-
-// Which direction holds the most mines within `radius`. Returns null when the field
-// is clear OR no direction leads the runner-up by DENSITY_MIN_MARGIN — a deliberately
-// "weak" hint: silent/blank unless one way clearly dominates, so exploration still matters.
-export function dominantMineDir(map: TileMap, col: number, row: number, radius = DENSITY_SCAN_RADIUS): Compass | null {
-  const t = mineTally(map, col, row, radius)
-  const ranked = (Object.keys(t) as Compass[]).sort((a, b) => t[b] - t[a])
-  const [top, second] = ranked
-  if (t[top] === 0 || t[top] - t[second] < DENSITY_MIN_MARGIN) return null
-  return top
 }
 
 export function applyClusterBlast(state: GameState, centerCol: number, centerRow: number): void {

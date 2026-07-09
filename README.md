@@ -117,9 +117,15 @@ It's a deliberate homage to the ZX Spectrum (1982): pixel art with no anti-alias
 | `SHIFT + ←→↑↓` | Flag / unflag the adjacent cell in that **absolute** direction (no turning needed) |
 | `P` | Pause / resume |
 | `SHIFT + S` | Manual save |
+| `E` | **Speak the exit's bearing** relative to you (e.g. "22 right, 3 up") — accessibility, in-game only |
+| `G` | **Speak the nearest gem's bearing** + how many remain — accessibility, in-game only |
 | `D` | Debug: reveal all mines **while standing** — any time, not just before the first step; your next step hides them again (a budgeted *peek*). On **random/practice** it's capped (1 activation per level, `RANDOM_REVEAL_LIMIT`); **disabled on the daily** (it would leak the scored solution). A refused press plays a low "denied" beep. *(Testing-phase mode — may return to start-of-level-only before v1.0.)* |
 | `O` | Toggle the **FPS / CPU debug overlay** (zx-kit `debug` module) |
 | `+` / `-` | Volume up / down |
+
+The `E` / `G` bearings are **parity, not an assist** — a sighted player sees the exit hole and gems on the
+scout screen, so a blind player hearing them evens the field (mines stay hidden for everyone). A one-line
+orientation summary is also spoken on run start and resume. No leaderboard flag.
 
 **On the title screen:** `SPACE` / `ENTER` / `S` (or gamepad Start) = **daily** run · `R` = **random** run
 · **`I`** = (re)play the story intro · **`L`** = switch language (EN/SK, persisted; also updates the page's
@@ -309,8 +315,8 @@ npm run capture  # refresh docs/img screenshots (Playwright)
 | Fence + solvability | Complete | winnable under all circumstances (generation + airdrop guard + carve repair, 2026-07-03) |
 | Story + intro | **Done (music tuning pending)** | 5-chapter typewriter intro + per-card AY score + 5 hand-drawn scenes + chapter titles; music tuned by ear |
 | Save / load | Complete | version 5; auto-resume; cleared on game over |
-| Tests | 341 | seeded solvability + property tests; + intro/audio + a11y contract coverage |
-| Accessibility | In progress | visual detector done; **ARIA skeleton + live document `lang` shipped 2026-07-03**; stereo/TTS/beacon next (v1.0 scope) |
+| Tests | 380 | seeded solvability + property tests; + intro/audio + a11y contract coverage |
+| Accessibility | In progress | visual detector done; **ARIA live regions + spoken step/status/orientation shipped**; TTS voice + beacon next (v1.0 scope) |
 | Visuals | Readable | screenshots may be refreshed to show the fence + intro |
 
 ## Related Links
@@ -331,12 +337,15 @@ deaf players.** Not "compatible" — playable, start to finish, including the me
 - **Deaf players — done.** The game is audio-primary but **not** audio-only: the HUD detector
   (shipped 2026-06-17) mirrors every warning visually — a 4-segment adjacent-mine meter plus a
   separate beacon LED — so no information exists in sound alone.
-- **Blind players — in progress, v1.0 scope.** Coming with v1.0: **stereo/spatial warnings** (mine
-  direction in the L/R channels — the engine primitive shipped in zx-kit 0.36), a **screen-reader
-  live region + TTS** for warnings, state and every screen of the shell (title, pause, high-score
-  entry, intro), an **exit beacon** tone, and an **assist-mode** flag so assisted runs are marked
-  on the leaderboard. The ARIA skeleton (live regions, canvas labelling, live document `lang`)
-  landed 2026-07-03; the game is already fully keyboard-driven.
+- **Blind players — in progress, v1.0 scope.** Already shipped: the ARIA **live regions** speak the
+  per-step danger sentence (adjacent count + beacon), run/level/life/game-over status, and — on
+  demand — **orientation**: press `E` for the exit's bearing, `G` for the nearest gem, with a summary
+  on run start ("22 right, 3 up" relative distances, parity with what a sighted player scouts). Canvas
+  labelling + live document `lang` landed 2026-07-03; the game is fully keyboard-driven. Still coming
+  for v1.0: a **TTS voice** over the same message formatter, an **exit beacon** tone, the rest of the
+  **shell** (title, pause, high-score entry, intro announced), and an **assist-mode** flag. *(A
+  directional stereo mine compass was tried and reverted — it read as danger without danger; see
+  `docs/accessibility-orientation.md`.)*
 
 An audio-first "playable blind" deductive traversal is an under-served niche — this is the
 strongest moat the game has, and it ships with 1.0, not "someday". See `ROADMAP.md` (P1) and

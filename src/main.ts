@@ -11,7 +11,7 @@ import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen
 import { isHighScore, saveHighScore } from './assets/highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
 import { L, cycleLocale } from './lang.ts'
-import { announce, status, setLegend, describeStep } from './a11y.ts'
+import { announce, status, setLegend, describeStep, describeExit, describeGems, describeOrientation } from './a11y.ts'
 
 type AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'
 
@@ -97,7 +97,9 @@ function startRun(random: boolean): void {
   state = createGame(0, 0, random ? undefined : dailySeed(0))
   writeSave(saveProfile, 'auto')   // make the run resumable from level 1
   resetInput()
-  status(random ? L.STR_A11Y_MODE_RANDOM : L.STR_A11Y_MODE_DAILY)
+  // One polite line: mode + start-of-run orientation (exit bearing + gem count). A
+  // second status() call would overwrite this before a screen reader reads it.
+  status(`${random ? L.STR_A11Y_MODE_RANDOM : L.STR_A11Y_MODE_DAILY} ${describeOrientation(state)}`)
   appPhase = 'ingame'
   setBorderColor(C.BLACK)
 }
@@ -284,7 +286,7 @@ function gameLoop(timestamp: number): void {
         state.runState = 'running'
         state.debugMode = false   // a step hides the reveal again (the peek ends; budget decides if D can re-arm)
         movePlayer(state, dir)
-        announce(describeStep(state))   // screen-reader twin of the warning beep + compass cue
+        announce(describeStep(state))   // screen-reader twin of the warning beep
       }
       if (consumeFlag()) toggleFlag(state)
       const dirFlag = consumeDirFlag()
@@ -309,7 +311,7 @@ function gameLoop(timestamp: number): void {
       if (dir && !isHeld('Shift')) {
         state.debugMode = false  // a step hides the reveal (peek semantics — see [D-GATE])
         movePlayer(state, dir)
-        announce(describeStep(state))   // screen-reader twin of the warning beep + compass cue
+        announce(describeStep(state))   // screen-reader twin of the warning beep
       }
       if (consumeFlag()) toggleFlag(state)
       const dirFlag = consumeDirFlag()
@@ -440,13 +442,24 @@ function main(): void {
       } else if (e.key === 'Escape') {
         letterQueue.push('ESC')
       }
+    } else if (appPhase === 'ingame') {
+      // On-demand orientation for blind players (Item C): E = exit bearing, G =
+      // nearest gem. In-game only, so these letters never reach hiscore name entry.
+      if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (e.key === 'e' || e.key === 'E') { announce(describeExit(state)); e.preventDefault() }
+        else if (e.key === 'g' || e.key === 'G') { announce(describeGems(state)); e.preventDefault() }
+      }
     }
   })
 
   // Resume an in-progress save straight into the game, skipping the title; the
   // run keeps its daily/random identity via dropSeedBase. Saves are cleared on
-  // game over, so this only fires for an unfinished run.
-  if (readSaveLatest(saveProfile).ok) appPhase = 'ingame'
+  // game over, so this only fires for an unfinished run. readSaveLatest mutates
+  // `state` in place, so it's oriented for the resume announcement below.
+  if (readSaveLatest(saveProfile).ok) {
+    appPhase = 'ingame'
+    status(describeOrientation(state))   // re-orient a blind player on resume
+  }
 
   requestAnimationFrame(gameLoop)
 }

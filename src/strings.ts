@@ -32,8 +32,6 @@
  *   and slightly overflows — keep new translations under 32.
  */
 
-import type { Compass } from './game.ts'
-
 // ── Status bar — top row ──────────────────────────────────────────────────
 
 // Player score, zero-padded to 5 digits.
@@ -81,20 +79,31 @@ export const STR_FRIENDLY = '**  RECON  **'
 
 // ── Accessibility (screen reader / TTS) ─────────────────────────────────────
 // NOT pixel-budgeted — these are spoken, not drawn. Full natural sentences.
-// STR_A11Y_LEGEND is the navigable audio guide; it MUST match the real encoding
-// in config.ts (DIRCUE_*) and audio.ts playDirectionCue.
+// STR_A11Y_LEGEND is the navigable audio guide; it MUST match what the game
+// actually plays (playWarning in audio.ts + the beacon lamp).
 export const STR_A11Y_LEGEND =
   'Sound guide. A soft footstep means you moved safely. Repeated beeps mean live mines are right next to ' +
-  'you — more and faster beeps mean more mines. After each step a gentle compass tone points to where mines ' +
-  'are densest nearby: in your right ear means east, in your left ear means west, a high tone in the centre ' +
-  'means north, a low tone in the centre means south, and silence means no single direction stands out — ' +
-  'move to learn more. A burst of noise is an explosion: you stepped on a mine.'
+  'you — more and faster beeps mean more mines, but not where they are: move and listen again to work out ' +
+  'the direction. A burst of noise is an explosion: you stepped on a mine.'
 
 export const STR_A11Y_SAFE = 'Clear.'
 export const STR_A11Y_ADJ = (n: number) => `${n} ${n === 1 ? 'mine' : 'mines'} next to you.`
 export const STR_A11Y_BEACON = 'Beacon signal nearby.'
-export const STR_A11Y_DIR = (d: Compass): string => ({ n: 'north', s: 'south', e: 'east', w: 'west' })[d]
-export const STR_A11Y_MORE = (dir: string) => `More mines to the ${dir}.`
+
+// Orientation (spoken): a relative bearing "<n> right, <n> up" — mines stay hidden,
+// but exit + gems are visible to a sighted player in scout mode, so announcing them
+// is parity, not an assist. Direction words feed relPhrase() in a11y.ts.
+export const STR_A11Y_RIGHT = 'right'
+export const STR_A11Y_LEFT  = 'left'
+export const STR_A11Y_UP    = 'up'
+export const STR_A11Y_DOWN  = 'down'
+export const STR_A11Y_HERE  = 'here'
+export const STR_A11Y_EXIT = (rel: string) => `Exit: ${rel}.`
+export const STR_A11Y_GEM_NEAREST = (rel: string, n: number) =>
+  `Nearest gem: ${rel}. ${n} ${n === 1 ? 'gem' : 'gems'} left.`
+export const STR_A11Y_GEM_NONE = 'No gems left.'
+export const STR_A11Y_ORIENT = (exitRel: string, gemCount: number) =>
+  `Exit ${exitRel}. ${gemCount} ${gemCount === 1 ? 'gem' : 'gems'} on the field.`
 
 // Status announcements (polite region)
 export const STR_A11Y_LEVEL_DONE = (levelOneBased: number) => `Level ${levelOneBased} complete.`

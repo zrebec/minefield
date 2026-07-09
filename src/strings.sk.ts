@@ -22,8 +22,6 @@
  * kreslené fontom — tam POUŽÍVAJ plnú diakritiku, nech ich čítačka vysloví správne.
  */
 
-import type { Compass } from './game.ts'
-
 // ── Status bar — horný riadok ─────────────────────────────────────────────
 
 export const STR_SCORE = (score: number) =>
@@ -60,20 +58,31 @@ export const STR_FRIENDLY = '** PRIESKUM **'                // 14 znakov (spriat
 
 // ── Prístupnosť (čítačka obrazovky / TTS) ───────────────────────────────────
 // NEmajú pixel budget — sú hovorené, nie kreslené. Plné vety, plná diakritika.
-// STR_A11Y_LEGEND musí sedieť s reálnym kódovaním v config.ts (DIRCUE_*) a audio.ts.
+// STR_A11Y_LEGEND musí sedieť s tým, čo hra naozaj hrá (playWarning v audio.ts + maják).
 export const STR_A11Y_LEGEND =
   'Zvukový sprievodca. Jemný krok znamená, že si prešiel bezpečne. Opakované pípanie znamená, že živé míny ' +
-  'sú hneď vedľa teba — viac a rýchlejšie pípanie znamená viac mín. Po každom kroku jemný kompasový tón ' +
-  'ukáže, kde je najviac mín v okolí: v pravom uchu znamená východ, v ľavom uchu západ, vysoký tón v strede ' +
-  'znamená sever, nízky tón v strede juh, a ticho znamená, že žiadny smer jednoznačne nevedie — pohni sa, ' +
-  'aby si zistil viac. Buchot je výbuch: stúpil si na mínu.'
+  'sú hneď vedľa teba — viac a rýchlejšie pípanie znamená viac mín, ale nie kde sú: pohni sa a počúvaj ' +
+  'znova, aby si smer odvodil. Buchot je výbuch: stúpil si na mínu.'
 
 export const STR_A11Y_SAFE = 'Čisto.'
 export const STR_A11Y_ADJ = (n: number) =>
   `${n} ${n === 1 ? 'mína' : n >= 2 && n <= 4 ? 'míny' : 'mín'} vedľa teba.`
 export const STR_A11Y_BEACON = 'Blízko je signál majáka.'
-export const STR_A11Y_DIR = (d: Compass): string => ({ n: 'sever', s: 'juh', e: 'východ', w: 'západ' })[d]
-export const STR_A11Y_MORE = (dir: string) => `Viac mín smerom na ${dir}.`
+
+// Orientácia (hovorené): relatívny smer „<n> vpravo, <n> hore" — míny ostávajú
+// skryté, ale východ + gemy vidí vidiaci hráč v scout móde, takže ich hlásenie je
+// parita, nie výhoda. Slová smeru kŕmia relPhrase() v a11y.ts.
+export const STR_A11Y_RIGHT = 'vpravo'
+export const STR_A11Y_LEFT  = 'vľavo'
+export const STR_A11Y_UP    = 'hore'
+export const STR_A11Y_DOWN  = 'dole'
+export const STR_A11Y_HERE  = 'tu'
+export const STR_A11Y_EXIT = (rel: string) => `Východ: ${rel}.`
+export const STR_A11Y_GEM_NEAREST = (rel: string, n: number) =>
+  `Najbližší gem: ${rel}. Zostáva ${n} ${n === 1 ? 'gem' : n >= 2 && n <= 4 ? 'gemy' : 'gemov'}.`
+export const STR_A11Y_GEM_NONE = 'Žiadne gemy nezostali.'
+export const STR_A11Y_ORIENT = (exitRel: string, gemCount: number) =>
+  `Východ ${exitRel}. Na poli ${gemCount} ${gemCount === 1 ? 'gem' : gemCount >= 2 && gemCount <= 4 ? 'gemy' : 'gemov'}.`
 
 // Status hlásenia (polite región)
 export const STR_A11Y_LEVEL_DONE = (levelOneBased: number) => `Úroveň ${levelOneBased} dokončená.`

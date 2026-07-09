@@ -25,7 +25,7 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (345 tests)
+npm test          # Vitest (380 tests)
 npm run build     # dist/
 npm run smoke     # browser smoke test over dist/ (Playwright; run after build, before a release)
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
@@ -71,6 +71,7 @@ src/
 ├── input.ts       # zx-kit input wrapper + game keys (D reveal, R random, SHIFT+S, SHIFT+arrow flag, +/-)
 ├── game.ts        # GameState, TileMap, field/gem/building gen, daily seed, isFieldSolvable, addDropMinesInBand
 ├── player.ts      # movement, collision, flag, respawn, scoring, gem pickup, combo
+├── a11y.ts        # screen-reader bridge: announce/status live-region writes, setLegend, describeStep sentence
 ├── airplane.ts    # aircraft timer, animation, mine drop (calls addDropMinesInBand)
 ├── intro.ts       # "The Strip" intro: stepStory machine + typewriter + 5 hand-drawn scenes (8×8) + chapter titles + isIntroDue/markIntroSeen (seen-gate)
 ├── renderer.ts    # TileMap, sprites, HUD, detector, night, overlays
@@ -101,12 +102,30 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   `#sr-status` (`aria-live="polite"`, state: score/level/menus) — hidden via `.sr-only` (never
   `display:none`, that silences them). `setLocale()` in `lang.ts` mirrors the locale onto
   `document.documentElement.lang` (tested in `lang.test.ts`).
-- **Still to wire (ROADMAP P1 #5–7):** stereo/spatial warnings (zx-kit 0.36 ships `pan` on
-  `playPattern` — the hook point is `playWarning` in `audio.ts`, but direction data must first come
-  out of `game.ts` as per-direction structure, not the 0–8 count), TTS over the same message
-  formatter that feeds the live regions, exit beacon, assist-mode flag, and the **shell**: title,
-  pause pages, high-score letter entry and intro must all be announced — "fully playable" covers
-  menus, not just the field.
+- **ARIA live regions: wired (0.52.0).** `a11y.ts` writes them: `announce()` (assertive; toggles an
+  invisible trailing NBSP so identical per-step sentences still re-read), `status()` (polite, deduped),
+  `setLegend()` fills the navigable `#sr-legend` audio guide (refreshed on `L` locale change). Per-step
+  sentence = `describeStep` (adjacent count + beacon — the future TTS source). `STR_A11Y_*` strings are
+  SPOKEN → full Slovak diacritics allowed (the one exception to the ASCII rule in `strings.sk.ts`).
+- **Blind orientation: shipped (Item C, 2026-07-09).** `E` speaks the exit's bearing, `G` the nearest
+  gem + remaining count, both in-game only (gated in the `appPhase === 'ingame'` keydown branch so they
+  don't reach hiscore name entry); a one-line summary is spoken on run start (folded into `startRun`'s
+  status line) and on resume. `describeExit` / `describeGems` / `describeOrientation` + private
+  `relPhrase(dCol,dRow)` in `a11y.ts` produce relative bearings ("22 right, 3 up") — **parity, not an
+  assist** (sighted players scout exit + gems; mines stay hidden), so no leaderboard flag. Design +
+  post-ship notes: `docs/accessibility-orientation.md`.
+- **Directional mine compass: tried in 0.52.0, REVERTED 2026-07-09 — do not rebuild.** A density
+  compass (dominant live-mine direction within radius 4 → panned sine cue + dim HUD arrow + ARIA
+  clause) shipped and failed the owner's playtest: it reads as a danger warning but fires without
+  adjacent danger (semantic collision with the sonar), tells you nothing about which STEP is safe,
+  and has no diegetic basis. Also rejected: a radius-1 "detector" variant — per-direction adjacent
+  info would gut triangulation (the core puzzle; the timer exists as its anti-cheese) and give blind
+  players MORE than sighted ones. The infra above stayed; only the signal was cut (`git show e88cca5`
+  has the old code). Deep write-up: `retro/docs/sk/minefield.md` §5.
+- **Still to wire (ROADMAP P1):** legend replay on `H` (Item B — the last small orientation piece,
+  spec'd in `docs/accessibility-orientation.md`), TTS over the same message formatter that feeds the
+  live regions, exit beacon, assist-mode flag, and the **shell**: title, pause pages, high-score letter
+  entry and intro must all be announced — "fully playable" covers menus, not just the field.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 

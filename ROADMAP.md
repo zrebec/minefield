@@ -38,9 +38,9 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Daily fairness | **Done** — field **and** highscore dated by the run's **origin** daily (verified 2026-06-29) | 2026-06-29 |
 | Leaderboard integrity | Client-only — random runs off-board; localStorage editable ⇒ **anti-cheat = open topic** | 2026-06-29 |
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
-| Tests | 341 (Vitest) | 2026-07-03 |
-| Build / release | semantic-release → GitHub Pages (latest **0.47.1**) | 2026-07-03 |
-| Accessibility | In progress — visual detector done; **ARIA skeleton + live document `lang` shipped 2026-07-03**; stereo/TTS/beacon = **v1.0 scope**, option C | 2026-07-03 |
+| Tests | 380 (Vitest) | 2026-07-09 |
+| Build / release | semantic-release → GitHub Pages (latest **0.52.0**) | 2026-07-05 |
+| Accessibility | In progress — visual detector done; **ARIA live regions + spoken step/status/orientation (`E`/`G`) shipped**; stereo compass tried & reverted; TTS voice + beacon = **v1.0 scope** | 2026-07-09 |
 
 ## Road to v1.0 (`2026-09-07`) — prioritised backlog
 
@@ -71,14 +71,17 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    the full revert recipe lives in `CLAUDE.md` → "D-reveal mode". Effort XS either way.
 
 ### P1 — Accessibility moat (in v1.0 because we chose option C — the strongest differentiator)
-5. **Stereo / spatial warning** — encode mine direction in the L/R channels (genuinely playable blind).
-   zx-kit 0.36 ships the primitive (`pan` on `playPattern`); the game work is exposing per-direction
-   mine data from `game.ts` (the warning is a 0–8 count today) + HUD parity for the new direction info.
-6. **Screen-reader support** — ARIA live regions + `SpeechSynthesis` (TTS) for warnings/state.
-   The skeleton shipped 2026-07-03 (`#sr-announcer`/`#sr-status` in `index.html`, live document `lang`).
+5. **~~Stereo / spatial warning~~ — TRIED & REVERTED 2026-07-09.** Shipped in 0.52.0 as a density
+   compass (dominant mine direction → panned cue + HUD arrow), reverted after the owner's playtest:
+   it read as a danger warning without adjacent danger, and a radius-1 variant would gut triangulation.
+   Replaced by **blind orientation (was "option C"): ✅ SHIPPED 2026-07-09** — `E` speaks the exit
+   bearing, `G` the nearest gem + count, plus a start/resume summary ("22 right, 3 up"), parity not
+   assist. See `docs/accessibility-orientation.md`. Left: **legend replay on `H`** (small).
+6. **Screen-reader support** — ARIA live regions wired 2026-07-05 (`describeStep` per-step sentence,
+   run/level/life/game-over status). **Left: a `SpeechSynthesis` (TTS) voice** over the same formatter.
    **"Fully playable" covers the whole shell, not just the field** — the wiring checklist is: step
-   warnings · explosion/respawn · title menu (daily/random/intro/language) · pause pages · high-score
-   letter entry · game over · level/day-night/aircraft state · gem pickups + backpack.
+   warnings ✅ · explosion/respawn ✅ · title menu (daily/random/intro/language) · pause pages · high-score
+   letter entry · game over ✅ · level/day-night/aircraft state · gem pickups + backpack.
 7. **Exit beacon tone** + **assist-mode toggle** (flag assisted runs so they're marked on the board).
 
 ### P1/P2 — "Finished product" surface
@@ -156,6 +159,7 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 | 2026-07-03 | **Accessibility promise made public in README with the date**: v1.0 (2026-09-07) fully playable blind + deaf | A public commitment is the strongest anti-scope-creep device; the deaf half (visual detector) already shipped |
 | 2026-07-03 | Respawn keeping `runState='running'` (no idle re-scout, timer keeps ticking) = **intended death penalty** | Death costs you the scout — deliberate; document it on the future RULES screen so it reads as a rule, not a bug |
 | 2026-07-03 | Anti-cheat v1.0 = **integrity hash (hash + salt) on saves AND high-score entries**, save v5→v6; full Action Replay stays Post-1.0 | Deterrent-grade: raises cheating cost well above editing localStorage by hand; era-appropriate; effort S in the August stabilisation block |
+| 2026-07-09 | Blind help is **orientation (exit/gem bearing), not a directional danger cue** — the stereo compass was reverted for reading as danger without danger | A density direction has low action value and collides with the sonar's meaning; a per-direction danger cue would gut triangulation. Exit/gem bearings are parity (sighted players scout them) without touching the puzzle |
 
 ## Dropped / Archived
 
@@ -168,6 +172,8 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Milestone |
 |---|---|
+| 2026-07-09 | **Blind orientation (Item C)** — `E` = exit bearing, `G` = nearest gem + count, start/resume summary ("22 right, 3 up"); parity not assist (no leaderboard flag); 380 tests, verified live in headless Chromium. Replaces the reverted stereo compass |
+| 2026-07-05 | **Directional mine compass (0.52.0) tried, then reverted** — density compass read as danger without danger; the ARIA infra it introduced (live regions, `describeStep`, status lines) stayed and now carries orientation |
 | 2026-07-03 | **Solvability became a construction guarantee** — `carveSafePath` repairs the rare board where all 64 rerolls stay sealed (~0.7% of L4+ fields, seeded dailies included, was shipping unwinnable); deterministic, covered by named regressions + a 9 000-field sample |
 | 2026-07-03 | Accessibility skeleton — ARIA live regions + canvas labelling in `index.html` (guarded by a new a11y contract test suite), `<title>` → THE STRIP, live document `lang` synced by `setLocale()`; the four v1.0 decisions recorded (title, public promise, respawn-by-design, integrity hash) |
 | 2026-06-30 | Intro story rewrite (5 dramatic chapters) + per-card AY score (lament → funeral dirge → Ode to Joy) + book-style chapter titles + all 5 hand-drawn scenes |

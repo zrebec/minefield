@@ -1,12 +1,12 @@
-# Accessibility — audio compass, replayable legend, blind orientation
+# Accessibility — replayable legend, blind orientation
 
-> **Status (2026-07-05):** the directional **mine compass is shipped**; the three items
-> below (A debug readout, B legend-replay key, C exit/gem orientation) are **spec'd but
-> NOT implemented** — the owner is deliberately letting the UX marinate (testing on
-> headphones + blindfolded first). Implement C only after the owner confirms it still
-> feels right in play. This doc is the hand-off so a future session can continue without
-> re-deriving context. Companion: `docs/accessibility-detector.md` (the visual detector,
-> the deaf-side half of the promise).
+> **Status (2026-07-09):** **Item C (exit/gem orientation) is SHIPPED** — `E` speaks the exit
+> bearing, `G` the nearest gem, plus a start-of-run + resume summary (`describeExit` /
+> `describeGems` / `describeOrientation` in `a11y.ts`, verified live in-browser). The directional
+> mine compass was **REVERTED** earlier the same day (see "Compass post-mortem") — item A died with
+> it. **Item B** (on-demand legend replay on `H`) remains spec'd and NOT implemented — the one
+> orientation piece still open, low-risk, can land any time. Companion:
+> `docs/accessibility-detector.md` (the visual detector, the deaf-side half of the promise).
 
 ## Why this exists
 
@@ -14,67 +14,46 @@ The v1.0 public promise (README, ships 2026-09-07) is full playability for blind
 deaf players. Channel-parity invariant (AGENTS.md): neither group may get *less* information
 than a sighted-hearing player. A sighted player, in **scout mode**, can see the exit hole,
 the gems, and buildings on the field (mines are hidden for everyone). A blind player today
-gets **none** of that spatial orientation — that gap is what item C closes. Items A/B are
-smaller supports around the shipped compass.
+gets **none** of that spatial orientation — that gap is what item C closes.
 
 ## Shipped foundation (do not change; reuse)
 
-The mine compass, per step, encodes the **dominant live-mine direction within
-`DENSITY_SCAN_RADIUS` cells** into three parity channels:
+The `a11y.ts` bridge + wired live regions (0.52.0), which survived the compass revert:
 
-- **Audio** — `playDirectionCue(dir, intensity)` in `audio.ts`: a soft sine after the step.
-- **HUD** — dim `ARROW_*` in `renderer.ts` (`renderDensityDir`).
-- **ARIA/TTS** — `describeStep(state)` in `a11y.ts` (count + direction sentence).
+- `announce(text)` — assertive region `#sr-announcer` (forces re-reads of identical text).
+- `status(text)` — polite region `#sr-status` (dedupes identical consecutive lines).
+- `setLegend(text)` — fills the navigable `#sr-legend` audio guide from `STR_A11Y_LEGEND`;
+  refreshed on locale change.
+- `describeStep(state)` — the per-step sentence (adjacent count + beacon), announced after
+  every move in `main.ts`; the future TTS source.
+- Status lines on run start / level complete / life lost / game over, EN + SK
+  (`STR_A11Y_*`, spoken → full diacritics).
 
-All three read one source of truth: `dominantMineDir(map, col, row, radius)` in `game.ts`
-(+ `mineCountToward`). It is intentionally a **dominant** direction over a **local** radius,
-and returns `null` when no direction leads by `DENSITY_MIN_MARGIN` — so the field still has
-to be explored (blind players must triangulate too; this was an explicit owner decision).
+## Compass post-mortem (REVERTED 2026-07-09 — do not rebuild)
 
-### Compass encoding — ground truth (pinned by `audio.test.ts`)
-
-`compassAudio(dir): { pan, freq }` in `audio.ts` (pure, unit-tested against the config
-constants so it can't drift out of sync with the spoken legend):
-
-| dir | pan | pitch | player hears |
-|---|---|---|---|
-| `e` east / right | `+DIRCUE_PAN` | `DIRCUE_FREQ_MID` | right ear |
-| `w` west / left | `−DIRCUE_PAN` | `DIRCUE_FREQ_MID` | left ear |
-| `n` north / up | `0` | `DIRCUE_FREQ_HIGH` | high, centred |
-| `s` south / down | `0` | `DIRCUE_FREQ_LOW` | low, centred |
-
-Tunables in `config.ts`: `DIRCUE_PAN`, `DIRCUE_FREQ_HIGH/MID/LOW`, `DIRCUE_GAIN`,
-`DIRCUE_DELAY_MS`, `DENSITY_SCAN_RADIUS`, `DENSITY_MIN_MARGIN`. Retune freely; the legend
-string `STR_A11Y_LEGEND` (strings.ts / strings.sk.ts) describes this mapping to players and
-**must be kept in sync** with any change.
+0.52.0 shipped a density compass: the dominant live-mine direction within radius 4
+(`dominantMineDir`) encoded as a panned sine cue + dim HUD arrow + an ARIA clause. The
+owner's playtest killed it: it *sounds* like a danger warning but fires with no adjacent
+danger (semantic collision with the sonar), a dominant direction over a 9×9 window says
+nothing about which STEP is safe, and the story's sonar explicitly does NOT tell where
+mines are. A radius-1 "detector" retune was rejected too — per-direction adjacent info
+would gut triangulation (the core puzzle) and give blind players more than sighted ones.
+The old code is in `git show e88cca5`; the deep write-up in `retro/docs/sk/minefield.md` §5.
+Item A (a pan/pitch debug readout for the compass) died with the revert and has been
+dropped from this spec.
 
 ### Free keys (verified against `input.ts` + `main.ts` keydown)
 
 Taken: arrows, Shift+arrows, Shift+S (save), `D` (reveal), `R` (random), `P` (pause),
-`F` (flag), `O` (debug overlay), `L` (language, intro), `I` (intro replay), letters
-(hiscore name entry). **Free for a11y: `H`, `E`, `G`.**
+`F` (flag), `O` (debug overlay), `L` (language, intro), `I` (intro replay), `E` (exit
+bearing, in-game), `G` (nearest gem, in-game), letters (hiscore name entry). **Free for
+a11y: `H`** (reserved for Item B — legend replay).
 
 ---
 
-## Item A — live pan/pitch debug readout (small, do first when resuming)
-
-So the owner can *see on screen what the blind player hears* while tuning by ear.
-
-- **File:** `main.ts`, the `showDebug` block that calls `sampleDebug(dbg, { … })`
-  (the object already takes arbitrary key→value fields: `app`, `phase`, `run`, `lvl`, `mines`).
-- **Add** a `compass` field:
-  ```ts
-  const cdir = dominantMineDir(state.map, state.playerCol, state.playerRow)
-  const ca = cdir ? compassAudio(cdir) : null
-  // inside sampleDebug({ … }):
-  compass: ca ? `${cdir!.toUpperCase()} ${ca.pan >= 0 ? '+' : ''}${ca.pan.toFixed(2)} ${ca.freq}Hz` : '—',
-  ```
-- **Imports:** `dominantMineDir` from `game.ts`, `compassAudio` from `audio.ts`.
-- Shows e.g. `compass: E +0.60 440Hz`, or `—` when no dominant direction. Toggle with `O`.
-
 ## Item B — replayable audio legend on `H`
 
-Blind players shouldn't have to memorise the pan rules; a key lets them replay the legend
+Blind players shouldn't have to memorise the sound code; a key lets them replay the legend
 any time. (`#sr-legend` already exists as a static, navigable region — this adds on-demand
 speech so they don't have to browse to it.)
 
@@ -91,12 +70,23 @@ speech so they don't have to browse to it.)
 - **Optional:** advertise the key in `STR_A11Y_LEGEND` itself ("press H to hear this again")
   and/or in the pause "controls" page.
 
-## Item C — blind orientation: exit + gems (the main feature)
+## Item C — blind orientation: exit + gems ✅ SHIPPED 2026-07-09
+
+> Built exactly to the design below. `describeExit` / `describeGems` / `describeOrientation` +
+> a private `relPhrase(dCol,dRow)` (and `exitBearing`) live in `a11y.ts`; `E` / `G` fire in the
+> `appPhase === 'ingame'` keydown branch in `main.ts`; the start summary is folded into
+> `startRun`'s mode status line and repeated on the resume path. Strings `STR_A11Y_RIGHT/LEFT/
+> UP/DOWN/HERE`, `STR_A11Y_EXIT`, `STR_A11Y_GEM_NEAREST`, `STR_A11Y_GEM_NONE`, `STR_A11Y_ORIENT`
+> in both packs. Tests: 6 in `a11y.test.ts` (bearing, zero-drop, nearest-of-two, gem-none,
+> here, orientation) + a strings-parity case. Verified live in headless Chromium:
+> `status` after start = "Practice run started. Exit 31 right, 7 up. 12 gems on the field.",
+> `E` → "Exit: 31 right, 7 up.", `G` → "Nearest gem: 16 right, 2 up. 12 gems left." The design
+> that was implemented (kept for reference):
 
 Owner-confirmed UX (two-question AskUserQuestion):
 - **Interaction = on-demand keys + a start-of-run summary** (not constant auto-chatter).
-- **Format = relative direction + distance** (`"22 right, 3 up"`), consistent with the
-  compass mental model — *not* absolute chessboard coordinates.
+- **Format = relative direction + distance** (`"22 right, 3 up"`) — *not* absolute
+  chessboard coordinates.
 
 Parity/fairness: sighted players see the exit hole and gems in scout mode, so announcing
 them to blind players is **parity, not an assist** → no leaderboard flag. Everything derives
@@ -124,8 +114,7 @@ export function describeOrientation(state: GameState): string   // "Exit 22 righ
 - Reuse: `state.map.findById('gem')`, `state.exitRow`, `COLS` (from `constants.ts`),
   `state.playerCol/Row`.
 - `relPhrase(dCol,dRow)`: `dCol>0` → right, `<0` → left; `dRow>0` → down, `<0` → up
-  (screen axes; matches the compass's E/right, S/down). Compose
-  `"<|dCol|> <word>, <|dRow|> <word>"`, dropping any zero term.
+  (screen axes). Compose `"<|dCol|> <word>, <|dRow|> <word>"`, dropping any zero term.
 
 ### C.2 `main.ts` — query keys (in-game only)
 
@@ -171,24 +160,24 @@ Import `describeExit`, `describeGems` from `a11y.ts`. (`state` is the module-lev
 
 ---
 
-## OPEN — awaiting owner playtest
+## OPEN — post-ship follow-ups (owner to validate by ear / blindfolded)
 
-The interaction model + format are chosen, but the owner will validate by ear / blindfolded
-before C is built, and may adjust after playtest:
+C shipped with the on-demand model; these remain open, deferrable past v1.0:
 
 - Is on-demand enough, or is a gentle **proximity ping** when adjacent to a gem also wanted
   (so a gem isn't walked past)? Deferred; easy to add later as an opt-in.
 - Should **buildings/obstacles** also be announceable (sighted players see them)? Likely a
   follow-on parity item, out of scope here.
 - Exact wording/verbosity of the sentences (tune for how it *sounds* read aloud, not how it
-  reads on the page).
+  reads on the page). SK gem count uses gem/gemy/gemov; revisit if a blind SK tester prefers
+  "drahokam".
 
-Do not implement C until the owner gives the go-ahead. A/B are lower-risk and can land first.
+Item B (legend replay on `H`) is still unbuilt — low-risk, can land any time.
 
-## Verification (for whoever implements this)
+## Verification (run after any change here)
 
 Node 22 (`export PATH="$HOME/.nvm/versions/node/v22.22.3/bin:$PATH"`), in `minefield/`:
 `npx tsc --noEmit`, `npm test`, `npm run build`. Manual: headphones + VoiceOver (`Cmd+F5`) —
-`H` replays the legend; `E`/`G` announce exit / nearest gem relatively; the start summary
-speaks on run start; the `O` debug overlay shows `compass: <dir> <pan> <freq>` while walking.
+`E`/`G` announce exit / nearest gem relatively; the start summary speaks on run start; on
+resume too. (Item C was verified this way in headless Chromium — see the status note above.)
 Owner commits — do not commit.

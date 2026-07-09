@@ -229,24 +229,6 @@ export const MASTER_VOLUME = 0.2
 // Debounce for proximity warning sound (ms) — prevents chattering during fast movement
 export const WARN_DEBOUNCE_MS = 180
 
-// ── Directional compass (accessibility) ───────────────────────────────────────
-// One shared signal — "which way are the most live mines within DENSITY_SCAN_RADIUS
-// cells" — fed IDENTICALLY to three channels: a soft audio cue (blind), a dim HUD
-// arrow (deaf) and the ARIA/TTS sentence. It's a DOMINANT direction, not your exact
-// mine, over a LOCAL radius, and silent when no direction clearly leads — so the
-// field still has to be explored. All tunable by ear/eye; do not rebuild, just retune.
-export const DENSITY_SCAN_RADIUS = 4    // how far the compass "sees" (alt: whole field, or dist-2)
-export const DENSITY_MIN_MARGIN = 2     // dominant dir must lead the runner-up by this, else no signal
-
-// Audio compass encoding: pan = horizontal axis (E right / W left), pitch = vertical
-// axis (N high / S low), E/W at MID pitch so they never read as N/S. See STR_A11Y_LEGEND.
-export const DIRCUE_PAN = 0.6           // |pan| of the compass cue (−1 left … +1 right)
-export const DIRCUE_FREQ_HIGH = 660     // N (north / up)
-export const DIRCUE_FREQ_MID = 440      // E / W (panned)
-export const DIRCUE_FREQ_LOW = 220      // S (south / down)
-export const DIRCUE_DELAY_MS = 180      // plays AFTER the step's warning/footstep, never overlapping
-export const DIRCUE_GAIN = 0.2          // soft — must not mask the lethal proximity warning
-
 // ── Walk animation ────────────────────────────────────────────────────────────
 
 // Duration of one step between cells (ms) — smooth position tween.

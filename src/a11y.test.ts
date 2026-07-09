@@ -12,9 +12,9 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import html from '../index.html?raw'
 import { STR_TITLE } from './strings.ts'
 import { getLocale, L } from './lang.ts'
-import { announce, status, setLegend, describeStep } from './a11y.ts'
+import { announce, status, setLegend, describeStep, describeExit, describeGems, describeOrientation } from './a11y.ts'
 import { createGame, type GameState } from './game.ts'
-import { makeTileGround, makeTileMine } from './sprites.ts'
+import { makeTileGround, makeTileMine, makeTileGem } from './sprites.ts'
 import { COLS, ROWS } from './constants.ts'
 
 const doc = new DOMParser().parseFromString(html, 'text/html')
@@ -121,6 +121,8 @@ function cleanState(pcol = 8, prow = 8): GameState {
 }
 const mine = (s: GameState, c: number, r: number): void =>
   void s.map.setTile(c, r, makeTileMine('normal', (c + r) % 2 === 0 ? 'a' : 'b', 'grass'))
+const gem = (s: GameState, c: number, r: number): void =>
+  void s.map.setTile(c, r, makeTileGem())   // cyan gem, id 'gem'
 
 describe('a11y live regions', () => {
   beforeEach(() => {
@@ -162,19 +164,65 @@ describe('describeStep — shared ARIA/TTS sentence (mirrors the HUD + beeper)',
     expect(describeStep(cleanState())).toBe(L.STR_A11Y_SAFE)
   })
 
-  it('reports the adjacent count without a direction when none dominates', () => {
+  it('reports the adjacent count — the count only, never a direction (triangulation is the game)', () => {
     const s = cleanState()
     mine(s, 9, 8)                                  // one mine, east, dist-1
-    const text = describeStep(s)
-    expect(text).toContain(L.STR_A11Y_ADJ(1))
-    expect(text).not.toContain(L.STR_A11Y_DIR('e'))  // a lone mine doesn't meet the margin
+    expect(describeStep(s)).toContain(L.STR_A11Y_ADJ(1))
+  })
+})
+
+// ── Orientation (Item C) — exit + gems as a relative bearing ──────────────────
+
+describe('describeExit — bearing to the exit hole', () => {
+  it('reads column distance + "right" when the exit is far to the player’s right', () => {
+    const s = cleanState(9, 8)   // exit hole is column COLS-1 (=31)
+    s.exitRow = 5
+    const text = describeExit(s)
+    expect(text).toContain(String(COLS - 1 - 9))   // 22 columns right
+    expect(text).toContain(L.STR_A11Y_RIGHT)
+    expect(text).toContain(L.STR_A11Y_UP)          // exitRow 5 is 3 rows up from row 8
   })
 
-  it('adds the dominant direction when a cluster leads', () => {
-    const s = cleanState()
-    mine(s, 9, 8); mine(s, 10, 8); mine(s, 11, 8)  // cluster east (1 adjacent + density lead)
-    const text = describeStep(s)
-    expect(text).toContain(L.STR_A11Y_ADJ(1))
-    expect(text).toContain(L.STR_A11Y_DIR('e'))
+  it('drops the vertical component when the player is on the exit row (no up/down)', () => {
+    const s = cleanState(9, 5)
+    s.exitRow = 5                                   // same row → dRow 0
+    const text = describeExit(s)
+    expect(text).toContain(L.STR_A11Y_RIGHT)
+    expect(text).not.toContain(L.STR_A11Y_UP)
+    expect(text).not.toContain(L.STR_A11Y_DOWN)
+  })
+})
+
+describe('describeGems — nearest gem + remaining count', () => {
+  it('reports GEM_NONE on a field with no gems left', () => {
+    expect(describeGems(cleanState())).toBe(L.STR_A11Y_GEM_NONE)
+  })
+
+  it('picks the nearer of two gems and reports the total remaining', () => {
+    const s = cleanState(8, 8)
+    gem(s, 10, 8)   // 2 right      → nearer
+    gem(s, 8, 12)   // 4 down       → farther
+    const text = describeGems(s)
+    expect(text).toContain(L.STR_A11Y_RIGHT)        // the near gem's bearing
+    expect(text).not.toContain(L.STR_A11Y_DOWN)     // not the far one's
+    expect(text).toContain('2')                     // both "2 right" and "2 gems left"
+  })
+
+  it('says "here" for a gem on the player’s own cell (both components zero)', () => {
+    const s = cleanState(8, 8)
+    gem(s, 8, 8)
+    expect(describeGems(s)).toContain(L.STR_A11Y_HERE)
+  })
+})
+
+describe('describeOrientation — start-of-run summary', () => {
+  it('names the exit direction and the gem count on the field', () => {
+    const s = cleanState(9, 8)
+    s.exitRow = 5
+    gem(s, 12, 8)
+    gem(s, 4, 4)
+    const text = describeOrientation(s)
+    expect(text).toContain(L.STR_A11Y_RIGHT)        // exit bearing
+    expect(text).toContain('2')                     // 2 gems on the field
   })
 })

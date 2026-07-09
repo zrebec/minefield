@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from 'vitest'
-import { playDirectionCue } from './audio.ts'   // vi.mock below makes this a spy
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { createGame, cellKey, INVENTORY_CAP, type GameState } from './game.ts'
 import { C, COLS, ROWS } from './constants.ts'
@@ -17,7 +16,6 @@ import { makeTileGround, makeTileMine, makeTileVisited, makeTileGem, makeTileFen
 
 vi.mock('./audio.ts', () => ({
   playWarning: vi.fn(),
-  playDirectionCue: vi.fn(),
   playExplosion: vi.fn(),
   playGemCollect: vi.fn(),
   playFootstep: vi.fn(),
@@ -487,28 +485,6 @@ describe('movePlayer — gem collection', () => {
     for (let i = 0; i < n; i++) step(state, 'right')
     expect(state.inventory.green).toBe(n)      // not spent — the reward will fire on the next green
     expect(state.friendlyPassIndex).toBe(0)    // seed stream untouched
-  })
-})
-
-// ── movePlayer — directional compass cue ──────────────────────────────────────
-
-describe('movePlayer — directional compass cue', () => {
-  it('plays the compass cue for the dominant mine direction after a step', () => {
-    const state = makeState(5, 5)
-    // Cluster to the east of where the player lands (6,5): three mines in a row.
-    state.map.setTile(7, 5, makeTileMine('normal', 'a', 'grass'))
-    state.map.setTile(8, 5, makeTileMine('normal', 'b', 'grass'))
-    state.map.setTile(9, 5, makeTileMine('normal', 'a', 'grass'))
-    vi.mocked(playDirectionCue).mockClear()
-    step(state, 'right')
-    expect(playDirectionCue).toHaveBeenCalledWith('e', expect.any(Number))
-  })
-
-  it('stays silent (no cue) when no direction clearly dominates', () => {
-    const state = makeState(5, 5)   // empty field around the player
-    vi.mocked(playDirectionCue).mockClear()
-    step(state, 'right')
-    expect(playDirectionCue).not.toHaveBeenCalled()
   })
 })
 

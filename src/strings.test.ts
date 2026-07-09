@@ -35,21 +35,18 @@ describe('controls / i18n consistency', () => {
       expect(pack.STR_A11Y_BEACON).toBeTruthy()
       expect(pack.STR_A11Y_GAMEOVER).toBeTruthy()
       expect(pack.STR_A11Y_ADJ(2)).toBeTruthy()
-      expect(pack.STR_A11Y_MORE('x')).toBeTruthy()
-      for (const d of ['n', 's', 'e', 'w'] as const) {
-        expect(pack.STR_A11Y_DIR(d), `dir word ${d}`).toBeTruthy()
-      }
     }
   })
 
-  it('the audio legend mentions both ears and both pitches (matches the real encoding)', () => {
-    // Guards against the legend drifting away from playDirectionCue's pan×pitch scheme.
+  it('orientation strings (Item C) exist and are non-empty in both languages', () => {
     for (const pack of [en, sk]) {
-      const legend = pack.STR_A11Y_LEGEND.toLowerCase()
-      const ear = /(right ear|left ear|uchu)/.test(legend)
-      const pitch = /(high|low|vysok|nizk|nízk)/.test(legend)
-      expect(ear, 'legend names the ears').toBe(true)
-      expect(pitch, 'legend names pitch').toBe(true)
+      for (const w of [pack.STR_A11Y_RIGHT, pack.STR_A11Y_LEFT, pack.STR_A11Y_UP, pack.STR_A11Y_DOWN, pack.STR_A11Y_HERE]) {
+        expect(w).toBeTruthy()
+      }
+      expect(pack.STR_A11Y_EXIT('2 right')).toContain('2 right')
+      expect(pack.STR_A11Y_GEM_NEAREST('2 right', 3)).toBeTruthy()
+      expect(pack.STR_A11Y_GEM_NONE).toBeTruthy()
+      expect(pack.STR_A11Y_ORIENT('2 right', 5)).toBeTruthy()
     }
   })
 })
