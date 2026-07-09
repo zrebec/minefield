@@ -1,3 +1,10 @@
+# [0.53.0](https://github.com/zrebec/minefield/compare/v0.52.0...v0.53.0) (2026-07-09)
+
+
+### Features
+
+* **a11y:** replace the mine compass with exit/gem orientation (E/G) ([ae9739f](https://github.com/zrebec/minefield/commit/ae9739f8f6b6883654b81e463b48ae8fb25d49bc))
+
 # [0.52.0](https://github.com/zrebec/minefield/compare/v0.51.0...v0.52.0) (2026-07-05)
 
 
