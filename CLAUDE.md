@@ -25,7 +25,7 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (380 tests)
+npm test          # Vitest (381 tests)
 npm run build     # dist/
 npm run smoke     # browser smoke test over dist/ (Playwright; run after build, before a release)
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
@@ -126,10 +126,12 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   canvas state into the ARIA live regions and the player's screen reader does the speaking. Do not
   propose TTS; revisit only if the September playtest with a real screen-reader user shows
   live-region latency hurts real-time play.
-- **Still to wire (ROADMAP P1):** legend replay on `H` (Item B — the last small orientation piece,
-  spec'd in `docs/accessibility-orientation.md`), exit beacon, assist-mode flag, and the **shell**:
-  title, pause pages, high-score letter entry and intro must all be announced — "fully playable"
-  covers menus, not just the field.
+- **Legend replay: shipped (Item B, 2026-07-11).** `H` re-announces `STR_A11Y_LEGEND` on every
+  screen except hiscore name entry (handler next to `O` in `main.ts`); both legend strings
+  advertise the key, test-guarded.
+- **Still to wire (ROADMAP P1):** exit beacon, assist-mode flag, and the **shell**: title, pause
+  pages, high-score letter entry and intro must all be announced — "fully playable" covers menus,
+  not just the field.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 

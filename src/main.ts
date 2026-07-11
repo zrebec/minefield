@@ -423,6 +423,14 @@ function main(): void {
       return
     }
 
+    // On-demand audio-legend replay (Item B): blind players shouldn't have to
+    // memorise the sound code. Every phase except hiscore, where H is a name letter.
+    if (!e.repeat && (e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey && appPhase !== 'hiscore') {
+      announce(L.STR_A11Y_LEGEND)
+      e.preventDefault()
+      return
+    }
+
     if (appPhase === 'intro') {
       if (e.key === ' ' || e.key === 'Enter' || e.key === 's' || e.key === 'S') {
         startKeyPending = true

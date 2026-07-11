@@ -114,6 +114,7 @@ It's a deliberate homage to the ZX Spectrum (1982): pixel art with no anti-alias
 | `SHIFT + S` | Manual save |
 | `E` | **Speak the exit's bearing** relative to you (e.g. "22 right, 3 up") — accessibility, in-game only |
 | `G` | **Speak the nearest gem's bearing** + how many remain — accessibility, in-game only |
+| `H` | **Replay the audio legend** (what the sounds mean) — any screen except high-score name entry |
 | `D` | Debug: reveal all mines **while standing** — any time, not just before the first step; your next step hides them again (a budgeted *peek*). On **random/practice** it's capped (1 activation per level, `RANDOM_REVEAL_LIMIT`); **disabled on the daily** (it would leak the scored solution). A refused press plays a low "denied" beep. *(Testing-phase mode — may return to start-of-level-only before v1.0.)* |
 | `O` | Toggle the **FPS / CPU debug overlay** (zx-kit `debug` module) |
 | `+` / `-` | Volume up / down |

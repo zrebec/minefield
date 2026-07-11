@@ -51,7 +51,12 @@ a11y: `H`** (reserved for Item B — legend replay).
 
 ---
 
-## Item B — replayable audio legend on `H`
+## Item B — replayable audio legend on `H` ✅ SHIPPED 2026-07-11
+
+> Built exactly to the design below: the `H` handler sits next to the `O` handler in `main.ts`
+> (top-level keydown, every phase except hiscore where `H` is a name letter) and `announce`s
+> `STR_A11Y_LEGEND`. Both legend strings now end by advertising the key ("Press H to hear this
+> guide again."), guarded by an a11y test asserting the H mention in both languages.
 
 Blind players shouldn't have to memorise the sound code; a key lets them replay the legend
 any time. (`#sr-legend` already exists as a static, navigable region — this adds on-demand

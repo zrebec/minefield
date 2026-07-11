@@ -153,6 +153,14 @@ describe('a11y live regions', () => {
     expect(document.getElementById('sr-legend')!.textContent).toBe(L.STR_A11Y_LEGEND)
   })
 
+  it('the legend advertises its own replay key H in both languages (Item B discoverability)', async () => {
+    // If H ever stops being the replay key, both spoken guides must change with it.
+    const en = await import('./strings.ts')
+    const sk = await import('./strings.sk.ts')
+    expect(en.STR_A11Y_LEGEND).toMatch(/\bH\b/)
+    expect(sk.STR_A11Y_LEGEND).toMatch(/\bH\b/)
+  })
+
   it('every DOM write is guarded — no throw when the regions are absent', () => {
     document.body.innerHTML = ''
     expect(() => { announce('x'); status('y'); setLegend('z') }).not.toThrow()

@@ -62,7 +62,7 @@ export const STR_FRIENDLY = '** PRIESKUM **'                // 14 znakov (spriat
 export const STR_A11Y_LEGEND =
   'Zvukový sprievodca. Jemný krok znamená, že si prešiel bezpečne. Opakované pípanie znamená, že živé míny ' +
   'sú hneď vedľa teba — viac a rýchlejšie pípanie znamená viac mín, ale nie kde sú: pohni sa a počúvaj ' +
-  'znova, aby si smer odvodil. Buchot je výbuch: stúpil si na mínu.'
+  'znova, aby si smer odvodil. Buchot je výbuch: stúpil si na mínu. Stlač H a sprievodcu si vypočuješ znova.'
 
 export const STR_A11Y_SAFE = 'Čisto.'
 export const STR_A11Y_ADJ = (n: number) =>

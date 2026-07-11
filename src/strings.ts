@@ -84,7 +84,7 @@ export const STR_FRIENDLY = '**  RECON  **'
 export const STR_A11Y_LEGEND =
   'Sound guide. A soft footstep means you moved safely. Repeated beeps mean live mines are right next to ' +
   'you — more and faster beeps mean more mines, but not where they are: move and listen again to work out ' +
-  'the direction. A burst of noise is an explosion: you stepped on a mine.'
+  'the direction. A burst of noise is an explosion: you stepped on a mine. Press H to hear this guide again.'
 
 export const STR_A11Y_SAFE = 'Clear.'
 export const STR_A11Y_ADJ = (n: number) => `${n} ${n === 1 ? 'mine' : 'mines'} next to you.`

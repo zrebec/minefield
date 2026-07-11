@@ -81,7 +81,8 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    it read as a danger warning without adjacent danger, and a radius-1 variant would gut triangulation.
    Replaced by **blind orientation (was "option C"): ✅ SHIPPED 2026-07-09** — `E` speaks the exit
    bearing, `G` the nearest gem + count, plus a start/resume summary ("22 right, 3 up"), parity not
-   assist. See `docs/accessibility-orientation.md`. Left: **legend replay on `H`** (small).
+   assist. See `docs/accessibility-orientation.md`. **Legend replay on `H`: ✅ SHIPPED 2026-07-11**
+   (Item B — every screen except hiscore name entry; the legend advertises the key, test-guarded).
 6. **Screen-reader support** — ARIA live regions wired 2026-07-05 (`describeStep` per-step sentence,
    run/level/life/game-over status). **No built-in TTS (decided 2026-07-11):** the game mirrors
    everything that matters into the DOM live regions and the player's screen reader does the speaking —
