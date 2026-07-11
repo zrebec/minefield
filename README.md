@@ -17,12 +17,6 @@
 
 **Live:** GitHub Pages · auto-released via semantic-release on push to `main`.
 
-> **CI note (2026-07-03):** GitHub Pages deploys require `actions/upload-pages-artifact@v5+` and
-> `actions/deploy-pages@v5+`. The Pages backend started rejecting v3-era artifacts on 2026-07-03 —
-> the deploy fails seconds after creation with a generic *"Deployment failed, try again later"*
-> while build and tests stay green (it cost us five failed deploys of 0.48.0). If a Pages deploy
-> ever fails like that, check these two action versions FIRST. Details: `docs/known-issues.md`.
-
 ## Screenshots
 
 <p align="center">
@@ -46,8 +40,9 @@
 | Stack | TypeScript · Vite · Canvas · Web Audio · zx-kit |
 | Native resolution | 256×192 (integer ×4) |
 | Runtime dependencies | `zx-kit` only |
-| Tests | 341 (Vitest) |
-| Last verified | 2026-07-03 |
+
+*(Current status, test counts and the road to 1.0 live in [ROADMAP.md](ROADMAP.md) — the single
+source of truth for project state.)*
 
 ---
 
@@ -136,7 +131,7 @@ window — daily until v1.0) or on demand via `I`. During it, **any key** finish
 advances / skips.
 
 > Why `D` and `O`? Browsers reserve most "obvious" debug chords (`F12`, `Ctrl+Shift+B`, `F3`), so
-> game-local single letters are used instead. `D` reveals mines (a gameplay scouting aid, idle only);
+> game-local single letters are used instead. `D` reveals mines (a budgeted gameplay scouting aid);
 > `O` toggles the performance overlay (a dev aid, any time). zx-kit's `Ctrl+Shift+B` and gamepad **Y**
 > still map to the mine-reveal debug too.
 
@@ -199,128 +194,42 @@ and take calculated risks on the rest.
 
 ### Gems (12 per level: 3 red · 6 cyan · 1 gold · 2 green)
 
-Every gem grants **+1000 score** and a **colour-specific time bonus**. Red, cyan and gold also have a
-special function; green is collect-only for now (its special is an open design decision — see the roadmap).
+Every gem grants **+1000 score** and a **colour-specific time bonus** — and every colour has a
+special function:
 
 | Gem | Time | Special |
 |-----|------|---------|
 | 🔵 cyan | +0:00 | **3 collected = permanently reveal one live mine** (seeded; visible even at night) |
-| 🟢 green | +0:05 | collect-only for now (special undecided — see [Roadmap](ROADMAP.md)) |
+| 🟢 green | +0:05 | **2 collected = summon the friendly recon plane** — it sweeps one seeded row and permanently reveals every live mine in it (if one is already flying, the gems are kept and spent on the next pickup) |
 | 🔴 red | +0:10 | **2 collected = +1 life** |
 | 🟡 gold | +0:30 | rare; **+5000 score bonus** on top of the flat +1000 |
 
 Rarer gems give more time (cyan is the most common, so it gives none). Inventory shows on the first
 HUD row (1:1 sprites, cap 32); a full backpack leaves a gem on the field — and grants no time.
 
-### Aircraft
+### Aircraft — two planes, two sides
 
-Every few dozen seconds an aircraft crosses the screen (~3 s) and drops **3–10 new mines** on
-unvisited, non-building cells. The status bar blinks `** AIRCRAFT **`; the engine sound is
-LFO-modulated for an authentic drone.
-
----
-
-## Technical highlights
-
-- **Authentic colour clash** — each 8×8 cell has one ink + paper; stepping onto a cell flips the
-  whole block. Because everything is grid-aligned, clash works *for free* here.
-- **ROM bitmap font** — `zx-kit/font` 8×8 glyphs drawn pixel-by-pixel (no CSS fonts / `fillText`).
-- **Web Audio square wave** — warnings/fanfares via `playPattern`; aircraft uses an LFO drone.
-- **`setupCanvas(canvas, 4)`** — 256×192 game pixels → 1024×768, `ctx.scale(4,4)`; CSS handles
-  responsive display. `curveDisplay()` adds CRT curvature; `drawScanlines()` the scanline overlay.
-- **6-row HUD** — the bottom 6 cell-rows are the HUD (playfield is the top 32×18), one concern per
-  row: backpack · timer · score+detector · mines+level · day/night · lives+random-tag.
-- **Save** — `zx-kit/save`, **version 5** (the v4→v5 bump came with the perimeter fence: a v4 map has
-  open edge columns and no exit gap, so its semantics no longer match — it's cleanly rejected and the
-  game falls back to the title screen). Round-trips map, lives, score, inventory, revealed mines,
-  day/night, seed, the **exit row**, **and the remaining time** — so a reload resumes exactly.
-- **Custom key-repeat + gamepad** via `zx-kit/input` (immediate → 150 ms delay → 80 ms repeat).
-- **TV border** via `document.body` background, state-driven (blue intro / black play / green level /
-  red game over) + `flashBorder()` for explosions.
-- **TileMap** (`zx-kit`) holds ground/mine/gem/visited/flag/building tiles; `findById('mine')` powers
-  both the reveal debug and the planned Action Replay.
-- **Buildings & fix-trap rule** — high-angle buildings are solid, mine-free boxes (see
-  [`docs/buildings.md`](docs/buildings.md)); `fixObstacleTraps()` guarantees you never face
-  *obstacle ahead + mines on both sides* around any solid obstacle — buildings **and the fence**.
-- **Perimeter fence & always-guaranteed solvability** — a solid wall encloses the left/right edges with
-  one entry gap (start row) and one exit gap (a seeded row kept ≥ `MIN_ENTRY_EXIT_ROW_GAP` apart). At
-  **generation** a flood-fill (`isFieldSolvable`) proves a full safe entry→exit route, deterministically
-  regenerating per seed if a board ever seals the exit off — and if **every** reroll stays sealed (raw
-  unsolvability reaches ~90% per attempt at L4+ densities, so it happens: measured ~0.7% of L4+ fields
-  before the fix), a deterministic **carve repair** defuses the mines on one shortest route, making
-  solvability a construction guarantee (fixed 2026-07-03; see `docs/known-issues.md`). At **runtime**,
-  the **aircraft is guarded too**: every airdrop runs the same flood-fill and discards any mine that
-  would cut the last safe route (the drop just doesn't happen — a pass can place 0 mines). Combined
-  with the invariant that mines never land on the player's `visited` trail, the field is winnable
-  under all circumstances. Covered by solvability tests (300 seeded + 100 random fields; 40 seeds × 8
-  airplane passes; named carve-repair regressions) plus structure/determinism/movement-funnel tests.
-- **Debug overlay** — `zx-kit/debug` (`createDebugMonitor` / `beginFrame` / `endFrame` /
-  `sampleDebug` / `drawDebugOverlay`); toggled with `O`. Shows FPS, frame ms, JS CPU load, and
-  custom fields (phase, run state, level, mine count). Minefield is zx-kit's first `debug` consumer.
+- **The red enemy bomber**: every few dozen seconds it crosses the screen (~3 s) and drops
+  **3–10 new mines** on unvisited, non-building cells (never on your trail, and never a mine
+  that would seal the field). The status bar blinks `** AIRCRAFT **`; the engine sound is
+  LFO-modulated for an authentic drone.
+- **The white friendly recon plane**: your reward for **2 green gems**. It sweeps one seeded row
+  and **permanently reveals every live mine in it** (visible even at night). Its row and direction
+  are purely seeded, so the N-th recon pass is identical for every player of a daily.
 
 ---
 
-## Code architecture
+## Under the hood
 
-```
-src/
-├── config.ts      ← all tunable game parameters (levels, gems, buildings, timings)
-├── constants.ts   ← technical constants: resolution, palette re-export from zx-kit
-├── font.ts        ← re-export of the ZX ROM font from zx-kit
-├── sprites.ts     ← all sprites as Uint8Array (8×8 px)
-├── audio.ts       ← Web Audio engine: warnings, explosion, fanfare, aircraft; + per-card story-intro AY score + typewriter tick
-├── input.ts       ← wrapper over zx-kit input (key-repeat config + game keys)
-├── game.ts        ← GameState, TileMap, minefield/gem/building generation, daily seed
-├── player.ts      ← movement, collision, flag, respawn, scoring, gem pickup
-├── airplane.ts    ← aircraft timer, animation, mine drop
-├── intro.ts       ← "The Strip" story intro: typewriter state machine + hand-drawn establishing shot
-├── renderer.ts    ← canvas rendering: TileMap, sprites, HUD, detector, overlays
-├── save.ts        ← zx-kit save profile wiring
-└── main.ts        ← game loop (requestAnimationFrame), phase switching ('story'→'intro'→'ingame'), debug overlay
-```
-
-**Dependencies:** `zx-kit@^0.36.0` only — everything else is the Web Platform.
-
-**Local dev:**
-```bash
-npm install
-npm run dev      # http://localhost:5173
-npm run build    # production build → dist/
-npm test         # unit tests (Vitest) — 345 tests
-npm run smoke    # browser smoke test (Playwright; run AFTER npm run build) — boots the real
-                 # bundle: title/ARIA → random run → flag → night → save → reload → resume
-npm run capture  # refresh docs/img screenshots (Playwright)
-```
-
----
-
-## zx-kit Features Used
-
-| zx-kit module | How Minefield uses it |
-|---|---|
-| `renderer` / `font` | canvas setup (×4), ROM bitmap font, sprites, scanlines, CRT curvature |
-| `tilemap` | the playfield (ground/mine/gem/visited/flag/fence/building tiles) |
-| `audio` | square-wave warnings/fanfares, aircraft drone; built-in `+`/`-` volume + HUD bar |
-| `music` / `ay` | the **per-card story-intro score** (`seq` + `playAYLoop`, 3 voices + envelopes) — the only AY use; gameplay is pure beeper |
-| `input` | key-repeat + gamepad; built-in `+`/`-` volume keys |
-| `save` | typed save/load with versioning (v5) |
-| `rng` | seeded `mulberry32` for the daily field and airplane behaviour |
-| `debug` | FPS/CPU overlay (Minefield is zx-kit's first `debug` consumer) |
-
-## Current State
-
-| Area | State | Notes |
-|---|---|---|
-| Core loop | Complete | cross → levels → highscore → save |
-| Fence + solvability | Complete | winnable under all circumstances (generation + airdrop guard + carve repair, 2026-07-03) |
-| Story + intro | **Done (music tuning pending)** | 5-chapter typewriter intro + per-card AY score + 5 hand-drawn scenes + chapter titles; music tuned by ear |
-| Save / load | Complete | version 5; auto-resume; cleared on game over |
-| Tests | 380 | seeded solvability + property tests; + intro/audio + a11y contract coverage |
-| Accessibility | In progress | visual detector done; **ARIA live regions + spoken step/status/orientation shipped**; TTS voice + beacon next (v1.0 scope) |
-| Visuals | Readable | screenshots may be refreshed to show the fence + intro |
+Colour-clash-correct rendering, the density-based mine budget, the perimeter fence with an
+always-guaranteed solvable route (flood-fill proof + deterministic carve repair + guarded
+airdrops), the two-plane seeded sky, the v5 save format and the full module map live in
+[docs/architecture.md](docs/architecture.md). Deep dives: [buildings](docs/buildings.md) ·
+[generation density](docs/generation-density.md) · [known issues](docs/known-issues.md).
 
 ## Related Links
 
+- [docs/architecture.md](docs/architecture.md) — technical highlights, module map, local dev
 - [AGENTS.md](AGENTS.md) — permanent agent rules
 - [CLAUDE.md](CLAUDE.md) — execution guide / architecture
 - [ROADMAP.md](ROADMAP.md) — live backlog
@@ -341,10 +250,12 @@ deaf players.** Not "compatible" — playable, start to finish, including the me
   per-step danger sentence (adjacent count + beacon), run/level/life/game-over status, and — on
   demand — **orientation**: press `E` for the exit's bearing, `G` for the nearest gem, with a summary
   on run start ("22 right, 3 up" relative distances, parity with what a sighted player scouts). Canvas
-  labelling + live document `lang` landed 2026-07-03; the game is fully keyboard-driven. Still coming
-  for v1.0: a **TTS voice** over the same message formatter, an **exit beacon** tone, the rest of the
-  **shell** (title, pause, high-score entry, intro announced), and an **assist-mode** flag. *(A
-  directional stereo mine compass was tried and reverted — it read as danger without danger; see
+  labelling + live document `lang` landed 2026-07-03; the game is fully keyboard-driven. The voice is
+  deliberately **your screen reader's**, not ours: everything that matters on the canvas is mirrored
+  into the DOM live regions, which is the screen reader's native ground (decided 2026-07-11; no
+  built-in TTS). Still coming for v1.0: an **exit beacon** tone, the rest of the **shell** (title,
+  pause, high-score entry, intro announced), and an **assist-mode** flag. *(A directional stereo mine
+  compass was tried and reverted — it read as danger without danger; see
   `docs/accessibility-orientation.md`.)*
 
 An audio-first "playable blind" deductive traversal is an under-served niche — this is the

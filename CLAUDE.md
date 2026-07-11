@@ -122,10 +122,14 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   info would gut triangulation (the core puzzle; the timer exists as its anti-cheese) and give blind
   players MORE than sighted ones. The infra above stayed; only the signal was cut (`git show e88cca5`
   has the old code). Deep write-up: `retro/docs/sk/minefield.md` §5.
+- **No built-in TTS (decided 2026-07-11).** The game never calls `SpeechSynthesis` — it mirrors
+  canvas state into the ARIA live regions and the player's screen reader does the speaking. Do not
+  propose TTS; revisit only if the September playtest with a real screen-reader user shows
+  live-region latency hurts real-time play.
 - **Still to wire (ROADMAP P1):** legend replay on `H` (Item B — the last small orientation piece,
-  spec'd in `docs/accessibility-orientation.md`), TTS over the same message formatter that feeds the
-  live regions, exit beacon, assist-mode flag, and the **shell**: title, pause pages, high-score letter
-  entry and intro must all be announced — "fully playable" covers menus, not just the field.
+  spec'd in `docs/accessibility-orientation.md`), exit beacon, assist-mode flag, and the **shell**:
+  title, pause pages, high-score letter entry and intro must all be announced — "fully playable"
+  covers menus, not just the field.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 

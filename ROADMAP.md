@@ -17,15 +17,18 @@ separate track; The Strip's release does not block on extracting anything into t
 
 **Definition of done for v1.0:**
 - Story intro complete: 4 cards with bespoke hand-drawn art, copy + tempo + AY/typewriter tuned by ear.
-- Difficulty tuned (a daily L1–L2 reliably beatable) and the **green-gem** special decided.
+- Difficulty tuned (a daily L1–L2 reliably beatable); the **green-gem** special ✅ shipped 0.51.0
+  (friendly recon plane).
 - Renamed to **The Strip** (dir + GitHub repo + Pages base + README/badges/capture paths; save key stays).
 - **RULES** screen + refreshed screenshots (intro + fenced field).
-- **Accessibility moat** (option-C scope): stereo/spatial warning + screen-reader TTS + exit beacon + assist toggle.
+- **Accessibility moat** (option-C scope, updated 2026-07-11): screen-reader playability via ARIA live
+  regions (no built-in TTS — the voice is the reader's), orientation + legend keys, exit beacon,
+  sounded shell, assist toggle.
 - itch.io page live (description, art, build, controls/accessibility note); all tests green.
 
 **Committed v1.0 date: `2026-09-07`** (option C — "safe", chosen 2026-06-24). This is the **firm ship
-date**; scope is frozen to the DoD below **plus the accessibility moat** (stereo/spatial warning + TTS),
-which C buys. Guard against scope-creep — the extra weeks are for polish + playtest + a life buffer, not
+date**; scope is frozen to the DoD below **plus the accessibility moat** (screen-reader playability +
+orientation + beacon), which C buys. Guard against scope-creep — the extra weeks are for polish + playtest + a life buffer, not
 new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin polish), B `2026-08-10`
 (balanced).
 
@@ -39,8 +42,8 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Leaderboard integrity | Client-only — random runs off-board; localStorage editable ⇒ **anti-cheat = open topic** | 2026-06-29 |
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
 | Tests | 380 (Vitest) | 2026-07-09 |
-| Build / release | semantic-release → GitHub Pages (latest **0.52.0**) | 2026-07-05 |
-| Accessibility | In progress — visual detector done; **ARIA live regions + spoken step/status/orientation (`E`/`G`) shipped**; stereo compass tried & reverted; TTS voice + beacon = **v1.0 scope** | 2026-07-09 |
+| Build / release | semantic-release → GitHub Pages (latest **0.53.0**) | 2026-07-11 |
+| Accessibility | In progress — visual detector done; **ARIA live regions + spoken step/status/orientation (`E`/`G`) shipped**; stereo compass tried & reverted; **no built-in TTS (decided 2026-07-11 — screen readers own the voice)**; beacon + sounded shell = **v1.0 scope** | 2026-07-11 |
 
 ## Road to v1.0 (`2026-09-07`) — prioritised backlog
 
@@ -61,8 +64,10 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    What REMAINS for this pass: the **by-feel playtest** (timer budget, airplane pressure vs the new
    L3/L4+ counts — knobs: `MINE_DENSITY`, `acMineDrop*`, buildings) — numbers are calibrated, feel
    is the owner's call. Full analysis + risk table: [`docs/generation-density.md`](docs/generation-density.md).
-3. **Green-gem special — decide + implement.** One behaviour, data-driven in `config.ts`/`GEM_KINDS`,
-   tested. Options: time-only / "disarm a threat ahead" / shield. No combinatorial sprawl.
+3. **~~Green-gem special~~ — ✅ SHIPPED 0.51.0 (2026-07-04).** Two green gems summon the **friendly
+   recon plane**: a purely seeded row sweep that permanently reveals every live mine in it
+   (`spawnFriendlyPlane`, `GREEN_GEMS_PER_PLANE`); tested in `airplane.test.ts`. What remains is only
+   the by-feel balance check inside the difficulty pass (#2).
 4. **Confirm the jingle relocation** (now once-per-session on a direct game-start, not on first gesture) —
    quick owner sign-off.
 4b. **Decide the final `D`-reveal mode before v1.0.** Currently (2026-07-04, testing-phase): usable
@@ -78,7 +83,9 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    bearing, `G` the nearest gem + count, plus a start/resume summary ("22 right, 3 up"), parity not
    assist. See `docs/accessibility-orientation.md`. Left: **legend replay on `H`** (small).
 6. **Screen-reader support** — ARIA live regions wired 2026-07-05 (`describeStep` per-step sentence,
-   run/level/life/game-over status). **Left: a `SpeechSynthesis` (TTS) voice** over the same formatter.
+   run/level/life/game-over status). **No built-in TTS (decided 2026-07-11):** the game mirrors
+   everything that matters into the DOM live regions and the player's screen reader does the speaking —
+   revisit only if the September screen-reader playtest shows live-region latency hurts real-time play.
    **"Fully playable" covers the whole shell, not just the field** — the wiring checklist is: step
    warnings ✅ · explosion/respawn ✅ · title menu (daily/random/intro/language) · pause pages · high-score
    letter entry · game over ✅ · level/day-night/aircraft state · gem pickups + backpack.
@@ -119,6 +126,12 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
     deterrent; a mandatory field means a save **version bump v5→v6**. Effort S — schedule inside the
     P2 stabilisation block (August), with round-trip + tamper tests. **Full Action Replay** (seed +
     timed inputs → server-less score verification) remains the real lever and stays **Post-1.0**.
+    **Refined 2026-07-11:** the hash chokepoint is built **once in zx-kit `save.ts`** (optional
+    `secret` in the profile → `sig` field in the envelope, sync FNV-1a, new `tampered` load reason) —
+    Minefield adopts it via the v5→v6 bump instead of rolling its own, and every other game (plus the
+    planned zx-kit hiscore module) gets it for free. A salt derived from in-save values (player X,Y)
+    was considered and rejected: every input is visible to the cheater anyway, and it complicates
+    debugging without adding deterrence.
 
 ## Post-1.0 / Deferred (NOT in v1.0 — protects the freeze)
 
@@ -160,6 +173,8 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 | 2026-07-03 | Respawn keeping `runState='running'` (no idle re-scout, timer keeps ticking) = **intended death penalty** | Death costs you the scout — deliberate; document it on the future RULES screen so it reads as a rule, not a bug |
 | 2026-07-03 | Anti-cheat v1.0 = **integrity hash (hash + salt) on saves AND high-score entries**, save v5→v6; full Action Replay stays Post-1.0 | Deterrent-grade: raises cheating cost well above editing localStorage by hand; era-appropriate; effort S in the August stabilisation block |
 | 2026-07-09 | Blind help is **orientation (exit/gem bearing), not a directional danger cue** — the stereo compass was reverted for reading as danger without danger | A density direction has low action value and collides with the sonar's meaning; a per-direction danger cue would gut triangulation. Exit/gem bearings are parity (sighted players scout them) without touching the puzzle |
+| 2026-07-11 | **No built-in TTS** — dropped from the v1.0 moat; the game mirrors canvas state into ARIA live regions and the player's screen reader speaks | Speaking is the reader's job, not the game's; the infra already ships. Revisit only if the September playtest with a real screen-reader user shows live-region latency hurts real-time play |
+| 2026-07-11 | **Integrity hash builds in zx-kit save envelope**, not per-game (optional `secret` → `sig`, FNV-1a, `tampered` load reason); X,Y-derived salt rejected | One chokepoint every game inherits (incl. the planned kit hiscore module); in-save salts are visible to the cheater anyway and only complicate debugging |
 
 ## Dropped / Archived
 
@@ -174,6 +189,7 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 |---|---|
 | 2026-07-09 | **Blind orientation (Item C)** — `E` = exit bearing, `G` = nearest gem + count, start/resume summary ("22 right, 3 up"); parity not assist (no leaderboard flag); 380 tests, verified live in headless Chromium. Replaces the reverted stereo compass |
 | 2026-07-05 | **Directional mine compass (0.52.0) tried, then reverted** — density compass read as danger without danger; the ARIA infra it introduced (live regions, `describeStep`, status lines) stayed and now carries orientation |
+| 2026-07-04 | **Green-gem special shipped (0.51.0)** — two green gems summon the friendly white recon plane: seeded row sweep, permanently reveals its live mines; the enemy plane turned red to make room |
 | 2026-07-03 | **Solvability became a construction guarantee** — `carveSafePath` repairs the rare board where all 64 rerolls stay sealed (~0.7% of L4+ fields, seeded dailies included, was shipping unwinnable); deterministic, covered by named regressions + a 9 000-field sample |
 | 2026-07-03 | Accessibility skeleton — ARIA live regions + canvas labelling in `index.html` (guarded by a new a11y contract test suite), `<title>` → THE STRIP, live document `lang` synced by `setLocale()`; the four v1.0 decisions recorded (title, public promise, respawn-by-design, integrity hash) |
 | 2026-06-30 | Intro story rewrite (5 dramatic chapters) + per-card AY score (lament → funeral dirge → Ode to Joy) + book-style chapter titles + all 5 hand-drawn scenes |
