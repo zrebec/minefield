@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
-import { loadHighScores, saveHighScore, isHighScore, type HighScoreEntry } from './highscore.ts'
-import { STR_HIGH_SCORE_LINE } from './strings.ts'
+import { loadHighScores, saveHighScore, isHighScore, type HighScoreEntry } from '../src/highscore.ts'
+import { STR_HIGH_SCORE_LINE } from '../src/strings.ts'
 
 // zx-kit hiscore storage: one signed envelope slot per table.
 const TABLE_KEY = 'zxkit:minefield-hiscore:hiscore'

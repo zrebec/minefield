@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
-import { createGame, cellKey, INVENTORY_CAP, type GameState } from './game.ts'
-import { C, COLS, ROWS } from './constants.ts'
+import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from '../src/player.ts'
+import { createGame, cellKey, INVENTORY_CAP, type GameState } from '../src/game.ts'
+import { C, COLS, ROWS } from '../src/constants.ts'
 import {
   START_COL,
   SCORE_PER_CELL, SCORE_MULTIPLIERS,
@@ -10,11 +10,11 @@ import {
   GREEN_GEMS_PER_PLANE,
   DAY_STEPS, NIGHT_STEPS,
   WALK_DURATION_MS,
-} from './config.ts'
-import type { Direction } from './input.ts'
-import { makeTileGround, makeTileMine, makeTileVisited, makeTileGem, makeTileFence, TILE_EXPLODED, type TerrainType } from './sprites.ts'
+} from '../src/config.ts'
+import type { Direction } from '../src/input.ts'
+import { makeTileGround, makeTileMine, makeTileVisited, makeTileGem, makeTileFence, TILE_EXPLODED, type TerrainType } from '../src/sprites.ts'
 
-vi.mock('./audio.ts', () => ({
+vi.mock('../src/audio.ts', () => ({
   playWarning: vi.fn(),
   playExplosion: vi.fn(),
   playGemCollect: vi.fn(),

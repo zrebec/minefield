@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, cellKey, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from './game.ts'
-import { movePlayer } from './player.ts'
-import { createBuilding, placeBuildings, type BuildingBox } from './buildings.ts'
-import { C, COLS, ROWS } from './constants.ts'
-import { GEM_COUNT, BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS, LEVEL_CONFIGS, atLevel } from './config.ts'
-import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, makeTileFence, TILE_EXPLODED, type TerrainType } from './sprites.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, cellKey, tryToggleReveal, tickTimer, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from '../src/game.ts'
+import { movePlayer } from '../src/player.ts'
+import { createBuilding, placeBuildings, type BuildingBox } from '../src/buildings.ts'
+import { C, COLS, ROWS } from '../src/constants.ts'
+import { GEM_COUNT, BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS, LEVEL_CONFIGS, atLevel } from '../src/config.ts'
+import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, makeTileFence, TILE_EXPLODED, type TerrainType } from '../src/sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
 

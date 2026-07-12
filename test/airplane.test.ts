@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { spawnFriendlyPlane, updateFriendlyPlane, updateAirplane } from './airplane.ts'
-import { createGame, type GameState, type MineType, type AirplaneState } from './game.ts'
-import { AIRPLANE_ROW_MIN, AIRPLANE_ROW_MAX, AIRPLANE_CROSS_MS } from './config.ts'
-import { COLS, ROWS, CELL, CANVAS_W } from './constants.ts'
-import { makeTileGround, makeTileMine } from './sprites.ts'
+import { spawnFriendlyPlane, updateFriendlyPlane, updateAirplane } from '../src/airplane.ts'
+import { createGame, type GameState, type MineType, type AirplaneState } from '../src/game.ts'
+import { AIRPLANE_ROW_MIN, AIRPLANE_ROW_MAX, AIRPLANE_CROSS_MS } from '../src/config.ts'
+import { COLS, ROWS, CELL, CANVAS_W } from '../src/constants.ts'
+import { makeTileGround, makeTileMine } from '../src/sprites.ts'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

@@ -10,12 +10,12 @@ import { describe, it, expect, beforeEach } from 'vitest'
 // transform pipeline and typechecks via the vite/client reference in env.d.ts,
 // with no need for node fs types in a browser-game tsconfig.
 import html from '../index.html?raw'
-import { STR_TITLE } from './strings.ts'
-import { getLocale, L } from './lang.ts'
-import { announce, status, setLegend, describeStep, describeExit, describeGems, describeOrientation } from './a11y.ts'
-import { createGame, type GameState } from './game.ts'
-import { makeTileGround, makeTileMine, makeTileGem } from './sprites.ts'
-import { COLS, ROWS } from './constants.ts'
+import { STR_TITLE } from '../src/strings.ts'
+import { getLocale, L } from '../src/lang.ts'
+import { announce, status, setLegend, describeStep, describeExit, describeGems, describeOrientation } from '../src/a11y.ts'
+import { createGame, type GameState } from '../src/game.ts'
+import { makeTileGround, makeTileMine, makeTileGem } from '../src/sprites.ts'
+import { COLS, ROWS } from '../src/constants.ts'
 
 const doc = new DOMParser().parseFromString(html, 'text/html')
 
@@ -155,8 +155,8 @@ describe('a11y live regions', () => {
 
   it('the legend advertises its own replay key H in both languages (Item B discoverability)', async () => {
     // If H ever stops being the replay key, both spoken guides must change with it.
-    const en = await import('./strings.ts')
-    const sk = await import('./strings.sk.ts')
+    const en = await import('../src/strings.ts')
+    const sk = await import('../src/strings.sk.ts')
     expect(en.STR_A11Y_LEGEND).toMatch(/\bH\b/)
     expect(sk.STR_A11Y_LEGEND).toMatch(/\bH\b/)
   })

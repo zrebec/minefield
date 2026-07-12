@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { writeSave, readSaveLatest } from 'zx-kit'
-import { saveProfile, setStateGetter } from './save.ts'
-import { createGame, cellKey } from './game.ts'
-import { makeTileMine, makeTileGround, makeTileVisited } from './sprites.ts'
+import { saveProfile, setStateGetter } from '../src/save.ts'
+import { createGame, cellKey } from '../src/game.ts'
+import { makeTileMine, makeTileGround, makeTileVisited } from '../src/sprites.ts'
 
 function cellVariant(col: number, row: number): 'a' | 'b' {
   return (col + row) % 2 === 0 ? 'a' : 'b'

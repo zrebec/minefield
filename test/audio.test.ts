@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
+import { startIntroMusic, stopIntroMusic, playTypeClick } from '../src/audio.ts'
 
 // The intro audio is NEW (AY underscore + typewriter tick) and must honour the
 // same silent-guard contract as the rest of audio.ts: safe to call before

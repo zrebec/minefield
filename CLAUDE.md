@@ -79,6 +79,8 @@ src/
 ├── highscore.ts   # zx-kit hiscore adoption: level+date extras, auto-dating, 3-char names, legacy migration
 ├── strings.ts / strings.sk.ts / lang.ts   # i18n packs (incl. STR_STORY_CARDS); L on the title cycles EN/SK
 └── main.ts        # game loop, phase switching, debug overlay (finishFrame helper)
+
+test/              # all *.test.ts live here (out of src/), import product code via ../src/*.ts
 ```
 
 ## Important State Models

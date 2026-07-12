@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { createGame, type GameState } from './game.ts'
-import { movePlayer, tickPlayer } from './player.ts'
-import { createStoryState, stepStory } from './intro.ts'
-import { L } from './lang.ts'
-import { START_COL, TIMER_BASE_MS, WALK_DURATION_MS, MS_PER_CHAR, CARD_HOLD_MS } from './config.ts'
+import { createGame, type GameState } from '../src/game.ts'
+import { movePlayer, tickPlayer } from '../src/player.ts'
+import { createStoryState, stepStory } from '../src/intro.ts'
+import { L } from '../src/lang.ts'
+import { START_COL, TIMER_BASE_MS, WALK_DURATION_MS, MS_PER_CHAR, CARD_HOLD_MS } from '../src/config.ts'
 
 // Race-free run start — the two logic gates behind the smoke test's `runStarted`
 // check (scripts/smoke.mjs). That check once read false; the smoke harness was

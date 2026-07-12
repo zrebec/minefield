@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import * as en from './strings.ts'
-import * as sk from './strings.sk.ts'
-import { CONTROLS, GEM_TIME_BONUS_MS } from './config.ts'
-import { GEM_KINDS } from './game.ts'
+import * as en from '../src/strings.ts'
+import * as sk from '../src/strings.sk.ts'
+import { CONTROLS, GEM_TIME_BONUS_MS } from '../src/config.ts'
+import { GEM_KINDS } from '../src/game.ts'
 
 // Guards the CONTROLS / gems single source against i18n drift: add a control or a
 // gem kind and forget its wording, and one of these fails instead of rendering blank.

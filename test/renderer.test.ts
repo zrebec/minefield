@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { hiddenAtNight } from './renderer.ts'
-import { C } from './constants.ts'
-import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileFence, TILE_EXPLODED } from './sprites.ts'
+import { hiddenAtNight } from '../src/renderer.ts'
+import { C } from '../src/constants.ts'
+import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileFence, TILE_EXPLODED } from '../src/sprites.ts'
 
 // The contract behind renderFrame's night overlay: what may the night hide?
 // Flags are deliberately ABSENT from this predicate — they live in state.flags

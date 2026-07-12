@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
-import { L, getLocale, setLocale, cycleLocale } from './lang.ts'
-import * as en from './strings.ts'
-import * as sk from './strings.sk.ts'
+import { L, getLocale, setLocale, cycleLocale } from '../src/lang.ts'
+import * as en from '../src/strings.ts'
+import * as sk from '../src/strings.sk.ts'
 
 // jsdom provides localStorage. lang.ts is a singleton module (imported once
 // for this whole file) so its *initial* resolution — read here before any
