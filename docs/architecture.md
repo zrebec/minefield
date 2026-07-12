@@ -35,9 +35,11 @@ npm run capture  # refresh docs/img screenshots (Playwright)
   responsive display. `curveDisplay()` adds CRT curvature; `drawScanlines()` the scanline overlay.
 - **6-row HUD** — the bottom 6 cell-rows are the HUD (playfield is the top 32×18), one concern per
   row: backpack · timer · score+detector · mines+level · day/night · lives+random-tag.
-- **Save** — `zx-kit/save`, **version 5** (the v4→v5 bump came with the perimeter fence: a v4 map has
+- **Save** — `zx-kit/save`, **version 6** (the v4→v5 bump came with the perimeter fence: a v4 map has
   open edge columns and no exit gap, so its semantics no longer match — it's cleanly rejected and the
-  game falls back to the title screen). Round-trips map, lives, score, inventory, revealed mines,
+  game falls back to the title screen; **v5→v6 added the anti-cheat envelope signature** — every write
+  carries a FNV-1a `sig`, so a hand-edited save loads as `tampered`; deterrent-grade, the secret ships
+  in the bundle). Round-trips map, lives, score, inventory, revealed mines,
   day/night, seed, the **exit row**, **and the remaining time** — so a reload resumes exactly.
 - **Custom key-repeat + gamepad** via `zx-kit/input` (immediate → 150 ms delay → 80 ms repeat).
 - **TV border** via `document.body` background, state-driven (blue intro / black play / green level /
@@ -87,7 +89,8 @@ src/
 ├── airplane.ts    ← both aircraft: enemy bomber (timer, mine drop) + friendly recon plane (green-gem reward)
 ├── intro.ts       ← "The Strip" story intro: typewriter state machine + 5 hand-drawn scenes
 ├── renderer.ts    ← canvas rendering: TileMap, sprites, HUD, detector, night, overlays
-├── save.ts        ← zx-kit save profile wiring (version 5)
+├── save.ts        ← zx-kit save profile wiring (version 6, signed envelope)
+├── highscore.ts   ← zx-kit hiscore adoption: level+date extras, auto-dating, legacy-table migration
 ├── strings.ts / strings.sk.ts / lang.ts ← i18n packs (EN/SK) + runtime locale switch
 └── main.ts        ← game loop (requestAnimationFrame), phase switching ('story'→'intro'→'ingame'), debug overlay
 ```
@@ -101,7 +104,8 @@ src/
 | `audio` | square-wave warnings/fanfares, aircraft drone; built-in `+`/`-` volume + HUD bar |
 | `music` / `ay` | the **per-card story-intro score** (`seq` + `playAYLoop`, 3 voices + envelopes) — the only AY use; gameplay is pure beeper |
 | `input` | key-repeat + gamepad; built-in `+`/`-` volume keys |
-| `save` | typed save/load with versioning (v5) |
+| `save` | typed save/load with versioning (v6) + FNV-1a envelope signature (anti-cheat deterrent) |
+| `hiscore` | the local top-5 leaderboard (signed with the same secret; minefield adds level + daily date) |
 | `rng` | seeded `mulberry32` for the daily field and both aircraft |
 | `i18n` | EN/SK string packs, runtime `L` switch |
 | `debug` | FPS/CPU overlay (Minefield is zx-kit's first `debug` consumer) |

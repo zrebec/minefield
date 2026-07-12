@@ -9,7 +9,7 @@
 
 - **Type:** browser game (single-page, static Vite bundle).
 - **Player fantasy:** cross a blind minefield by listening; an aircraft keeps dropping more.
-- **Stack:** Vanilla TypeScript · Vite · HTML5 Canvas · Web Audio API, on **`zx-kit@^0.36.0`** (only dep).
+- **Stack:** Vanilla TypeScript · Vite · HTML5 Canvas · Web Audio API, on **`zx-kit@^0.38.0`** (only dep).
 - **Release:** semantic-release on push to `main` (app pattern, `npmPublish: false`) → build → GitHub Pages.
   **Pages actions must stay `upload-pages-artifact@v5+` / `deploy-pages@v5+`** — the Pages backend
   rejects v3-era artifacts since 2026-07-03 (generic "Deployment failed, try again later", no
@@ -25,7 +25,7 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (381 tests)
+npm test          # Vitest (389 tests)
 npm run build     # dist/
 npm run smoke     # browser smoke test over dist/ (Playwright; run after build, before a release)
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
@@ -75,7 +75,8 @@ src/
 ├── airplane.ts    # aircraft timer, animation, mine drop (calls addDropMinesInBand)
 ├── intro.ts       # "The Strip" intro: stepStory machine + typewriter + 5 hand-drawn scenes (8×8) + chapter titles + isIntroDue/markIntroSeen (seen-gate)
 ├── renderer.ts    # TileMap, sprites, HUD, detector, night, overlays
-├── save.ts        # zx-kit save profile wiring (version 5)
+├── save.ts        # zx-kit save profile wiring (version 6, signed envelope)
+├── highscore.ts   # zx-kit hiscore adoption: level+date extras, auto-dating, 3-char names, legacy migration
 ├── strings.ts / strings.sk.ts / lang.ts   # i18n packs (incl. STR_STORY_CARDS); L on the title cycles EN/SK
 └── main.ts        # game loop, phase switching, debug overlay (finishFrame helper)
 ```
@@ -228,10 +229,17 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
   non-building cells, **solvability-guarded**, columns **forward-biased** (`max` of two seeded draws).
   `airplanePassIndex` drives the seeded `:pass`/`:drop`/`:next` seeds and is persisted.
 - **Audio:** square-wave warnings/fanfares (`playPattern`), explosion noise, aircraft LFO drone, `+`/`-`.
-- **Save (`save.ts` + zx-kit `save`) — version 5**, 1 char/cell (`#` = fence). `auto` (from L1 + each
+- **Save (`save.ts` + zx-kit `save`) — version 6**, 1 char/cell (`#` = fence). `auto` (from L1 + each
   level start) + `manual` (`SHIFT+S`); auto-resume on launch; cleared on game over. Persists `exitRow`,
   `airplanePassIndex`, `timeLeftMs?`, inventory, revealed mines. v4→v5 came with the fence (v4 maps are
-  cleanly rejected → title).
+  cleanly rejected → title); **v5→v6 (2026-07-12) added the anti-cheat envelope sig** — `SAVE_SECRET`
+  (config.ts) signs run saves AND the hiscore table (FNV-1a, deterrent-grade); edited or unsigned-v5
+  envelopes load as `tampered` → title.
+- **High scores (`highscore.ts` + zx-kit `hiscore`, adopted 2026-07-12):** thin policy adapter — extras
+  `{level, date?}`, auto-dates undated entries, pads names to 3 chars, one-time migration of the legacy
+  raw-JSON `minefield_hiscores` key (re-signed on import). **Own profile key `minefield-hiscore`** — a
+  shared `minefield` key would let the hiscore slot shadow the auto save in `readSaveLatest`'s resume
+  check (it enumerates all slots per key). Tamper ⇒ empty table, never a crash.
 - **Input:** arrows (repeat 150→80 ms) + gamepad; `F` flag, `P` pause, `SHIFT+S` save, `+`/`-` volume.
 - **i18n:** EN/SK packs (`strings.ts`/`strings.sk.ts`). **CRT:** `curveDisplay()` + `drawScanlines()`.
 
@@ -262,7 +270,7 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
   player's position or wall-clock. (Airdrop layouts are mildly path-dependent via the `visited`-skip — the
   deliberate price of the safe-trail invariant; "identical for everyone" is soft for airdrops, "always
   winnable" is not.)
-- **Save compatibility** — schema changes that misalign the map need a version bump (v5 today); add new
+- **Save compatibility** — schema changes that misalign the map need a version bump (v6 today); add new
   fields as optional with a fallback (see `airplanePassIndex`, `exitRow`).
 - **Browser shortcut conflicts** — `D`/`O` are used because `F12`/`Ctrl+Shift+B`/`F3` are reserved.
 - **Capture router** (`scripts/capture.mjs`) only treats mines+buildings as blocked, not the fence — teach

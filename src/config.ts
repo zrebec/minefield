@@ -262,6 +262,14 @@ export const DROP_FLASH_BLINK_MS = 100
 // airplane flyover coalesces if flyovers come faster than this.
 export const AUTOSAVE_THROTTLE_MS = 5000
 
+// Envelope-signature secret (FNV-1a, deterrent-grade — ships in the bundle); signs run saves AND the hiscore table.
+export const SAVE_SECRET = 'minefield:the-strip:v1'
+
+// ── High scores ───────────────────────────────────────────────────────────────
+
+// Rows kept on the local leaderboard, best first.
+export const HISCORE_MAX_ENTRIES = 5
+
 // ── Level complete ────────────────────────────────────────────────────────────
 
 // Time to display "LEVEL COMPLETE" overlay before transitioning (ms)

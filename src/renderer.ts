@@ -3,7 +3,7 @@ import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS,
 import type { GameState, AirplaneState, FriendlyPlaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor, type Tile } from 'zx-kit'
-import { loadHighScores } from './assets/highscore.ts'
+import { loadHighScores } from './highscore.ts'
 import { L, getLocale } from './lang.ts'
 import {
   PLAYER_RIGHT_A, PLAYER_RIGHT_B,

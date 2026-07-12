@@ -4,7 +4,7 @@
 
 import { createSaveProfile, createAnimation, createTileMap, type TileMap, type SaveProfile } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
-import { GEM_COUNT, START_ROW, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS } from './config.ts'
+import { GEM_COUNT, START_ROW, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS, SAVE_SECRET } from './config.ts'
 import { type GameState, type Dir, gemColor, cellKey } from './game.ts'
 import {
   type TerrainType, type CellVariant, type BuildingPart,
@@ -286,7 +286,12 @@ export const saveProfile: SaveProfile<MinefieldSave> = createSaveProfile<Minefie
   // v5: perimeter fence (left/right walls + one entry hole and one exit hole). A v4
   // map has open edge columns and no exit hole, so its semantics no longer match —
   // cleanly rejected (version_unsupported); the game then falls back to the title.
-  version: 5,
+  // v6: envelope integrity signature (anti-cheat, ROADMAP P2) — the profile gained
+  // `secret`, so every write carries a FNV-1a `sig` and an edited payload loads as
+  // `tampered`. The map encoding is unchanged; the bump marks that v5 saves are
+  // unsigned (they're rejected as `tampered` — sig is checked before version).
+  version: 6,
+  secret: SAVE_SECRET,
   serialize: () => serializeState(getCurrentState()),
   deserialize: (data) => applyToState(getCurrentState(), data),
   // No migrate needed for v1 — add when the shape changes.

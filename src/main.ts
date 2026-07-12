@@ -8,7 +8,7 @@ import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
 import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen } from './intro.ts'
-import { isHighScore, saveHighScore } from './assets/highscore.ts'
+import { isHighScore, saveHighScore } from './highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
 import { L, cycleLocale } from './lang.ts'
 import { announce, status, setLegend, describeStep, describeExit, describeGems, describeOrientation } from './a11y.ts'
@@ -220,7 +220,7 @@ function gameLoop(timestamp: number): void {
           // Date the entry by the daily it belongs to (origin date), not wall-clock,
           // so a resumed older daily scores under its own date. Random never reaches
           // here; daily always has the prefix; undefined falls back to today.
-          saveHighScore({ name: hiName.join('').padEnd(3, ' '), score: state.score, level: state.level + 1, date: seedDate(state.dropSeedBase) ?? undefined })
+          saveHighScore({ name: hiName.join(''), score: state.score, level: state.level + 1, date: seedDate(state.dropSeedBase) ?? undefined })
           resetInput()
           appPhase = 'intro'
           setBorderColor(C.B_BLUE)

@@ -224,7 +224,7 @@ HUD row (1:1 sprites, cap 32); a full backpack leaves a gem on the field — and
 
 Colour-clash-correct rendering, the density-based mine budget, the perimeter fence with an
 always-guaranteed solvable route (flood-fill proof + deterministic carve repair + guarded
-airdrops), the two-plane seeded sky, the v5 save format and the full module map live in
+airdrops), the two-plane seeded sky, the signed v6 save format and the full module map live in
 [docs/architecture.md](docs/architecture.md). Deep dives: [buildings](docs/buildings.md) ·
 [generation density](docs/generation-density.md) · [known issues](docs/known-issues.md).
 

@@ -39,9 +39,9 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Core loop | Complete (cross → levels → highscore → save) | 2026-06-23 |
 | Fence + solvability | **Done** — winnable under all circumstances (gen + airdrop guard; **carve repair 2026-07-03** made it a construction guarantee — see known-issues) | 2026-07-03 |
 | Daily fairness | **Done** — field **and** highscore dated by the run's **origin** daily (verified 2026-06-29) | 2026-06-29 |
-| Leaderboard integrity | Client-only — random runs off-board; localStorage editable ⇒ **anti-cheat = open topic** | 2026-06-29 |
+| Leaderboard integrity | **Done (deterrent-grade)** — random runs off-board; envelope sig on saves + hiscore table (zx-kit `hiscore` adopted, save v6) — see item 16 | 2026-07-12 |
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
-| Tests | 380 (Vitest) | 2026-07-09 |
+| Tests | 389 (Vitest) | 2026-07-12 |
 | Build / release | semantic-release → GitHub Pages (latest **0.53.0**) | 2026-07-11 |
 | Accessibility | In progress — visual detector done; **ARIA live regions + spoken step/status/orientation (`E`/`G`) shipped**; stereo compass tried & reverted; **no built-in TTS (decided 2026-07-11 — screen readers own the voice)**; beacon + sounded shell = **v1.0 scope** | 2026-07-11 |
 
@@ -115,7 +115,7 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 15. **Save round-trip / version property tests** — every saved state reloads identically; old versions are
     cleanly rejected. (Guards the next save field, e.g. when heroes land Post-1.0.)
 
-### P2 — Anti-cheat (DECIDED 2026-07-03: deterrent-grade integrity hash in v1.0)
+### P2 — Anti-cheat (SHIPPED 2026-07-12: deterrent-grade integrity hash, save v6 + zx-kit hiscore)
 16. localStorage is client-editable (`zxkit:minefield:auto`; `data.score` / `data.dropSeedBase`) → the
     local leaderboard is trivially cheatable. Client-only + era-appropriate ⇒ can't be *forced*, only
     *deterred*. Defence in place: random runs never reach the board. **Decided for v1.0:** every write
@@ -133,6 +133,12 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
     planned zx-kit hiscore module) gets it for free. A salt derived from in-save values (player X,Y)
     was considered and rejected: every input is visible to the cheater anyway, and it complicates
     debugging without adding deterrence.
+    **Shipped 2026-07-12:** save profile signed + bumped v5→v6 (unsigned v5 saves load as `tampered`
+    → title); high scores moved onto the zx-kit `hiscore` module (`highscore.ts` is now a thin policy
+    adapter — level+date extras, legacy-table migration re-signs old entries) under its **own** profile
+    key `minefield-hiscore`, since `readSaveLatest`'s resume check enumerates every slot under a key.
+    One `SAVE_SECRET` in config.ts covers both. Tamper + round-trip tests in save.test.ts /
+    highscore.test.ts.
 
 ## Post-1.0 / Deferred (NOT in v1.0 — protects the freeze)
 

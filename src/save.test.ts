@@ -167,3 +167,39 @@ describe('save round-trip', () => {
     expect(loaded.comboTimer).toBe(0)
   })
 })
+
+// ── Anti-cheat: signed envelope (v6, ROADMAP P2) ─────────────────────────────
+
+describe('save integrity signature', () => {
+  it('rejects a save whose stored score was edited', () => {
+    const saved = createGame(0, 4321, 'sig-seed')
+    setStateGetter(() => saved)
+    expect(writeSave(saveProfile, 'auto').ok).toBe(true)
+
+    const raw = localStorage.getItem('zxkit:minefield:auto')!
+    localStorage.setItem('zxkit:minefield:auto', raw.replace('4321', '99999'))
+
+    const loaded = createGame(0, 0, 'sig-seed')
+    setStateGetter(() => loaded)
+    const result = readSaveLatest(saveProfile)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.reason).toBe('tampered')
+    expect(loaded.score).toBe(0)   // nothing from the edited save was applied
+  })
+
+  it('rejects a pre-v6 unsigned envelope (sig is checked before version)', () => {
+    const saved = createGame(0, 0, 'sig-seed')
+    setStateGetter(() => saved)
+    writeSave(saveProfile, 'auto')
+
+    // Strip the signature — exactly what a v5-era save looks like.
+    const envelope = JSON.parse(localStorage.getItem('zxkit:minefield:auto')!)
+    delete envelope.sig
+    envelope.version = 5
+    localStorage.setItem('zxkit:minefield:auto', JSON.stringify(envelope))
+
+    const result = readSaveLatest(saveProfile)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.reason).toBe('tampered')
+  })
+})
