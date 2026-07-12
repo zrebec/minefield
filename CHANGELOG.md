@@ -1,3 +1,10 @@
+# [0.55.0](https://github.com/zrebec/minefield/compare/v0.54.0...v0.55.0) (2026-07-12)
+
+
+### Features
+
+* **hiscore:** adopt the zx-kit hiscore module + sign saves and the table (anti-cheat, save v6) ([84719cf](https://github.com/zrebec/minefield/commit/84719cf68b455377b3db56d702112d56e667fc64))
+
 # [0.54.0](https://github.com/zrebec/minefield/compare/v0.53.0...v0.54.0) (2026-07-12)
 
 
