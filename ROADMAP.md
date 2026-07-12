@@ -41,8 +41,8 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Daily fairness | **Done** — field **and** highscore dated by the run's **origin** daily (verified 2026-06-29) | 2026-06-29 |
 | Leaderboard integrity | **Done (deterrent-grade)** — random runs off-board; envelope sig on saves + hiscore table (zx-kit `hiscore` adopted, save v6) — see item 16 | 2026-07-12 |
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
-| Tests | 389 (Vitest) | 2026-07-12 |
-| Build / release | semantic-release → GitHub Pages (latest **0.53.0**) | 2026-07-11 |
+| Tests | 490 (Vitest) — incl. run-start race battery (`runstart.test.ts`: story pre-roll always finishes + fresh game's first move always legal) | 2026-07-12 |
+| Build / release | semantic-release → GitHub Pages (latest **0.55.0**) | 2026-07-12 |
 | Accessibility | In progress — visual detector done; **ARIA live regions + spoken step/status/orientation (`E`/`G`) shipped**; stereo compass tried & reverted; **no built-in TTS (decided 2026-07-11 — screen readers own the voice)**; beacon + sounded shell = **v1.0 scope** | 2026-07-11 |
 
 ## Road to v1.0 (`2026-09-07`) — prioritised backlog

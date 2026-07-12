@@ -25,7 +25,7 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (389 tests)
+npm test          # Vitest (490 tests)
 npm run build     # dist/
 npm run smoke     # browser smoke test over dist/ (Playwright; run after build, before a release)
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
@@ -176,6 +176,10 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
 - **Perimeter fence:** solid `fence` down col 0 and the last col, each with ONE walkable gap — entry
   (seeded `startRow`, spawn) and exit (seeded `exitRow`, ≥ `MIN_ENTRY_EXIT_ROW_GAP` away). Win = cross the
   right edge through the exit gap (`movePlayer` funnels it; the rest of the wall is solid).
+  **Corollary (test-locked in `runstart.test.ts`):** from the entry cell up/down are the solid fence and
+  left is off-board, so **RIGHT is the only legal first move** — and since `createGame` guarantees
+  `isFieldSolvable`, `(1, startRow)` is always walkable, so the run's first step can never be blocked
+  (this is the logic behind the smoke test's `runStarted`).
 - **Always winnable:** generation reserves a SAFE_RADIUS box around both gaps, `fixObstacleTraps` de-traps
   buildings + fence, `isFieldSolvable` (BFS) proves a full entry→exit path (regenerating `<seed>:r<n>` if a
   board seals the exit). If **all** `MAX_FIELD_ATTEMPTS` rerolls stay sealed (raw unsolvability ≈90% per
