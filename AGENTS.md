@@ -125,6 +125,9 @@ Grid/tile collision only (no pixel masks). `Tile.solid` blocks movement (buildin
 - Every `feat`/`fix`/`perf` adds or updates tests. Every reproduced bug gets a **named regression test**.
 - Deterministic systems get **seeded** tests; solvability/generation get property tests over many seeds.
 - Run focused tests → full suite → `npm run build` before proposing a commit message.
+- **Tests live in the top-level `/test` dir** — never colocated in `src/` (which stays pure product code);
+  they import product modules via `../src/*.ts`. `tsconfig` `include` carries `test` so `tsc` type-checks
+  them; Vitest auto-discovers `**/*.test.ts`.
 
 ## Documentation Rules
 

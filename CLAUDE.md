@@ -65,7 +65,6 @@ These are non-negotiable. Each has already cost a real bug in this codebase.
 src/
 ├── config.ts      # all tunable params: LEVEL_CONFIGS, MINE_DENSITY, gems, buildings, timings, reveal/airplane consts; atLevel() per-level lookup
 ├── constants.ts   # resolution + palette re-export from zx-kit (COLS=32, ROWS=18, STATUS_ROWS=6)
-├── font.ts        # ZX ROM font re-export
 ├── sprites.ts     # all sprites + tile factories as Uint8Array (8×8); makeTileFence, etc.
 ├── audio.ts       # Web Audio: warnings, explosion, fanfare, aircraft drone, volume; + per-card intro AY score (introTrack) + typewriter tick
 ├── input.ts       # zx-kit input wrapper + game keys (D reveal, R random, SHIFT+S, SHIFT+arrow flag, +/-)
@@ -281,3 +280,8 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
 - **Browser shortcut conflicts** — `D`/`O` are used because `F12`/`Ctrl+Shift+B`/`F3` are reserved.
 - **Capture router** (`scripts/capture.mjs`) only treats mines+buildings as blocked, not the fence — teach
   it the fence before refreshing `play.png`.
+- **Tests live in `/test`, not `src/`** (moved 2026-07-12) — a colocated `src/foo.test.ts` is a
+  regression; new tests go in `test/` and import product code via `../src/*.ts` (`tsconfig` includes
+  `test`, Vitest auto-discovers `**/*.test.ts`). And don't recreate a pass-through `font.ts`: `FONT` /
+  `getCharRow` come straight from `zx-kit`, text is drawn via zx-kit's `drawText`/`drawChar`, so the game
+  never re-exports the font. Same for `src/assets/` — sprites are `Uint8Array`, no external image files.
