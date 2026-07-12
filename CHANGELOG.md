@@ -1,3 +1,10 @@
+# [0.54.0](https://github.com/zrebec/minefield/compare/v0.53.0...v0.54.0) (2026-07-12)
+
+
+### Features
+
+* **a11y:** replay the audio legend on H (Item B) ([22d8623](https://github.com/zrebec/minefield/commit/22d8623699c8be4deccd66570bee8caa43432d5f)), closes [hi#score](https://github.com/hi/issues/score)
+
 # [0.53.0](https://github.com/zrebec/minefield/compare/v0.52.0...v0.53.0) (2026-07-09)
 
 
