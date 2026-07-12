@@ -58,8 +58,16 @@ const isIngame = () => page.evaluate((h0) => {
 
 const walk = async (key) => { await page.keyboard.press(key); await page.waitForTimeout(380) }
 const dirFlag = async (arrow) => {
+  // Hold SHIFT across a few frames. The game decides flag-vs-move with a
+  // frame-polled isHeld('Shift') guard (input.ts + main.ts): releasing Shift in
+  // the same tick as the arrow makes the arrow read as MOVEMENT, not a flag — the
+  // real cause of this test's historical flakiness (not the random field; the L1
+  // flag cell is always clean ground). A human holds Shift far longer than one
+  // frame, so mirror that: keep it down around the arrow tap.
   await page.keyboard.down('Shift')
+  await page.waitForTimeout(80)
   await page.keyboard.press(arrow)
+  await page.waitForTimeout(80)
   await page.keyboard.up('Shift')
   await page.waitForTimeout(300)
 }
