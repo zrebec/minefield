@@ -1,3 +1,10 @@
+## [0.56.1](https://github.com/zrebec/minefield/compare/v0.56.0...v0.56.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* **ui:** align title high-score table into fixed columns (+room, no L: overlap) ([c6717de](https://github.com/zrebec/minefield/commit/c6717de7e3174c5bebaf5fba6ddbf78d2f9fa165))
+
 # [0.56.0](https://github.com/zrebec/minefield/compare/v0.55.0...v0.56.0) (2026-07-13)
 
 
