@@ -3,7 +3,7 @@ import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS,
 import type { GameState, AirplaneState, FriendlyPlaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor, type Tile } from 'zx-kit'
-import { loadHighScores } from './highscore.ts'
+import { loadHighScores, type HighScoreEntry } from './highscore.ts'
 import { L, getLocale } from './lang.ts'
 import {
   PLAYER_RIGHT_A, PLAYER_RIGHT_B,
@@ -383,6 +383,31 @@ const INTRO_FENCE_SKULL_BOT = new Uint8Array([
 
 // ─── Intro screen ─────────────────────────────────────────────────────────────
 
+// Title high-score table — fixed character columns (x = col*CELL) so every row
+// lines up regardless of score magnitude; the score is right-aligned to its end
+// column so the digits' units always sit under each other (Excel-style).
+const HS_COL_RANK = 2
+const HS_COL_NAME = 6
+const HS_SCORE_END = 16   // score's right edge (exclusive): x = (HS_SCORE_END - len) * CELL
+const HS_COL_LVL = 18
+const HS_COL_DATE = 25
+
+// YYYY-MM-DD → MM-DD for the table; legacy dateless entries show a fixed-width dash.
+function fmtHsDate(date?: string): string {
+  return date && date.length >= 10 ? date.slice(5) : '-----'
+}
+
+// One high-score row drawn field-by-field on fixed columns (score right-aligned),
+// so a 6-digit score and a 2-digit score share the same LVL and date columns.
+function drawHiScoreRow(ctx: CanvasRenderingContext2D, rank: number, e: HighScoreEntry, y: number): void {
+  drawText(ctx, `${rank}.`, HS_COL_RANK * CELL, y, C.WHITE, C.BLACK)
+  drawText(ctx, e.name, HS_COL_NAME * CELL, y, C.WHITE, C.BLACK)
+  const scoreStr = String(e.score)
+  drawText(ctx, scoreStr, (HS_SCORE_END - scoreStr.length) * CELL, y, C.B_WHITE, C.BLACK)
+  drawText(ctx, `LVL:${e.level}`, HS_COL_LVL * CELL, y, C.WHITE, C.BLACK)
+  drawText(ctx, fmtHsDate(e.date), HS_COL_DATE * CELL, y, C.WHITE, C.BLACK)
+}
+
 export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page: number): void {
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
@@ -413,8 +438,8 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
     }
   }
 
-  // === GREEN MINEFIELD (rows 8-11) ===
-  for (let row = 8; row <= 11; row++) {
+  // === GREEN MINEFIELD (rows 8-9 — 2 rows shorter to give the text panel air) ===
+  for (let row = 8; row <= 9; row++) {
     for (let col = 0; col < COLS; col++) {
       const isA = (col + row) % 2 === 0
       drawSprite(ctx, isA ? GROUND_A : GROUND_B, col * CELL, row * CELL,
@@ -426,10 +451,10 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
   drawSprite(ctx, PLAYER_RIGHT_A, 2 * CELL, 9 * CELL, C.B_WHITE, C.BLACK)
 
   // Mines scattered across the field
-  drawSprite(ctx, MINE, 7 * CELL, 10 * CELL, C.B_RED, C.BLACK)
-  drawSprite(ctx, MINE, 14 * CELL, 11 * CELL, C.B_RED, C.BLACK)
-  drawSprite(ctx, MINE, 19 * CELL, 10 * CELL, C.RED, C.BLACK)
-  drawSprite(ctx, MINE, 26 * CELL, 11 * CELL, C.B_RED, C.BLACK)
+  drawSprite(ctx, MINE, 7 * CELL, 8 * CELL, C.B_RED, C.BLACK)
+  drawSprite(ctx, MINE, 14 * CELL, 9 * CELL, C.B_RED, C.BLACK)
+  drawSprite(ctx, MINE, 19 * CELL, 8 * CELL, C.RED, C.BLACK)
+  drawSprite(ctx, MINE, 26 * CELL, 9 * CELL, C.B_RED, C.BLACK)
 
   // 2×2 explosion on the right — soldier stepped on a mine
   drawSprite(ctx, EXPLOSION_1, 22 * CELL, 8 * CELL, C.B_YELLOW, C.BLACK)
@@ -440,21 +465,20 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
   // Soldier fleeing right
   drawSprite(ctx, PLAYER_LEFT_A, 28 * CELL, 9 * CELL, C.B_WHITE, C.BLACK)
 
-  // === TEXT PANEL (rows 12-23) ===
+  // === TEXT PANEL (rows 10-23, with top/bottom breathing room) ===
   ctx.fillStyle = C.BLACK
-  ctx.fillRect(0, 12 * CELL, CANVAS_W, 12 * CELL)
+  ctx.fillRect(0, 10 * CELL, CANVAS_W, CANVAS_H - 10 * CELL)
 
   for (let c = 0; c < COLS; c++) {
-    drawChar(ctx, 0x2D, c * CELL, 12 * CELL, C.BLUE, C.BLACK)
+    drawChar(ctx, 0x2D, c * CELL, 10 * CELL, C.BLUE, C.BLACK)
   }
 
+  // High scores (odd pages) or the controls hint — 5 lines at rows 13-17, a blank
+  // row above (12) and below (18) for air. Scores render on fixed columns.
   const scores = loadHighScores()
   if (scores.length > 0 && page % 2 === 1) {
-    drawTextCentered(ctx, L.STR_HIGH_SCORES_HEADER, 13 * CELL, C.B_YELLOW, C.BLACK)
-    scores.forEach((e, i) => {
-      drawTextCentered(ctx, L.STR_HIGH_SCORE_LINE(i + 1, e.name, e.score, e.level, e.date),
-        (14 + i) * CELL, C.WHITE, C.BLACK)
-    })
+    drawTextCentered(ctx, L.STR_HIGH_SCORES_HEADER, 11 * CELL, C.B_YELLOW, C.BLACK)
+    scores.forEach((e, i) => drawHiScoreRow(ctx, i + 1, e, (13 + i) * CELL))
   } else {
     drawTextCentered(ctx, L.STR_CTRL_MOVE, 13 * CELL, C.WHITE, C.BLACK)
     drawTextCentered(ctx, L.STR_CTRL_FLAG, 14 * CELL, C.WHITE, C.BLACK)
@@ -463,22 +487,22 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
     drawTextCentered(ctx, L.STR_AUDIO_HINT, 17 * CELL, C.YELLOW, C.BLACK)
   }
 
-  // Language toggle hint — inherently a language code, not prose, so it's built
-  // locally rather than routed through the L.STR_* translation pack.
-  drawTextCentered(ctx, `L: ${getLocale().toUpperCase()}`, 18 * CELL, C.YELLOW, C.BLACK)
-
   if (blink) {
     drawTextCentered(ctx, L.STR_START_HINT, 19 * CELL, C.B_YELLOW, C.BLACK)
   }
 
+  // Language indicator — its own row now (it used to collide with the 5th score
+  // line). Inherently a language code, so built locally, not via the L.STR_* pack.
+  drawTextCentered(ctx, `L: ${getLocale().toUpperCase()}`, 20 * CELL, C.YELLOW, C.BLACK)
+
   for (let c = 0; c < COLS; c++) {
-    drawChar(ctx, 0x2D, c * CELL, 20 * CELL, C.BLUE, C.BLACK)
+    drawChar(ctx, 0x2D, c * CELL, 21 * CELL, C.BLUE, C.BLACK)
   }
 
   const build = import.meta.env.VITE_APP_BUILD ?? 'DEV'
   const zxKit = import.meta.env.VITE_ZX_KIT_VERSION ?? '?'
-  drawTextCentered(ctx, L.STR_COPYRIGHT(build), 21 * CELL, C.BLUE, C.BLACK)
-  drawTextCentered(ctx, L.STR_ZXKIT_VERSION(zxKit), 22 * CELL, C.BLUE, C.BLACK)
+  drawTextCentered(ctx, L.STR_COPYRIGHT(build), 22 * CELL, C.BLUE, C.BLACK)
+  drawTextCentered(ctx, L.STR_ZXKIT_VERSION(zxKit), 23 * CELL, C.BLUE, C.BLACK)
 }
 
 // ─── Main render entry ────────────────────────────────────────────────────────
