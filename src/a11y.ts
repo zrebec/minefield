@@ -1,6 +1,8 @@
-// Accessibility bridge — mirrors the beeper into text for screen readers, and
-// builds the shared sentence that both the ARIA live region (now) and a future
-// TTS voice (later) speak. One formatter, two output channels — see describeStep.
+// Accessibility bridge — writes the game's spoken state into the ARIA live
+// regions (index.html) so the player's own screen reader reads it. Danger is
+// NOT spoken here: the warning beep + visual detector already carry it with
+// channel parity, so this module speaks only orientation (exit/gems), the
+// legend, and shell/status lines. The screen reader talks — the game never TTSes.
 //
 // The live-region *elements* live in index.html (#sr-announcer assertive,
 // #sr-status polite, #sr-legend static). This module only writes into them, and
@@ -8,7 +10,7 @@
 
 import { L } from './lang.ts'
 import { COLS } from './constants.ts'
-import { type GameState, countAdjacentMines, countBeaconSignals } from './game.ts'
+import { type GameState } from './game.ts'
 
 function el(id: string): HTMLElement | null {
   return typeof document === 'undefined' ? null : document.getElementById(id)
@@ -47,27 +49,6 @@ export function setLegend(text: string): void {
   if (node) node.textContent = text
 }
 
-/**
- * The one sentence describing the player's current cell — read by the ARIA
- * region today, by TTS tomorrow. Deliberately mirrors exactly what the HUD and
- * the beeper convey, so no channel says more than another:
- *   - immediate adjacent count (↔ detector meter, ↔ warning beep),
- *   - beacon presence (↔ cyan lamp).
- * Same signal everywhere = channel parity (AGENTS.md accessibility invariant).
- */
-export function describeStep(state: GameState): string {
-  const adjacent = countAdjacentMines(state.map, state.playerCol, state.playerRow)
-  const beacon = countBeaconSignals(state.map, state.playerCol, state.playerRow)
-
-  const parts: string[] = []
-  if (adjacent === 0 && beacon === 0) parts.push(L.STR_A11Y_SAFE)
-  else {
-    if (adjacent > 0) parts.push(L.STR_A11Y_ADJ(adjacent))   // skip "0 mines" on a beacon-only cell
-    if (beacon > 0) parts.push(L.STR_A11Y_BEACON)
-  }
-  return parts.join(' ')
-}
-
 // ── Orientation (Item C) — exit + gems as a relative bearing ──────────────────
 // A blind player can't see the field a sighted one scouts (exit hole, gems). These
 // on-demand announcements close that gap. Mines are NOT here — they stay hidden for
@@ -95,15 +76,28 @@ export function describeExit(state: GameState): string {
   return L.STR_A11Y_EXIT(exitBearing(state))
 }
 
-/** Nearest uncollected gem (fewest steps) + how many remain — the `G` key. Collected
- *  gems leave the map (become 'visited'), so findById('gem') is exactly what's left. */
+// Spoken colour word for a gem kind (red/cyan/gold/green), localised.
+function gemColour(kind: string): string {
+  return L.STR_A11Y_GEM_COLOUR[kind] ?? kind
+}
+
+/** Confirm a gem pickup by colour — spoken (polite) the moment it's collected.
+ *  Parity: a sighted player sees the gem's colour and which backpack slot ticked. */
+export function announceGemPickup(kind: string): void {
+  status(L.STR_A11Y_GEM_GOT(gemColour(kind)))
+}
+
+/** Nearest uncollected gem (fewest steps) + its colour + how many remain — the `G`
+ *  key. Collected gems leave the map (become 'visited'), so findById('gem') is
+ *  exactly what's left. */
 export function describeGems(state: GameState): string {
   const gems = state.map.findById('gem')
   if (gems.length === 0) return L.STR_A11Y_GEM_NONE
   const dist = (g: { x: number; y: number }) =>
     Math.abs(g.x - state.playerCol) + Math.abs(g.y - state.playerRow)
   const nearest = gems.reduce((a, b) => (dist(b) < dist(a) ? b : a))
-  return L.STR_A11Y_GEM_NEAREST(relPhrase(nearest.x - state.playerCol, nearest.y - state.playerRow), gems.length)
+  const kind = (state.map.getTile(nearest.x, nearest.y)?.metadata?.gemKind as string) ?? 'cyan'
+  return L.STR_A11Y_GEM_NEAREST(gemColour(kind), relPhrase(nearest.x - state.playerCol, nearest.y - state.playerRow), gems.length)
 }
 
 /** Start-of-run summary: exit bearing + gem count. Folded into the mode status

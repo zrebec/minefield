@@ -12,9 +12,9 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import html from '../index.html?raw'
 import { STR_TITLE } from '../src/strings.ts'
 import { getLocale, L } from '../src/lang.ts'
-import { announce, status, setLegend, describeStep, describeExit, describeGems, describeOrientation } from '../src/a11y.ts'
+import { announce, status, setLegend, describeExit, describeGems, describeOrientation } from '../src/a11y.ts'
 import { createGame, type GameState } from '../src/game.ts'
-import { makeTileGround, makeTileMine, makeTileGem } from '../src/sprites.ts'
+import { makeTileGround, makeTileGem } from '../src/sprites.ts'
 import { COLS, ROWS } from '../src/constants.ts'
 
 const doc = new DOMParser().parseFromString(html, 'text/html')
@@ -119,8 +119,6 @@ function cleanState(pcol = 8, prow = 8): GameState {
   state.playerRow = prow
   return state
 }
-const mine = (s: GameState, c: number, r: number): void =>
-  void s.map.setTile(c, r, makeTileMine('normal', (c + r) % 2 === 0 ? 'a' : 'b', 'grass'))
 const gem = (s: GameState, c: number, r: number): void =>
   void s.map.setTile(c, r, makeTileGem())   // cyan gem, id 'gem'
 
@@ -167,18 +165,6 @@ describe('a11y live regions', () => {
   })
 })
 
-describe('describeStep — shared ARIA/TTS sentence (mirrors the HUD + beeper)', () => {
-  it('reports a clear cell', () => {
-    expect(describeStep(cleanState())).toBe(L.STR_A11Y_SAFE)
-  })
-
-  it('reports the adjacent count — the count only, never a direction (triangulation is the game)', () => {
-    const s = cleanState()
-    mine(s, 9, 8)                                  // one mine, east, dist-1
-    expect(describeStep(s)).toContain(L.STR_A11Y_ADJ(1))
-  })
-})
-
 // ── Orientation (Item C) — exit + gems as a relative bearing ──────────────────
 
 describe('describeExit — bearing to the exit hole', () => {
@@ -211,6 +197,7 @@ describe('describeGems — nearest gem + remaining count', () => {
     gem(s, 10, 8)   // 2 right      → nearer
     gem(s, 8, 12)   // 4 down       → farther
     const text = describeGems(s)
+    expect(text).toContain(L.STR_A11Y_GEM_COLOUR.cyan)  // makeTileGem() defaults to cyan
     expect(text).toContain(L.STR_A11Y_RIGHT)        // the near gem's bearing
     expect(text).not.toContain(L.STR_A11Y_DOWN)     // not the far one's
     expect(text).toContain('2')                     // both "2 right" and "2 gems left"

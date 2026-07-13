@@ -31,10 +31,8 @@ describe('controls / i18n consistency', () => {
   it('accessibility strings exist and are non-empty in both languages', () => {
     for (const pack of [en, sk]) {
       expect(pack.STR_A11Y_LEGEND.length).toBeGreaterThan(40)   // a real explanatory paragraph
-      expect(pack.STR_A11Y_SAFE).toBeTruthy()
-      expect(pack.STR_A11Y_BEACON).toBeTruthy()
+      expect(pack.STR_A11Y_LEGEND_HINT).toMatch(/\bH\b/)        // start hint points at the H replay key
       expect(pack.STR_A11Y_GAMEOVER).toBeTruthy()
-      expect(pack.STR_A11Y_ADJ(2)).toBeTruthy()
     }
   })
 
@@ -44,9 +42,14 @@ describe('controls / i18n consistency', () => {
         expect(w).toBeTruthy()
       }
       expect(pack.STR_A11Y_EXIT('2 right')).toContain('2 right')
-      expect(pack.STR_A11Y_GEM_NEAREST('2 right', 3)).toBeTruthy()
+      expect(pack.STR_A11Y_GEM_NEAREST('cyan', '2 right', 3)).toBeTruthy()
       expect(pack.STR_A11Y_GEM_NONE).toBeTruthy()
+      expect(pack.STR_A11Y_GEM_GOT(pack.STR_A11Y_GEM_COLOUR.red)).toBeTruthy()
+      for (const k of ['red', 'cyan', 'gold', 'green']) expect(pack.STR_A11Y_GEM_COLOUR[k]).toBeTruthy()
       expect(pack.STR_A11Y_ORIENT('2 right', 5)).toBeTruthy()
+      expect(pack.STR_A11Y_PLANE_APPROACHING).toBeTruthy()
+      expect(pack.STR_A11Y_PLANE_RESEEDED(2)).toBeTruthy()
+      expect(pack.STR_A11Y_PLANE_PASSED).toBeTruthy()
     }
   })
 })

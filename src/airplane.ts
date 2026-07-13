@@ -5,6 +5,8 @@ import { createRng } from 'zx-kit'
 import { startAirplane, stopAirplane, startFriendlyPlane, stopFriendlyPlane, startApproachSound, isApproachSoundActive, playReveal } from './audio.ts'
 import { writeSaveThrottled } from 'zx-kit'
 import { saveProfile } from './save.ts'
+import { announce, status } from './a11y.ts'
+import { L } from './lang.ts'
 
 let dropScheduled = false
 let dropTimer = 0
@@ -15,6 +17,7 @@ export function updateAirplane(state: GameState, dtMs: number): void {
   if (!state.airplane && state.phase === 'playing' &&
       state.nextAircraftMs <= AIRPLANE_APPROACH_MS && !isApproachSoundActive()) {
     startApproachSound()
+    announce(L.STR_A11Y_PLANE_APPROACHING)   // screen-reader twin of the approach tone
   }
 
   if (state.nextAircraftMs <= 0 && !state.airplane && state.phase === 'playing') {
@@ -41,7 +44,10 @@ export function updateAirplane(state: GameState, dtMs: number): void {
     dropTimer -= dtMs
     if (dropTimer <= 0) {
       const planeRow = Math.floor(plane.y / CELL)
+      const minesBefore = state.totalMines
       addDropMinesInBand(state, plane.scheduledDropCount, planeRow, Math.min(planeRow + 2, ROWS - 1))
+      const added = state.totalMines - minesBefore   // guard can place fewer than scheduled, even 0
+      status(added > 0 ? L.STR_A11Y_PLANE_RESEEDED(added) : L.STR_A11Y_PLANE_PASSED)
       plane.dropDone = true
       dropScheduled = false
     }

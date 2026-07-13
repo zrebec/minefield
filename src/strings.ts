@@ -82,13 +82,13 @@ export const STR_FRIENDLY = '**  RECON  **'
 // STR_A11Y_LEGEND is the navigable audio guide; it MUST match what the game
 // actually plays (playWarning in audio.ts + the beacon lamp).
 export const STR_A11Y_LEGEND =
-  'Sound guide. A soft footstep means you moved safely. Repeated beeps mean live mines are right next to ' +
-  'you — more and faster beeps mean more mines, but not where they are: move and listen again to work out ' +
-  'the direction. A burst of noise is an explosion: you stepped on a mine. Press H to hear this guide again.'
-
-export const STR_A11Y_SAFE = 'Clear.'
-export const STR_A11Y_ADJ = (n: number) => `${n} ${n === 1 ? 'mine' : 'mines'} next to you.`
-export const STR_A11Y_BEACON = 'Beacon signal nearby.'
+  'Sound guide. A soft footstep means you moved safely. Beeps mean live mines are near — one beep for ' +
+  'each mine, so count them: two beeps means two mines. They tell you how many, not where; move and ' +
+  'listen again to find the direction. A plane you hear approaching reseeds the field with fresh mines. ' +
+  'A burst of noise is an explosion: you stepped on a mine. Press H to hear this guide again.'
+// Short prompt shown in the static #sr-legend region at start (not the full guide,
+// which a returning player doesn't need re-read every time — H replays it on demand).
+export const STR_A11Y_LEGEND_HINT = 'Press H to hear the audio guide.'
 
 // Orientation (spoken): a relative bearing "<n> right, <n> up" — mines stay hidden,
 // but exit + gems are visible to a sighted player in scout mode, so announcing them
@@ -99,8 +99,10 @@ export const STR_A11Y_UP    = 'up'
 export const STR_A11Y_DOWN  = 'down'
 export const STR_A11Y_HERE  = 'here'
 export const STR_A11Y_EXIT = (rel: string) => `Exit: ${rel}.`
-export const STR_A11Y_GEM_NEAREST = (rel: string, n: number) =>
-  `Nearest gem: ${rel}. ${n} ${n === 1 ? 'gem' : 'gems'} left.`
+export const STR_A11Y_GEM_COLOUR: Record<string, string> = { red: 'red', cyan: 'cyan', gold: 'gold', green: 'green' }
+export const STR_A11Y_GEM_GOT = (colour: string) => `Picked up a ${colour} gem.`
+export const STR_A11Y_GEM_NEAREST = (colour: string, rel: string, n: number) =>
+  `Nearest gem: ${colour}, ${rel}. ${n} ${n === 1 ? 'gem' : 'gems'} left.`
 export const STR_A11Y_GEM_NONE = 'No gems left.'
 export const STR_A11Y_ORIENT = (exitRel: string, gemCount: number) =>
   `Exit ${exitRel}. ${gemCount} ${gemCount === 1 ? 'gem' : 'gems'} on the field.`
@@ -111,6 +113,11 @@ export const STR_A11Y_LIFE_LOST = (lives: number) => `Mine hit. ${lives} ${lives
 export const STR_A11Y_GAMEOVER = 'Game over.'
 export const STR_A11Y_MODE_DAILY = 'Daily run started.'
 export const STR_A11Y_MODE_RANDOM = 'Practice run started.'
+
+// Aircraft (approaching = assertive warning; reseed report = polite)
+export const STR_A11Y_PLANE_APPROACHING = 'Plane approaching.'
+export const STR_A11Y_PLANE_RESEEDED = (n: number) => `The plane reseeded the field. ${n} new ${n === 1 ? 'mine' : 'mines'}.`
+export const STR_A11Y_PLANE_PASSED = 'The plane passed. No new mines.'
 
 // ── Game-over overlay ─────────────────────────────────────────────────────
 

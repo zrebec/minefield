@@ -60,14 +60,13 @@ export const STR_FRIENDLY = '** PRIESKUM **'                // 14 znakov (spriat
 // NEmajú pixel budget — sú hovorené, nie kreslené. Plné vety, plná diakritika.
 // STR_A11Y_LEGEND musí sedieť s tým, čo hra naozaj hrá (playWarning v audio.ts + maják).
 export const STR_A11Y_LEGEND =
-  'Zvukový sprievodca. Jemný krok znamená, že si prešiel bezpečne. Opakované pípanie znamená, že živé míny ' +
-  'sú hneď vedľa teba — viac a rýchlejšie pípanie znamená viac mín, ale nie kde sú: pohni sa a počúvaj ' +
-  'znova, aby si smer odvodil. Buchot je výbuch: stúpil si na mínu. Stlač H a sprievodcu si vypočuješ znova.'
-
-export const STR_A11Y_SAFE = 'Čisto.'
-export const STR_A11Y_ADJ = (n: number) =>
-  `${n} ${n === 1 ? 'mína' : n >= 2 && n <= 4 ? 'míny' : 'mín'} vedľa teba.`
-export const STR_A11Y_BEACON = 'Blízko je signál majáka.'
+  'Zvukový sprievodca. Jemný krok znamená, že si prešiel bezpečne. Pípanie znamená, že blízko sú živé ' +
+  'míny — jedno pípnutie na každú mínu, tak ich spočítaj: dve pípnutia znamenajú dve míny. Povedia koľko, ' +
+  'nie kde; pohni sa a počúvaj znova, aby si našiel smer. Lietadlo, ktoré počuješ prilietať, presieva pole ' +
+  'novými mínami. Buchot je výbuch: stúpil si na mínu. Stlač H a sprievodcu si vypočuješ znova.'
+// Krátky odkaz v statickom #sr-legend regióne pri štarte (nie plný sprievodca, ktorého
+// vracajúci sa hráč nepotrebuje počuť zakaždým — H ho na požiadanie prehrá).
+export const STR_A11Y_LEGEND_HINT = 'Stlač H a vypočuješ si zvukového sprievodcu.'
 
 // Orientácia (hovorené): relatívny smer „<n> vpravo, <n> hore" — míny ostávajú
 // skryté, ale východ + gemy vidí vidiaci hráč v scout móde, takže ich hlásenie je
@@ -78,8 +77,10 @@ export const STR_A11Y_UP    = 'hore'
 export const STR_A11Y_DOWN  = 'dole'
 export const STR_A11Y_HERE  = 'tu'
 export const STR_A11Y_EXIT = (rel: string) => `Východ: ${rel}.`
-export const STR_A11Y_GEM_NEAREST = (rel: string, n: number) =>
-  `Najbližší gem: ${rel}. Zostáva ${n} ${n === 1 ? 'gem' : n >= 2 && n <= 4 ? 'gemy' : 'gemov'}.`
+export const STR_A11Y_GEM_COLOUR: Record<string, string> = { red: 'červený', cyan: 'tyrkysový', gold: 'zlatý', green: 'zelený' }
+export const STR_A11Y_GEM_GOT = (colour: string) => `Zobral si ${colour} gem.`
+export const STR_A11Y_GEM_NEAREST = (colour: string, rel: string, n: number) =>
+  `Najbližší gem: ${colour}, ${rel}. Zostáva ${n} ${n === 1 ? 'gem' : n >= 2 && n <= 4 ? 'gemy' : 'gemov'}.`
 export const STR_A11Y_GEM_NONE = 'Žiadne gemy nezostali.'
 export const STR_A11Y_ORIENT = (exitRel: string, gemCount: number) =>
   `Východ ${exitRel}. Na poli ${gemCount} ${gemCount === 1 ? 'gem' : gemCount >= 2 && gemCount <= 4 ? 'gemy' : 'gemov'}.`
@@ -91,6 +92,12 @@ export const STR_A11Y_LIFE_LOST = (lives: number) =>
 export const STR_A11Y_GAMEOVER = 'Koniec hry.'
 export const STR_A11Y_MODE_DAILY = 'Denný beh začal.'
 export const STR_A11Y_MODE_RANDOM = 'Tréningový beh začal.'
+
+// Lietadlo (blíži sa = assertive varovanie; presiatie = polite hlásenie)
+export const STR_A11Y_PLANE_APPROACHING = 'Blíži sa lietadlo.'
+export const STR_A11Y_PLANE_RESEEDED = (n: number) =>
+  `Lietadlo presialo pole. ${n} ${n === 1 ? 'nová mína' : n >= 2 && n <= 4 ? 'nové míny' : 'nových mín'}.`
+export const STR_A11Y_PLANE_PASSED = 'Lietadlo preletelo. Žiadne nové míny.'
 
 // ── Game over overlay ─────────────────────────────────────────────────────
 

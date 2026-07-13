@@ -64,9 +64,10 @@
     <div id="sr-announcer" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
     <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
 
-    <!-- Static, navigable audio legend — the "how to read the sounds" guide the
-         game fills from STR_A11Y_LEGEND (a11y.setLegend) on load and locale change.
-         NOT a live region: a screen-reader user browses to it for reference. -->
+    <!-- Static hint region — filled with STR_A11Y_LEGEND_HINT ("press H for the
+         audio guide") on load and locale change, so a screen reader meets a short
+         prompt, not the full guide, every start. H announces the full STR_A11Y_LEGEND.
+         NOT a live region: a screen-reader user browses here for the prompt. -->
     <div id="sr-legend" class="sr-only" aria-label="Audio guide"></div>
 
     <noscript>THE STRIP needs JavaScript to run — it is a browser game rendered on a canvas with Web Audio sound.</noscript>

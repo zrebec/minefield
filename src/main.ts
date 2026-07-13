@@ -11,7 +11,7 @@ import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen
 import { isHighScore, saveHighScore } from './highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
 import { L, cycleLocale } from './lang.ts'
-import { announce, status, setLegend, describeStep, describeExit, describeGems, describeOrientation } from './a11y.ts'
+import { announce, status, setLegend, describeExit, describeGems, describeOrientation } from './a11y.ts'
 
 type AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'
 
@@ -286,7 +286,6 @@ function gameLoop(timestamp: number): void {
         state.runState = 'running'
         state.debugMode = false   // a step hides the reveal again (the peek ends; budget decides if D can re-arm)
         movePlayer(state, dir)
-        announce(describeStep(state))   // screen-reader twin of the warning beep
       }
       if (consumeFlag()) toggleFlag(state)
       const dirFlag = consumeDirFlag()
@@ -311,7 +310,6 @@ function gameLoop(timestamp: number): void {
       if (dir && !isHeld('Shift')) {
         state.debugMode = false  // a step hides the reveal (peek semantics — see [D-GATE])
         movePlayer(state, dir)
-        announce(describeStep(state))   // screen-reader twin of the warning beep
       }
       if (consumeFlag()) toggleFlag(state)
       const dirFlag = consumeDirFlag()
@@ -411,7 +409,7 @@ function main(): void {
 
   initInput()
   setBorderColor(C.B_BLUE)
-  setLegend(L.STR_A11Y_LEGEND)   // audio guide, in the current language (refreshed on locale change)
+  setLegend(L.STR_A11Y_LEGEND_HINT)   // short hint only; H announces the full guide (no wall of text at start)
 
   window.addEventListener('keydown', () => initAudioOnce(), { once: true })
   window.addEventListener('click', () => initAudioOnce(), { once: true })
@@ -438,7 +436,7 @@ function main(): void {
         introReplayPending = true   // replay the story intro on demand
       } else if (e.key === 'l' || e.key === 'L') {
         cycleLocale()   // synchronous, safe to call directly — no pending flag needed
-        setLegend(L.STR_A11Y_LEGEND)   // keep the audio guide in the new language
+        setLegend(L.STR_A11Y_LEGEND_HINT)   // keep the guide hint in the new language
       }
     } else if (appPhase === 'hiscore') {
       if (e.key.length === 1 && /[A-Za-z]/.test(e.key)) {
