@@ -1,3 +1,10 @@
+# [0.56.0](https://github.com/zrebec/minefield/compare/v0.55.0...v0.56.0) (2026-07-13)
+
+
+### Features
+
+* **a11y:** gem colour, plane announcements, leaner audio guide" -m "- Speak the gem colour on pickup (polite) and on the G key. ([2f2890e](https://github.com/zrebec/minefield/commit/2f2890e159793d19f4d16c738e9b641bd4f859a8))
+
 # [0.55.0](https://github.com/zrebec/minefield/compare/v0.54.0...v0.55.0) (2026-07-12)
 
 
