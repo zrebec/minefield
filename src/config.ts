@@ -92,6 +92,11 @@ export const RANDOM_REVEAL_LIMIT: number | null = 1
 // deterministic carve repair (game.ts carveSafePath) guarantees solvability.
 export const MAX_FIELD_ATTEMPTS = 64
 
+// Clearing this many crossings (1-based level) wins the run: the war ends, the Strip
+// is cleared, the two countries reunite. A constant → the same finish line for
+// everyone, so the daily stays comparable. Tune freely by ear.
+export const WIN_LEVEL = 10
+
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
 // Points awarded per newly visited cell (before level multiplier)

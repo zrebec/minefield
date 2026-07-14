@@ -260,6 +260,23 @@ function renderLevelComplete(ctx: CanvasRenderingContext2D, state: GameState): v
   }
 }
 
+// Victory epilogue (reached WIN_LEVEL) — a celebration, not a defeat overlay.
+function renderWin(ctx: CanvasRenderingContext2D, state: GameState): void {
+  ctx.fillStyle = C.BLACK
+  ctx.globalAlpha = 0.8
+  ctx.fillRect(0, 0, CANVAS_W, ROWS * CELL)
+  ctx.globalAlpha = 1.0
+
+  const cy = Math.floor(ROWS / 2) - 4
+  drawTextCentered(ctx, L.STR_WIN_TITLE, cy * CELL, C.B_YELLOW, C.BLACK)
+  drawTextCentered(ctx, L.STR_WIN_LINE1, (cy + 3) * CELL, C.B_GREEN, C.BLACK)
+  drawTextCentered(ctx, L.STR_WIN_LINE2, (cy + 4) * CELL, C.B_GREEN, C.BLACK)
+  drawTextCentered(ctx, L.STR_SCORE_OVERLAY(state.score), (cy + 6) * CELL, C.B_WHITE, C.BLACK)
+  if (state.blink) {
+    drawTextCentered(ctx, L.STR_PRESS_ANY_KEY, (cy + 8) * CELL, C.B_CYAN, C.BLACK)
+  }
+}
+
 // ─── Hi-score name entry ──────────────────────────────────────────────────────
 
 export function renderHiScoreEntry(
@@ -631,6 +648,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, state: GameState, pau
   if (state.phase === 'playing' && state.runState === 'paused') renderPaused(ctx, pausePage)
   if (state.phase === 'gameover') renderGameOver(ctx, state)
   if (state.phase === 'levelcomplete') renderLevelComplete(ctx, state)
+  if (state.phase === 'won') renderWin(ctx, state)
 
   // CRT scanline overlay — always last so it covers everything
   drawScanlines(ctx, 0.7)

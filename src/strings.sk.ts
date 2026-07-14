@@ -90,6 +90,7 @@ export const STR_A11Y_LEVEL_DONE = (levelOneBased: number) => `Úroveň ${levelO
 export const STR_A11Y_LIFE_LOST = (lives: number) =>
   `Zásah mínou. Zostáva ${lives} ${lives === 1 ? 'život' : lives >= 2 && lives <= 4 ? 'životy' : 'životov'}.`
 export const STR_A11Y_GAMEOVER = 'Koniec hry.'
+export const STR_A11Y_WIN = 'Vyhral si. Vojna sa skončila — Pás je čistý a dve krajiny sú zas spolu.'
 export const STR_A11Y_MODE_DAILY = 'Denný beh začal.'
 export const STR_A11Y_MODE_RANDOM = 'Tréningový beh začal.'
 
@@ -103,6 +104,10 @@ export const STR_A11Y_PLANE_PASSED = 'Lietadlo preletelo. Žiadne nové míny.'
 
 export const STR_GAME_OVER     = 'KONIEC  HRY'              // 11 znakov
 export const STR_PRESS_ANY_KEY = 'STLAC KLAVES'             // 12 znakov
+// Víťazný epilóg (kreslený — ASCII bez diakritiky, ≤32 stĺpcov).
+export const STR_WIN_TITLE = 'VOJNA SA SKONCILA'
+export const STR_WIN_LINE1 = 'PAS JE KONECNE CISTY'
+export const STR_WIN_LINE2 = 'DVE KRAJINY SU ZAS SPOLU'
 
 export const STR_SCORE_OVERLAY = (score: number) =>
   `SKORE: ${String(score).padStart(5, '0')}`                // 13 znakov

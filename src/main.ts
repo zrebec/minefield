@@ -1,8 +1,8 @@
 import { C, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS, INTRO_PAGE_MS } from './config.ts'
-import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, type GameState, type GamePhase, type Dir } from './game.ts'
+import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, isFinalLevel, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap, consumeDirFlag, isHeld } from './input.ts'
-import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playDenied, startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playWin, playDenied, startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
@@ -355,16 +355,23 @@ function gameLoop(timestamp: number): void {
     resetInput()
     state.levelCompleteTimer -= dt
     if (state.levelCompleteTimer <= 0) {
-      const prevScore = state.score
-      const prevInventory = state.inventory
-      stopAmbientSounds()
-      // random run stays random across levels; otherwise the daily field per level.
-      // Keep the run on its ORIGIN date (don't re-derive from today) so a run that
-      // crosses midnight / is resumed next day stays one coherent daily — and its
-      // highscore is dated by the field actually played. Backpack carries over.
-      const nextSeed = nextDailySeed(state.dropSeedBase, state.level + 1)
-      state = createGame(state.level + 1, prevScore, nextSeed, prevInventory)
-      writeSave(saveProfile, 'auto')   // checkpoint at the start of every level
+      if (isFinalLevel(state.level)) {
+        // Cleared the final crossing → win, not another level. Keep the current
+        // state (its final score) and hand off to the 'won' phase below.
+        stopAmbientSounds()
+        state.phase = 'won'
+      } else {
+        const prevScore = state.score
+        const prevInventory = state.inventory
+        stopAmbientSounds()
+        // random run stays random across levels; otherwise the daily field per level.
+        // Keep the run on its ORIGIN date (don't re-derive from today) so a run that
+        // crosses midnight / is resumed next day stays one coherent daily — and its
+        // highscore is dated by the field actually played. Backpack carries over.
+        const nextSeed = nextDailySeed(state.dropSeedBase, state.level + 1)
+        state = createGame(state.level + 1, prevScore, nextSeed, prevInventory)
+        writeSave(saveProfile, 'auto')   // checkpoint at the start of every level
+      }
     }
 
   } else if (state.phase === 'gameover') {
@@ -386,12 +393,36 @@ function gameLoop(timestamp: number): void {
         setBorderColor(C.B_BLUE)
       }
     }
+
+  } else if (state.phase === 'won') {
+    // Victory epilogue — same shell as game over (no save-scumming; a daily winner
+    // that places goes to name entry), but a celebration instead of a defeat.
+    setBorderColor(C.B_GREEN)
+    tickMovement(dt)  // keep gamepad polled
+    if (consumeAnyKey()) {
+      resetInput()
+      initAudioOnce()
+      stopAmbientSounds()
+      deleteSave(saveProfile, 'auto')
+      deleteSave(saveProfile, 'manual')
+      if (state.dropSeedBase !== null && isHighScore(state.score)) {
+        enterHiScore()
+      } else {
+        appPhase = 'intro'
+        setBorderColor(C.B_BLUE)
+      }
+    }
   }
 
   // Play the game-over jingle once on entry (covers both a fatal step and timeout).
   if (state.phase === 'gameover' && prevGamePhase !== 'gameover') {
     playGameOver()
     announce(L.STR_A11Y_GAMEOVER)
+  }
+  // Victory jingle + spoken announcement once on entry.
+  if (state.phase === 'won' && prevGamePhase !== 'won') {
+    playWin()
+    announce(L.STR_A11Y_WIN)
   }
 
   prevGamePhase = state.phase

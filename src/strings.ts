@@ -111,6 +111,7 @@ export const STR_A11Y_ORIENT = (exitRel: string, gemCount: number) =>
 export const STR_A11Y_LEVEL_DONE = (levelOneBased: number) => `Level ${levelOneBased} complete.`
 export const STR_A11Y_LIFE_LOST = (lives: number) => `Mine hit. ${lives} ${lives === 1 ? 'life' : 'lives'} left.`
 export const STR_A11Y_GAMEOVER = 'Game over.'
+export const STR_A11Y_WIN = 'You won. The war is over — the Strip is clear and the two countries are reunited.'
 export const STR_A11Y_MODE_DAILY = 'Daily run started.'
 export const STR_A11Y_MODE_RANDOM = 'Practice run started.'
 
@@ -123,6 +124,10 @@ export const STR_A11Y_PLANE_PASSED = 'The plane passed. No new mines.'
 
 export const STR_GAME_OVER     = 'GAME  OVER'         // double-space styling
 export const STR_PRESS_ANY_KEY = 'PRESS ANY KEY'
+// Victory epilogue (drawn — ASCII only, ≤32 cols); reuses STR_SCORE_OVERLAY + STR_PRESS_ANY_KEY.
+export const STR_WIN_TITLE = 'THE WAR IS OVER'
+export const STR_WIN_LINE1 = 'THE STRIP IS CLEAR AT LAST'
+export const STR_WIN_LINE2 = 'TWO LANDS ARE ONE AGAIN'
 
 // Used by both game-over and level-complete overlays. Note: prefix has a
 // trailing space (different from STR_SCORE which uses a colon). Pixel budget:

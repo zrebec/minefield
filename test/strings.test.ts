@@ -33,6 +33,18 @@ describe('controls / i18n consistency', () => {
       expect(pack.STR_A11Y_LEGEND.length).toBeGreaterThan(40)   // a real explanatory paragraph
       expect(pack.STR_A11Y_LEGEND_HINT).toMatch(/\bH\b/)        // start hint points at the H replay key
       expect(pack.STR_A11Y_GAMEOVER).toBeTruthy()
+      expect(pack.STR_A11Y_WIN).toBeTruthy()
+    }
+  })
+
+  it('victory epilogue strings are ASCII (ROM font) and fit 32 cells in both languages', () => {
+    for (const pack of [en, sk]) {
+      for (const s of [pack.STR_WIN_TITLE, pack.STR_WIN_LINE1, pack.STR_WIN_LINE2]) {
+        expect(s.length, s).toBeGreaterThan(0)
+        expect(s.length, s).toBeLessThanOrEqual(32)
+        // eslint-disable-next-line no-control-regex
+        expect(/^[\x20-\x7E]*$/.test(s), s).toBe(true)
+      }
     }
   })
 

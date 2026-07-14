@@ -1,6 +1,6 @@
 import { createTileMap, createAnimation, createRng, type TileMap, type Tween, type Animation, type Rng } from 'zx-kit'
 import { COLS, ROWS, C, type SpectrumColor } from './constants.ts'
-import { GEM_COUNT, START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS, DROP_FLASH_MS, MAX_FIELD_ATTEMPTS, MINE_DENSITY, atLevel } from './config.ts'
+import { GEM_COUNT, START_COL, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, LEVEL_CONFIGS, type LevelConfig, BEACON_MINE_LEVEL, BEACON_MINE_RATIO, CLUSTER_MINE_LEVEL, CLUSTER_MINE_RATIO, DAY_STEPS, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS, DROP_FLASH_MS, MAX_FIELD_ATTEMPTS, MINE_DENSITY, WIN_LEVEL, atLevel } from './config.ts'
 import {
   makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileFence, TILE_EXPLODED,
   type CellVariant, type TerrainType,
@@ -97,7 +97,12 @@ export function nextDailySeed(currentSeed: string | null, nextLevel: number): st
   return `${seedDate(currentSeed) ?? todaySeed()}:L${nextLevel}`
 }
 
-export type GamePhase = 'intro' | 'playing' | 'exploding' | 'levelcomplete' | 'gameover'
+// Clearing this 0-based level index wins the run (its 1-based level reaches WIN_LEVEL).
+export function isFinalLevel(level: number): boolean {
+  return level + 1 >= WIN_LEVEL
+}
+
+export type GamePhase = 'intro' | 'playing' | 'exploding' | 'levelcomplete' | 'gameover' | 'won'
 export type RunState = 'idle' | 'running' | 'paused'
 export type Dir = 'up' | 'down' | 'left' | 'right'
 export type MineType = 'normal' | 'cluster' | 'beacon'
