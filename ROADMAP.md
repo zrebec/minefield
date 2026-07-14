@@ -16,6 +16,8 @@ development. After 1.0: bug-fixes and balance only, no new mechanics. (zx-kit's 
 separate track; The Strip's release does not block on extracting anything into the kit — see Decisions.)
 
 **Definition of done for v1.0:**
+- **Win condition + post-win screen** — the daily has a definite ending (reach `WIN_LEVEL`; epilogue →
+  highscore → menu). See Road to v1.0 P1 item 0. *(Added 2026-07-13 — the game currently has no ending.)*
 - Story intro complete: 4 cards with bespoke hand-drawn art, copy + tempo + AY/typewriter tuned by ear.
 - Difficulty tuned (a daily L1–L2 reliably beatable); the **green-gem** special ✅ shipped 0.51.0
   (friendly recon plane).
@@ -41,9 +43,10 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Daily fairness | **Done** — field **and** highscore dated by the run's **origin** daily (verified 2026-06-29) | 2026-06-29 |
 | Leaderboard integrity | **Done (deterrent-grade)** — random runs off-board; envelope sig on saves + hiscore table (zx-kit `hiscore` adopted, save v6) — see item 16 | 2026-07-12 |
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
-| Tests | 490 (Vitest) — incl. run-start race battery (`runstart.test.ts`: story pre-roll always finishes + fresh game's first move always legal) | 2026-07-12 |
-| Build / release | semantic-release → GitHub Pages (latest **0.55.0**) | 2026-07-12 |
-| Accessibility | In progress — visual detector done; **ARIA live regions + spoken step/status/orientation (`E`/`G`) shipped**; stereo compass tried & reverted; **no built-in TTS (decided 2026-07-11 — screen readers own the voice)**; beacon + sounded shell = **v1.0 scope** | 2026-07-11 |
+| Tests | 483 (Vitest) — incl. run-start race battery (`runstart.test.ts`: story pre-roll always finishes + fresh game's first move always legal) | 2026-07-13 |
+| Build / release | semantic-release → GitHub Pages (latest **0.56.1**) | 2026-07-13 |
+| Accessibility | In progress — visual detector done; ARIA live regions + orientation (`E`/`G`/`H`) shipped; **per-step spoken danger removed 0.56.0** (was off-by-one; beep + detector carry danger with parity); **gem colour + plane approach/reseed spoken 0.56.0**; no built-in TTS (2026-07-11). **Remaining shell (Sept): title menu → `.sr-only`, pause "PAUSE", `T`-time, hiscore entry, post-win** | 2026-07-13 |
+| Win condition | **MISSING — the game has no ending** (levels run forever until death/timeout). Owner's September agenda item 1; see P1 item 0 | 2026-07-13 |
 
 ## Road to v1.0 (`2026-09-07`) — prioritised backlog
 
@@ -51,6 +54,17 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 new mechanics** (those are Post-1.0). Each item ships with tests where behaviour changes.
 
 ### P1 — Finish & polish (the game must feel done)
+0. **Win condition + post-win screen (NEW 2026-07-13 — the biggest gap: the game has no ending).** Today
+   levels run forever until death/timeout. Owner floated three triggers: (1) score 100k, (2) reaching a
+   configurable target level ~10, (3) a cumulative time budget across N levels. **Claude's recommendation:
+   option 2 — a config `WIN_LEVEL` (default ~10), which unifies all three: level = win trigger, score =
+   leaderboard rank, cumulative-time = a Post-1.0 "Marathon" mode.** Why: a level target is a *definite*
+   ending (score is farmable + an arbitrary gate; the cumulative-time model is the most interesting but a
+   bigger, riskier mechanic shift for the pre-Sept window). On `levelcomplete`, if `level+1 >= WIN_LEVEL`
+   → new `won` phase → post-win epilogue (war over, fields cleared, two countries reunited) → highscore →
+   menu. Must stay **seeded/deterministic** (`WIN_LEVEL` constant → same finish line for all) and
+   **announced** (`.sr-only`) like the rest of the shell. **Owner picks the trigger before building.**
+   Effort M. Deep discussion + rationale: `retro/docs/sk/minefield.md` §6.1.
 1. **Finish the intro — music tuning only.** The story (5 chapters), all 5 hand-drawn scenes, the per-card
    AY score (`introTrack`) and book-style chapter titles are **done**. What remains is the owner's by-ear
    tuning of the tracks + tempo (`MS_PER_CHAR` / `CARD_HOLD_MS`). Optional: a "press to begin (sound on)" gate.
@@ -83,13 +97,18 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    bearing, `G` the nearest gem + count, plus a start/resume summary ("22 right, 3 up"), parity not
    assist. See `docs/accessibility-orientation.md`. **Legend replay on `H`: ✅ SHIPPED 2026-07-11**
    (Item B — every screen except hiscore name entry; the legend advertises the key, test-guarded).
-6. **Screen-reader support** — ARIA live regions wired 2026-07-05 (`describeStep` per-step sentence,
-   run/level/life/game-over status). **No built-in TTS (decided 2026-07-11):** the game mirrors
-   everything that matters into the DOM live regions and the player's screen reader does the speaking —
-   revisit only if the September screen-reader playtest shows live-region latency hurts real-time play.
-   **"Fully playable" covers the whole shell, not just the field** — the wiring checklist is: step
-   warnings ✅ · explosion/respawn ✅ · title menu (daily/random/intro/language) · pause pages · high-score
-   letter entry · game over ✅ · level/day-night/aircraft state · gem pickups + backpack.
+6. **Screen-reader support — finish the shell (owner's September agenda 2026-07-13).** ARIA live regions
+   wired 2026-07-05; **no built-in TTS (decided 2026-07-11)** — the game mirrors state into the DOM live
+   regions and the player's screen reader speaks. The per-step danger sentence (`describeStep`) was
+   **removed 0.56.0**: it was off-by-one (announced the cell being *left* — `movePlayer` starts a walk
+   tween; position + beep commit at tween end), and the beep + visual detector already carry danger with
+   parity, so the spoken count was a redundant, stale, interrupting third channel. Wired: explosion/
+   respawn ✅ · game over ✅ · run/level status ✅ · orientation `E`/`G`/`H` ✅ · **gem colour on pickup +
+   `G` ✅ (0.56.0)** · **aircraft approach + reseed ✅ (0.56.0)**. **Remaining (September list):**
+   (a) **the whole title menu into a `.sr-only` div** — keys + the high-score table, so a blind player
+   knows what to press and can read the scores; (b) **pause announces "PAUSE"** in `.sr-only` (a full
+   pause menu for blind comes later); (c) **`T` reads the remaining time** (also spoken at run start);
+   (d) high-score letter entry; (e) the **post-win screen** (item 0).
 7. **Exit beacon tone** + **assist-mode toggle** (flag assisted runs so they're marked on the board).
 
 ### P1/P2 — "Finished product" surface
@@ -194,6 +213,8 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Milestone |
 |---|---|
+| 2026-07-13 | **Title menu high-score table → fixed columns (0.56.1)** — each field on a fixed character column, score right-aligned (Excel-style), intro art 2 rows shorter for panel padding, `L:` moved off the 5th-score row (they were colliding into "093L: SK"); dead `STR_HIGH_SCORE_LINE` + its tests removed |
+| 2026-07-13 | **A11y batch (0.56.0)** — removed the off-by-one per-step danger line (announced the cell being left → said "clear" while stepping onto a mine); gem colour spoken on pickup + `G`; enemy plane approach + field-reseed announced; audio guide reworded around counting beeps + a short "press H" start hint instead of the full guide |
 | 2026-07-09 | **Blind orientation (Item C)** — `E` = exit bearing, `G` = nearest gem + count, start/resume summary ("22 right, 3 up"); parity not assist (no leaderboard flag); 380 tests, verified live in headless Chromium. Replaces the reverted stereo compass |
 | 2026-07-05 | **Directional mine compass (0.52.0) tried, then reverted** — density compass read as danger without danger; the ARIA infra it introduced (live regions, `describeStep`, status lines) stayed and now carries orientation |
 | 2026-07-04 | **Green-gem special shipped (0.51.0)** — two green gems summon the friendly white recon plane: seeded row sweep, permanently reveals its live mines; the enemy plane turned red to make room |

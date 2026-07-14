@@ -105,17 +105,25 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   `display:none`, that silences them). `setLocale()` in `lang.ts` mirrors the locale onto
   `document.documentElement.lang` (tested in `lang.test.ts`).
 - **ARIA live regions: wired (0.52.0).** `a11y.ts` writes them: `announce()` (assertive; toggles an
-  invisible trailing NBSP so identical per-step sentences still re-read), `status()` (polite, deduped),
-  `setLegend()` fills the navigable `#sr-legend` audio guide (refreshed on `L` locale change). Per-step
-  sentence = `describeStep` (adjacent count + beacon — the future TTS source). `STR_A11Y_*` strings are
-  SPOKEN → full Slovak diacritics allowed (the one exception to the ASCII rule in `strings.sk.ts`).
+  invisible trailing NBSP so identical announcements still re-read), `status()` (polite, deduped),
+  `setLegend()` fills the navigable `#sr-legend` region with the **short hint `STR_A11Y_LEGEND_HINT`**
+  ("press H for the guide"), NOT the full guide (0.56.0 — the full guide was a wall of text read at every
+  start; `H` announces the full `STR_A11Y_LEGEND` on demand). **There is no per-step danger sentence:**
+  `describeStep` was **removed 0.56.0** (off-by-one — it announced the cell being *left*; `movePlayer`
+  starts a walk tween, position + beep commit at tween end. The beep + visual detector carry danger with
+  parity, so the spoken count was a redundant, stale, interrupting third channel). `STR_A11Y_*` strings
+  are SPOKEN → full Slovak diacritics allowed (the one exception to the ASCII rule in `strings.sk.ts`).
 - **Blind orientation: shipped (Item C, 2026-07-09).** `E` speaks the exit's bearing, `G` the nearest
-  gem + remaining count, both in-game only (gated in the `appPhase === 'ingame'` keydown branch so they
-  don't reach hiscore name entry); a one-line summary is spoken on run start (folded into `startRun`'s
-  status line) and on resume. `describeExit` / `describeGems` / `describeOrientation` + private
-  `relPhrase(dCol,dRow)` in `a11y.ts` produce relative bearings ("22 right, 3 up") — **parity, not an
-  assist** (sighted players scout exit + gems; mines stay hidden), so no leaderboard flag. Design +
-  post-ship notes: `docs/accessibility-orientation.md`.
+  gem + its **colour** (0.56.0) + remaining count, both in-game only (gated in the `appPhase === 'ingame'`
+  keydown branch so they don't reach hiscore name entry); a one-line summary is spoken on run start
+  (folded into `startRun`'s status line) and on resume. `describeExit` / `describeGems` /
+  `describeOrientation` + private `relPhrase(dCol,dRow)` in `a11y.ts` produce relative bearings ("22
+  right, 3 up") — **parity, not an assist** (sighted players scout exit + gems; mines stay hidden), so no
+  leaderboard flag. Design + post-ship notes: `docs/accessibility-orientation.md`.
+- **Gem colour + aircraft spoken (0.56.0).** On pickup, `announceGemPickup(kind)` speaks the gem's colour
+  (polite). The enemy plane announces its approach (`announce`, assertive) and, on its drop, whether it
+  reseeded the field with N new mines (`status`, polite) — a blind player's audio map goes stale on a
+  flyover and nothing told them. Colour words + `STR_A11Y_PLANE_*` live in both string packs.
 - **Directional mine compass: tried in 0.52.0, REVERTED 2026-07-09 — do not rebuild.** A density
   compass (dominant live-mine direction within radius 4 → panned sine cue + dim HUD arrow + ARIA
   clause) shipped and failed the owner's playtest: it reads as a danger warning but fires without
@@ -131,9 +139,13 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
 - **Legend replay: shipped (Item B, 2026-07-11).** `H` re-announces `STR_A11Y_LEGEND` on every
   screen except hiscore name entry (handler next to `O` in `main.ts`); both legend strings
   advertise the key, test-guarded.
-- **Still to wire (ROADMAP P1):** exit beacon, assist-mode flag, and the **shell**: title, pause
-  pages, high-score letter entry and intro must all be announced — "fully playable" covers menus,
-  not just the field.
+- **Still to wire (September agenda, owner 2026-07-13; ROADMAP P1):** (1) the **win condition + post-win
+  screen** — the game has no ending; reach `WIN_LEVEL` (owner picks the trigger; Claude recommends the
+  level target — ROADMAP P1 item 0); (2) the whole **title menu into a `.sr-only` div** (keys + the
+  high-score table, so a blind player knows what to press and can read the scores); (3) **pause announces
+  "PAUSE"** in `.sr-only` (a full pause menu for blind comes later); (4) **`T` reads the remaining time**
+  (also spoken at run start); (5) high-score letter entry; (6) exit beacon + assist toggle. "Fully
+  playable" covers menus + the ending, not just the field.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 

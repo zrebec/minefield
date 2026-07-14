@@ -43,6 +43,9 @@ permanent from 2026-07-03:
   way to hide them visually.
 - **Keyboard-complete.** Every screen and action must remain reachable by keyboard alone (gamepad is
   an addition, never a requirement).
+- **The whole shell is announced, not just the field.** "Fully playable blind" covers every screen — the
+  title menu, pause, high-score entry, and the post-win screen must surface their content/options through
+  the ARIA live regions or a `.sr-only` region, not only the in-game field.
 
 ## Read Order
 
@@ -114,6 +117,9 @@ native 256×192. Tile/visual changes that affect movement need a regression test
 - **Anti-cheat:** random runs (`dropSeedBase === null`) never reach the leaderboard, persisted + re-synced.
 - **Daily debug reveal is disabled** (`DAILY_REVEAL_LIMIT = 0`) — revealing every mine would leak the
   scored solution, and screenshots can't be technically blocked.
+- **The win condition is deterministic.** Whatever ends a daily (a target `WIN_LEVEL`, a score threshold,
+  or a cumulative-time budget — owner's call, ROADMAP P1 item 0) must derive from constants/seeded state,
+  never the wall-clock, so the daily's finish line is identical for everyone.
 
 ## Collision Invariants
 
