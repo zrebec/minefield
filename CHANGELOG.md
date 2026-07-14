@@ -1,3 +1,10 @@
+# [0.57.0](https://github.com/zrebec/minefield/compare/v0.56.1...v0.57.0) (2026-07-14)
+
+
+### Features
+
+* **game:** win condition — clear WIN_LEVEL crossings to win the run ([979f240](https://github.com/zrebec/minefield/commit/979f24061e24bde0f0e38bbe6f7c1c15465a37c4))
+
 ## [0.56.1](https://github.com/zrebec/minefield/compare/v0.56.0...v0.56.1) (2026-07-13)
 
 
