@@ -94,7 +94,8 @@ export const MAX_FIELD_ATTEMPTS = 64
 
 // Clearing this many crossings (1-based level) wins the run: the war ends, the Strip
 // is cleared, the two countries reunite. A constant → the same finish line for
-// everyone, so the daily stays comparable. Tune freely by ear.
+// everyone, so the daily stays comparable. Tune freely by ear. Keep it >= 1 (0 behaves
+// like 1 — level 1 still plays, then the war ends on crossing it).
 export const WIN_LEVEL = 10
 
 // ── Scoring ───────────────────────────────────────────────────────────────────

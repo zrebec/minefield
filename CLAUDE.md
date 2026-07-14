@@ -25,11 +25,19 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (490 tests)
+npm test          # Vitest (486 tests)
 npm run build     # dist/
 npm run smoke     # browser smoke test over dist/ (Playwright; run after build, before a release)
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
 ```
+
+**Manual testing shortcuts (dev only, revert before commit):** set `MINE_DENSITY` to ~`0.001` in
+`config.ts` for near-empty fields — cross instantly and collect every gem (a fast way to exercise level
+advance, the win flow, gem specials, etc.). Set `WIN_LEVEL = 1` to reach the victory screen after a single
+crossing. **Win-flow test coverage today is unit-only:** `isFinalLevel` (the trigger) in `game.test.ts` +
+the epilogue / `STR_A11Y_WIN` strings in `strings.test.ts`; there is no end-to-end smoke that plays through
+to a win (the smoke crosses one level; winning needs `WIN_LEVEL` crossings) — a future nice-to-have, not a
+priority.
 
 ## Coding practices (owner's standing rules — follow these)
 

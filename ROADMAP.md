@@ -46,7 +46,7 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Tests | 483 (Vitest) — incl. run-start race battery (`runstart.test.ts`: story pre-roll always finishes + fresh game's first move always legal) | 2026-07-13 |
 | Build / release | semantic-release → GitHub Pages (latest **0.56.1**) | 2026-07-13 |
 | Accessibility | In progress — visual detector done; ARIA live regions + orientation (`E`/`G`/`H`) shipped; **per-step spoken danger removed 0.56.0** (was off-by-one; beep + detector carry danger with parity); **gem colour + plane approach/reseed spoken 0.56.0**; no built-in TTS (2026-07-11). **Remaining shell (Sept): title menu → `.sr-only`, pause "PAUSE", `T`-time, hiscore entry, post-win** | 2026-07-13 |
-| Win condition | **MISSING — the game has no ending** (levels run forever until death/timeout). Owner's September agenda item 1; see P1 item 0 | 2026-07-13 |
+| Win condition | **Shipped 0.57.0 (2026-07-14)** — reach `WIN_LEVEL` (config, default 10) → `won` phase → epilogue → highscore → menu; deterministic + announced. Owner-verified (daily records, random doesn't, ends after 1/3 levels) | 2026-07-14 |
 
 ## Road to v1.0 (`2026-09-07`) — prioritised backlog
 
@@ -54,17 +54,16 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 new mechanics** (those are Post-1.0). Each item ships with tests where behaviour changes.
 
 ### P1 — Finish & polish (the game must feel done)
-0. **Win condition + post-win screen (NEW 2026-07-13 — the biggest gap: the game has no ending).** Today
-   levels run forever until death/timeout. Owner floated three triggers: (1) score 100k, (2) reaching a
-   configurable target level ~10, (3) a cumulative time budget across N levels. **Claude's recommendation:
-   option 2 — a config `WIN_LEVEL` (default ~10), which unifies all three: level = win trigger, score =
-   leaderboard rank, cumulative-time = a Post-1.0 "Marathon" mode.** Why: a level target is a *definite*
-   ending (score is farmable + an arbitrary gate; the cumulative-time model is the most interesting but a
-   bigger, riskier mechanic shift for the pre-Sept window). On `levelcomplete`, if `level+1 >= WIN_LEVEL`
-   → new `won` phase → post-win epilogue (war over, fields cleared, two countries reunited) → highscore →
-   menu. Must stay **seeded/deterministic** (`WIN_LEVEL` constant → same finish line for all) and
-   **announced** (`.sr-only`) like the rest of the shell. **Owner picks the trigger before building.**
-   Effort M. Deep discussion + rationale: `retro/docs/sk/minefield.md` §6.1.
+0. **~~Win condition + post-win screen~~ — ✅ SHIPPED 0.57.0 (2026-07-14).** Owner chose **option 2**
+   (`WIN_LEVEL`, config, default 10). On the final level-complete, `isFinalLevel(state.level)` → new `won`
+   phase → post-win epilogue (war over, Strip cleared, two countries reunited) → highscore (if it places)
+   → menu. Deterministic (`WIN_LEVEL` constant → same finish line for all) + announced (`STR_A11Y_WIN`,
+   assertive); reuses the previously-unused `playWin()`; saves cleared like game over (no scumming); score
+   stays the leaderboard rank. Unit-tested (`isFinalLevel` boundary/overshoot + epilogue strings); **no
+   end-to-end smoke yet** (winning needs `WIN_LEVEL` crossings — future, low priority). Owner-verified:
+   random stays off-board, daily records, ends correctly after 1 and 3 levels. **Post-1.0:** cumulative-
+   time "Marathon" mode + "winners always recorded" (a low-scored winner currently just returns to menu).
+   Rationale + the 3 options: `retro/docs/sk/minefield.md` §6.1.
 1. **Finish the intro — music tuning only.** The story (5 chapters), all 5 hand-drawn scenes, the per-card
    AY score (`introTrack`) and book-style chapter titles are **done**. What remains is the owner's by-ear
    tuning of the tracks + tempo (`MS_PER_CHAR` / `CARD_HOLD_MS`). Optional: a "press to begin (sound on)" gate.
@@ -213,6 +212,7 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Milestone |
 |---|---|
+| 2026-07-14 | **Win condition shipped (0.57.0)** — reach `WIN_LEVEL` (default 10) → `won` phase → post-win epilogue → highscore → menu; `isFinalLevel` trigger, deterministic + announced (`STR_A11Y_WIN`), reuses `playWin()`. Owner-verified (daily records, random doesn't, ends after 1/3 levels; tested via `MINE_DENSITY≈0.001`) |
 | 2026-07-13 | **Title menu high-score table → fixed columns (0.56.1)** — each field on a fixed character column, score right-aligned (Excel-style), intro art 2 rows shorter for panel padding, `L:` moved off the 5th-score row (they were colliding into "093L: SK"); dead `STR_HIGH_SCORE_LINE` + its tests removed |
 | 2026-07-13 | **A11y batch (0.56.0)** — removed the off-by-one per-step danger line (announced the cell being left → said "clear" while stepping onto a mine); gem colour spoken on pickup + `G`; enemy plane approach + field-reseed announced; audio guide reworded around counting beeps + a short "press H" start hint instead of the full guide |
 | 2026-07-09 | **Blind orientation (Item C)** — `E` = exit bearing, `G` = nearest gem + count, start/resume summary ("22 right, 3 up"); parity not assist (no leaderboard flag); 380 tests, verified live in headless Chromium. Replaces the reverted stereo compass |
