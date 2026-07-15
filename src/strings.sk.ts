@@ -94,6 +94,26 @@ export const STR_A11Y_WIN = 'Vyhral si. Vojna sa skončila — Pás je čistý a
 export const STR_A11Y_MODE_DAILY = 'Denný beh začal.'
 export const STR_A11Y_MODE_RANDOM = 'Tréningový beh začal.'
 
+// Titulné menu, zrkadlené do navigovateľného #sr-menu regiónu, kým je titulná
+// obrazovka hore (setMenu v a11y.ts). Jeden prvok poľa = jeden riadok; musí
+// spomenúť každý kláves, na ktorý titulná obrazovka naozaj počúva.
+export const STR_A11Y_MENU_LINES: readonly string[] = [
+  'Menu titulnej obrazovky.',
+  'Medzerník, Enter alebo S: spustí denný beh — rovnaké pole pre všetkých; skóre sa počíta.',
+  'R: spustí tréningový beh na náhodnom poli — nikdy nejde do rebríčka.',
+  'I: prehrá úvodný príbeh.',
+  'L: prepne jazyk.',
+  'H: prehrá zvukového sprievodcu. V hre E povie smer k východu a G najbližší gem.',
+  'Šípky alebo d-pad pohyb. F označí podozrivú mínu. P pauza. Plus a mínus hlasitosť.',
+]
+export const STR_A11Y_MENU_SCORES    = 'Najlepšie skóre:'
+export const STR_A11Y_MENU_NO_SCORES = 'Zatiaľ žiadne skóre.'
+export const STR_A11Y_MENU_SCORE_ROW = (rank: number, name: string, score: number, level: number, date?: string) =>
+  `${rank}. ${name}: ${score} bodov, úroveň ${level}${date ? ', ' + date : ''}.`
+// Hovorené (polite) pri každom návrate na titulnú obrazovku.
+export const STR_A11Y_TITLE =
+  'Titulná obrazovka. Medzerník spustí denný beh, R tréningový. Celé menu a najlepšie skóre si prečítaš pod hrou.'
+
 // Lietadlo (blíži sa = assertive varovanie; presiatie = polite hlásenie)
 export const STR_A11Y_PLANE_APPROACHING = 'Blíži sa lietadlo.'
 export const STR_A11Y_PLANE_RESEEDED = (n: number) =>

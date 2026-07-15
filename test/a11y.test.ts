@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import html from '../index.html?raw'
 import { STR_TITLE } from '../src/strings.ts'
 import { getLocale, L } from '../src/lang.ts'
-import { announce, status, setLegend, describeExit, describeGems, describeOrientation } from '../src/a11y.ts'
+import { announce, status, setLegend, setMenu, describeExit, describeGems, describeOrientation } from '../src/a11y.ts'
 import { createGame, type GameState } from '../src/game.ts'
 import { makeTileGround, makeTileGem } from '../src/sprites.ts'
 import { COLS, ROWS } from '../src/constants.ts'
@@ -106,6 +106,15 @@ describe('ARIA attributes', () => {
     expect(el).not.toBeNull()
     expect(el!.classList.contains('sr-only')).toBe(true)
   })
+
+  it('#sr-menu exists as a navigable .sr-only title-menu mirror — and is NOT a live region', () => {
+    const el = doc.getElementById('sr-menu')
+    expect(el).not.toBeNull()
+    expect(el!.classList.contains('sr-only')).toBe(true)
+    // The menu is browsed, not announced: an aria-live here would speak the whole
+    // key list + score table at every title entry (the wall-of-text mistake 0.56.0 undid).
+    expect(el!.hasAttribute('aria-live')).toBe(false)
+  })
 })
 
 // ── a11y.ts module — live-region writes + shared formatter ────────────────────
@@ -125,7 +134,7 @@ const gem = (s: GameState, c: number, r: number): void =>
 describe('a11y live regions', () => {
   beforeEach(() => {
     document.body.innerHTML =
-      '<div id="sr-announcer"></div><div id="sr-status"></div><div id="sr-legend"></div>'
+      '<div id="sr-announcer"></div><div id="sr-status"></div><div id="sr-legend"></div><div id="sr-menu"></div>'
   })
 
   it('announce writes the assertive region and forces a re-read of identical text', () => {
@@ -159,9 +168,23 @@ describe('a11y live regions', () => {
     expect(sk.STR_A11Y_LEGEND).toMatch(/\bH\b/)
   })
 
+  it('setMenu writes one element per line — a screen reader steps through, not one blob', () => {
+    setMenu(['Title screen menu.', 'R: practice run.', '1. ABC: 12500 points, level 3.'])
+    const node = document.getElementById('sr-menu')!
+    expect(node.children.length).toBe(3)
+    expect(node.children[0].textContent).toBe('Title screen menu.')
+    expect(node.children[2].textContent).toBe('1. ABC: 12500 points, level 3.')
+  })
+
+  it('setMenu([]) empties the mirror — leaving the title takes the dead menu with it', () => {
+    setMenu(['Title screen menu.'])
+    setMenu([])
+    expect(document.getElementById('sr-menu')!.textContent).toBe('')
+  })
+
   it('every DOM write is guarded — no throw when the regions are absent', () => {
     document.body.innerHTML = ''
-    expect(() => { announce('x'); status('y'); setLegend('z') }).not.toThrow()
+    expect(() => { announce('x'); status('y'); setLegend('z'); setMenu(['m']) }).not.toThrow()
   })
 })
 

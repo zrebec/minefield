@@ -8,10 +8,10 @@ import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
 import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen } from './intro.ts'
-import { isHighScore, saveHighScore } from './highscore.ts'
+import { isHighScore, saveHighScore, loadHighScores } from './highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
 import { L, cycleLocale } from './lang.ts'
-import { announce, status, setLegend, describeExit, describeGems, describeOrientation } from './a11y.ts'
+import { announce, status, setLegend, setMenu, describeExit, describeGems, describeOrientation } from './a11y.ts'
 
 type AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'
 
@@ -79,6 +79,33 @@ function initAudioOnce(): void {
   }
 }
 
+// The title menu as browsable screen-reader lines: the key list + the current
+// high-score table (#sr-menu). Rebuilt on every title entry (scores change)
+// and on a locale switch (language changes).
+function titleMenuLines(): string[] {
+  const lines: string[] = [...L.STR_A11Y_MENU_LINES]
+  const scores = loadHighScores()
+  if (scores.length === 0) {
+    lines.push(L.STR_A11Y_MENU_NO_SCORES)
+  } else {
+    lines.push(L.STR_A11Y_MENU_SCORES)
+    scores.forEach((e, i) => lines.push(L.STR_A11Y_MENU_SCORE_ROW(i + 1, e.name, e.score, e.level, e.date)))
+  }
+  return lines
+}
+
+// Land on the title. Every path back to the menu funnels through here so the
+// attract cycle restarts AND the sr-only menu mirror exists exactly while the
+// title's keys are live (startRun/enterStory drop it again on the way out).
+function enterTitle(): void {
+  appPhase = 'intro'
+  introPage = 0
+  introPageTimer = INTRO_PAGE_MS
+  setBorderColor(C.B_BLUE)
+  setMenu(titleMenuLines())
+  status(L.STR_A11Y_TITLE)   // tell a blind player where they are + that the menu is browsable
+}
+
 function enterHiScore(): void {
   hiName = []
   hiCursor = 0
@@ -97,6 +124,7 @@ function startRun(random: boolean): void {
   state = createGame(0, 0, random ? undefined : dailySeed(0))
   writeSave(saveProfile, 'auto')   // make the run resumable from level 1
   resetInput()
+  setMenu([])   // leaving the title — its menu keys are dead now, so the mirror goes too
   // One polite line: mode + start-of-run orientation (exit bearing + gem count). A
   // second status() call would overwrite this before a screen reader reads it.
   status(`${random ? L.STR_A11Y_MODE_RANDOM : L.STR_A11Y_MODE_DAILY} ${describeOrientation(state)}`)
@@ -112,6 +140,7 @@ function enterStory(returnTarget: 'intro' | 'ingame', random = false): void {
   storyPendingRandom = random
   introMusicCard = -1
   resetInput()
+  setMenu([])   // leaving the title — its menu keys are dead now, so the mirror goes too
   appPhase = 'story'
   setBorderColor(C.B_BLUE)
 }
@@ -165,9 +194,7 @@ function gameLoop(timestamp: number): void {
         startRun(storyPendingRandom)   // pre-roll done → into the chosen game
       } else {
         resetInput()
-        appPhase = 'intro'             // launched via I → back to the title
-        introPage = 0
-        introPageTimer = INTRO_PAGE_MS
+        enterTitle()                   // launched via I → back to the title
       }
     } else {
       renderStoryCard(ctx, story.card, Math.floor(story.revealed), blink)
@@ -222,13 +249,11 @@ function gameLoop(timestamp: number): void {
           // here; daily always has the prefix; undefined falls back to today.
           saveHighScore({ name: hiName.join(''), score: state.score, level: state.level + 1, date: seedDate(state.dropSeedBase) ?? undefined })
           resetInput()
-          appPhase = 'intro'
-          setBorderColor(C.B_BLUE)
+          enterTitle()
         }
       } else if (key === 'ESC') {
         resetInput()
-        appPhase = 'intro'
-        setBorderColor(C.B_BLUE)
+        enterTitle()
       } else if (hiCursor < 3) {
         hiName.push(key)
         hiCursor++
@@ -389,8 +414,7 @@ function gameLoop(timestamp: number): void {
       if (state.dropSeedBase !== null && isHighScore(state.score)) {
         enterHiScore()
       } else {
-        appPhase = 'intro'
-        setBorderColor(C.B_BLUE)
+        enterTitle()
       }
     }
 
@@ -408,8 +432,7 @@ function gameLoop(timestamp: number): void {
       if (state.dropSeedBase !== null && isHighScore(state.score)) {
         enterHiScore()
       } else {
-        appPhase = 'intro'
-        setBorderColor(C.B_BLUE)
+        enterTitle()
       }
     }
   }
@@ -468,6 +491,7 @@ function main(): void {
       } else if (e.key === 'l' || e.key === 'L') {
         cycleLocale()   // synchronous, safe to call directly — no pending flag needed
         setLegend(L.STR_A11Y_LEGEND_HINT)   // keep the guide hint in the new language
+        setMenu(titleMenuLines())           // rebuild the menu mirror in the new language
       }
     } else if (appPhase === 'hiscore') {
       if (e.key.length === 1 && /[A-Za-z]/.test(e.key)) {
@@ -496,6 +520,8 @@ function main(): void {
   if (readSaveLatest(saveProfile).ok) {
     appPhase = 'ingame'
     status(describeOrientation(state))   // re-orient a blind player on resume
+  } else {
+    enterTitle()   // cold load lands on the title — fill the sr-only menu mirror
   }
 
   requestAnimationFrame(gameLoop)

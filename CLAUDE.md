@@ -139,7 +139,9 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   and has no diegetic basis. Also rejected: a radius-1 "detector" variant — per-direction adjacent
   info would gut triangulation (the core puzzle; the timer exists as its anti-cheese) and give blind
   players MORE than sighted ones. The infra above stayed; only the signal was cut (`git show e88cca5`
-  has the old code). Deep write-up: `retro/docs/sk/minefield.md` §5.
+  has the old code). Deep write-up: `retro/docs/sk/minefield.md` §5. **The ban covers continuous/
+  unsolicited signals — the owner's on-demand radar-sweep scan idea (2026-07-15) is a different design
+  (player-triggered, diegetic sonar, budget-shared with `D`) and is a live candidate: `retro/docs/sk/a11y.md`.**
 - **No built-in TTS (decided 2026-07-11).** The game never calls `SpeechSynthesis` — it mirrors
   canvas state into the ARIA live regions and the player's screen reader does the speaking. Do not
   propose TTS; revisit only if the September playtest with a real screen-reader user shows
@@ -147,13 +149,25 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
 - **Legend replay: shipped (Item B, 2026-07-11).** `H` re-announces `STR_A11Y_LEGEND` on every
   screen except hiscore name entry (handler next to `O` in `main.ts`); both legend strings
   advertise the key, test-guarded.
-- **Still to wire (September agenda, owner 2026-07-13; ROADMAP P1):** (1) the **win condition + post-win
-  screen** — the game has no ending; reach `WIN_LEVEL` (owner picks the trigger; Claude recommends the
-  level target — ROADMAP P1 item 0); (2) the whole **title menu into a `.sr-only` div** (keys + the
-  high-score table, so a blind player knows what to press and can read the scores); (3) **pause announces
-  "PAUSE"** in `.sr-only` (a full pause menu for blind comes later); (4) **`T` reads the remaining time**
-  (also spoken at run start); (5) high-score letter entry; (6) exit beacon + assist toggle. "Fully
-  playable" covers menus + the ending, not just the field.
+- **Title menu in `.sr-only`: shipped (2026-07-15).** `#sr-menu` (index.html) is a navigable — NOT
+  live — region; `setMenu(lines)` in `a11y.ts` renders one `<p>` per line (empty array clears it).
+  `enterTitle()` in `main.ts` is the single funnel for every path back to the title (cold load, story
+  return, hiscore save/skip, game over, win): it fills the mirror via `titleMenuLines()`
+  (`STR_A11Y_MENU_LINES` + the live high-score table as sentences) and speaks `STR_A11Y_TITLE`
+  (polite); `startRun`/`enterStory` clear the mirror on the way out, so it exists exactly while the
+  title's keys are live. `L` on the title rebuilds it in the new language. Test-guarded: the menu must
+  advertise every title/a11y key (strings.test.ts) and `#sr-menu` must never gain `aria-live`
+  (a11y.test.ts — the wall-of-text mistake 0.56.0 undid).
+- **Spoken layer declared DONE for v1.0 (owner playtest, 2026-07-15).** Verdict: it already talks too
+  much ("hrozne to kecá") — no new spoken text without a real need; short positional earcons beat
+  sentences (TLOU2 model). The rest of the shell agenda — pause announces "PAUSE", `T` reads the time,
+  high-score letter echo, exit beacon + assist toggle — is **parked until a playtest with real
+  screen-reader users**. Two cheap pre-playtest fixes noted: trim `STR_A11Y_MENU_LINES`, and the
+  gem-pickup line goes silent on a fast identical second pickup (`status()` dedupe) → fix by speaking
+  the remaining count (unique text). Next candidate feature (prototype just before the playtest): an
+  **on-demand radar-sweep mine scan** as the missing AUDIO channel of the budgeted `D` reveal — this is
+  NOT the reverted compass (on-demand + diegetic + budget-gated vs continuous unsolicited density);
+  analysis + genre research: `retro/docs/sk/a11y.md`.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 

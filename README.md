@@ -247,15 +247,17 @@ deaf players.** Not "compatible" — playable, start to finish, including the me
 - **Deaf players — done.** The game is audio-primary but **not** audio-only: the HUD detector
   (shipped 2026-06-17) mirrors every warning visually — a 4-segment adjacent-mine meter plus a
   separate beacon LED — so no information exists in sound alone.
-- **Blind players — in progress, v1.0 scope.** Already shipped: the ARIA **live regions** speak the
-  per-step danger sentence (adjacent count + beacon), run/level/life/game-over status, and — on
+- **Blind players — in progress, v1.0 scope.** Already shipped: the ARIA **live regions** speak
+  run/level/life/game-over status, gem pickups (by colour), the aircraft's passes, and — on
   demand — **orientation**: press `E` for the exit's bearing, `G` for the nearest gem, with a summary
-  on run start ("22 right, 3 up" relative distances, parity with what a sighted player scouts). Canvas
+  on run start ("22 right, 3 up" relative distances, parity with what a sighted player scouts). The
+  **title menu is readable too** (2026-07-15): a screen-reader region below the canvas lists every key
+  and the high-score table, line by line, whenever the title is up. Canvas
   labelling + live document `lang` landed 2026-07-03; the game is fully keyboard-driven. The voice is
   deliberately **your screen reader's**, not ours: everything that matters on the canvas is mirrored
   into the DOM live regions, which is the screen reader's native ground (decided 2026-07-11; no
-  built-in TTS). Still coming for v1.0: an **exit beacon** tone, the rest of the **shell** (title,
-  pause, high-score entry, intro announced), and an **assist-mode** flag. *(A directional stereo mine
+  built-in TTS). Still coming for v1.0: an **exit beacon** tone, the rest of the **shell** (pause,
+  high-score entry), and an **assist-mode** flag. *(A directional stereo mine
   compass was tried and reverted — it read as danger without danger; see
   `docs/accessibility-orientation.md`.)*
 

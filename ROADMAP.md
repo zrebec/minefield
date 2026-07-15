@@ -45,7 +45,7 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
 | Tests | 483 (Vitest) — incl. run-start race battery (`runstart.test.ts`: story pre-roll always finishes + fresh game's first move always legal) | 2026-07-13 |
 | Build / release | semantic-release → GitHub Pages (latest **0.56.1**) | 2026-07-13 |
-| Accessibility | In progress — visual detector done; ARIA live regions + orientation (`E`/`G`/`H`) shipped; **per-step spoken danger removed 0.56.0** (was off-by-one; beep + detector carry danger with parity); **gem colour + plane approach/reseed spoken 0.56.0**; no built-in TTS (2026-07-11). **Remaining shell (Sept): title menu → `.sr-only`, pause "PAUSE", `T`-time, hiscore entry, post-win** | 2026-07-13 |
+| Accessibility | In progress — visual detector done; ARIA live regions + orientation (`E`/`G`/`H`) shipped; **per-step spoken danger removed 0.56.0** (was off-by-one; beep + detector carry danger with parity); **gem colour + plane approach/reseed spoken 0.56.0**; no built-in TTS (2026-07-11); **title menu → `.sr-only` shipped 2026-07-15** (`#sr-menu` mirror: keys + high-score table, rebuilt on every title entry + locale switch). **Owner playtest 2026-07-15: spoken layer declared DONE for v1.0** — remaining shell (pause "PAUSE", `T`-time, hiscore letter echo) parked until a playtest with real screen-reader users. Playtest findings to fix cheaply: shorten the menu lines; gem-pickup silence on a fast second pickup (`status()` dedupe — fix: speak the remaining count). Next candidate: **on-demand mine scan** (TLOU2-style sweep = audio twin of the budgeted `D` reveal) — decision doc `retro/docs/sk/a11y.md` | 2026-07-15 |
 | Win condition | **Shipped 0.57.0 (2026-07-14)** — reach `WIN_LEVEL` (config, default 10) → `won` phase → epilogue → highscore → menu; deterministic + announced. Owner-verified (daily records, random doesn't, ends after 1/3 levels) | 2026-07-14 |
 
 ## Road to v1.0 (`2026-09-07`) — prioritised backlog
@@ -103,11 +103,19 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    tween; position + beep commit at tween end), and the beep + visual detector already carry danger with
    parity, so the spoken count was a redundant, stale, interrupting third channel. Wired: explosion/
    respawn ✅ · game over ✅ · run/level status ✅ · orientation `E`/`G`/`H` ✅ · **gem colour on pickup +
-   `G` ✅ (0.56.0)** · **aircraft approach + reseed ✅ (0.56.0)**. **Remaining (September list):**
-   (a) **the whole title menu into a `.sr-only` div** — keys + the high-score table, so a blind player
-   knows what to press and can read the scores; (b) **pause announces "PAUSE"** in `.sr-only` (a full
-   pause menu for blind comes later); (c) **`T` reads the remaining time** (also spoken at run start);
-   (d) high-score letter entry; (e) the **post-win screen** (item 0).
+   `G` ✅ (0.56.0)** · **aircraft approach + reseed ✅ (0.56.0)** · **title menu in `.sr-only` ✅
+   (2026-07-15)** — `#sr-menu` navigable (not live) region, `setMenu()` in `a11y.ts`, one `<p>` per
+   line: every title/a11y key + the high-score table as sentences; filled by `enterTitle()` (the single
+   funnel back to the title, which also speaks a polite `STR_A11Y_TITLE` line), cleared by
+   `startRun`/`enterStory`, rebuilt on `L`; verified live end-to-end (daily → game over → name entry →
+   title shows the score row). **Owner decision 2026-07-15: spoken layer is DONE for v1.0** — his own
+   playtest verdict: it talks too much; TLOU-style short positional cues beat sentences. The rest is
+   **parked until real screen-reader players test it**: (a) **pause announces "PAUSE"**; (b) **`T` reads
+   the remaining time**; (c) high-score letter echo. Cheap pre-playtest fixes: trim `STR_A11Y_MENU_LINES`;
+   gem pickup goes silent on a fast identical second pickup (`status()` dedupe) → speak the remaining
+   count. Next big candidate (prototype right before the playtest): **on-demand radar-sweep mine scan**
+   as the audio twin of the budgeted `D` reveal — full analysis + trends research in
+   `retro/docs/sk/a11y.md` (2026-07-15).
 7. **Exit beacon tone** + **assist-mode toggle** (flag assisted runs so they're marked on the board).
 
 ### P1/P2 — "Finished product" surface
@@ -212,6 +220,7 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Milestone |
 |---|---|
+| 2026-07-15 | **Title menu in `.sr-only` shipped** — `#sr-menu` navigable region mirrors the title menu (every title/a11y key + the high-score table as sentences, one `<p>` per line via `setMenu`); `enterTitle()` DRY-funnel fills it on every return to the title + speaks a polite "Title screen" line; cleared on run/story start, rebuilt on `L`. Tests 490; verified live in Chromium (incl. daily → game over → name entry → score row readable) |
 | 2026-07-14 | **Win condition shipped (0.57.0)** — reach `WIN_LEVEL` (default 10) → `won` phase → post-win epilogue → highscore → menu; `isFinalLevel` trigger, deterministic + announced (`STR_A11Y_WIN`), reuses `playWin()`. Owner-verified (daily records, random doesn't, ends after 1/3 levels; tested via `MINE_DENSITY≈0.001`) |
 | 2026-07-13 | **Title menu high-score table → fixed columns (0.56.1)** — each field on a fixed character column, score right-aligned (Excel-style), intro art 2 rows shorter for panel padding, `L:` moved off the 5th-score row (they were colliding into "093L: SK"); dead `STR_HIGH_SCORE_LINE` + its tests removed |
 | 2026-07-13 | **A11y batch (0.56.0)** — removed the off-by-one per-step danger line (announced the cell being left → said "clear" while stepping onto a mine); gem colour spoken on pickup + `G`; enemy plane approach + field-reseed announced; audio guide reworded around counting beeps + a short "press H" start hint instead of the full guide |

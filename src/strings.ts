@@ -115,6 +115,26 @@ export const STR_A11Y_WIN = 'You won. The war is over — the Strip is clear and
 export const STR_A11Y_MODE_DAILY = 'Daily run started.'
 export const STR_A11Y_MODE_RANDOM = 'Practice run started.'
 
+// Title menu, mirrored into the navigable #sr-menu region while the title is
+// up (setMenu in a11y.ts). One array entry = one browsable line; must advertise
+// every key the title screen actually listens to (main.ts intro branch).
+export const STR_A11Y_MENU_LINES: readonly string[] = [
+  'Title screen menu.',
+  'Space, Enter or S: start the daily run — the same field for everyone today; scores count.',
+  'R: start a practice run on a random field — never on the leaderboard.',
+  'I: replay the story intro.',
+  'L: switch language.',
+  'H: hear the audio guide. In game, E speaks the exit bearing and G the nearest gem.',
+  'Arrows or d-pad move. F flags a suspected mine. P pauses. Plus and minus set the volume.',
+]
+export const STR_A11Y_MENU_SCORES    = 'High scores:'
+export const STR_A11Y_MENU_NO_SCORES = 'No high scores yet.'
+export const STR_A11Y_MENU_SCORE_ROW = (rank: number, name: string, score: number, level: number, date?: string) =>
+  `${rank}. ${name}: ${score} points, level ${level}${date ? ', ' + date : ''}.`
+// Spoken (polite) on every return to the title, pointing at the browsable menu.
+export const STR_A11Y_TITLE =
+  'Title screen. Space starts the daily run, R a practice run. The full menu and high scores can be read below the game.'
+
 // Aircraft (approaching = assertive warning; reseed report = polite)
 export const STR_A11Y_PLANE_APPROACHING = 'Plane approaching.'
 export const STR_A11Y_PLANE_RESEEDED = (n: number) => `The plane reseeded the field. ${n} new ${n === 1 ? 'mine' : 'mines'}.`

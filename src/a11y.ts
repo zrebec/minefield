@@ -49,6 +49,22 @@ export function setLegend(text: string): void {
   if (node) node.textContent = text
 }
 
+/** Mirrors the title menu (keys + high scores) into the navigable #sr-menu
+ *  region — one <p> per line so a screen reader steps through it line by line
+ *  instead of meeting one wall of text. Call with [] when leaving the title so
+ *  stale menu text can't be browsed mid-run. Not a live region: the player
+ *  navigates here, nothing is spoken on write. */
+export function setMenu(lines: readonly string[]): void {
+  const node = el('sr-menu')
+  if (!node) return
+  node.textContent = ''
+  for (const line of lines) {
+    const p = document.createElement('p')
+    p.textContent = line
+    node.appendChild(p)
+  }
+}
+
 // ── Orientation (Item C) — exit + gems as a relative bearing ──────────────────
 // A blind player can't see the field a sighted one scouts (exit hole, gems). These
 // on-demand announcements close that gap. Mines are NOT here — they stay hidden for

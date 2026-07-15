@@ -70,6 +70,14 @@
          NOT a live region: a screen-reader user browses here for the prompt. -->
     <div id="sr-legend" class="sr-only" aria-label="Audio guide"></div>
 
+    <!-- Title-menu mirror — while the title screen is up, main.ts fills this
+         (setMenu in a11y.ts) with the menu keys + the high-score table, one
+         <p> per line, so a blind player can browse what to press and read the
+         scores; cleared on leaving the title so stale menu text can't be found
+         mid-run. NOT a live region: the player navigates here, nothing speaks
+         on write. -->
+    <div id="sr-menu" class="sr-only" aria-label="Menu"></div>
+
     <noscript>THE STRIP needs JavaScript to run — it is a browser game rendered on a canvas with Web Audio sound.</noscript>
 
     <script type="module" src="/src/main.ts"></script>

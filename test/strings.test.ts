@@ -64,6 +64,25 @@ describe('controls / i18n consistency', () => {
       expect(pack.STR_A11Y_PLANE_PASSED).toBeTruthy()
     }
   })
+
+  it('title-menu mirror strings exist and advertise every title/a11y key (both languages)', () => {
+    for (const pack of [en, sk]) {
+      const all = pack.STR_A11Y_MENU_LINES.join(' ')
+      // Every key the title screen (or the in-game a11y layer) listens to must be
+      // named in the browsable menu — this is how a blind player learns them.
+      for (const key of ['S', 'R', 'I', 'L', 'H', 'E', 'G', 'F', 'P']) {
+        expect(all, `menu advertises ${key}`).toMatch(new RegExp(`\\b${key}\\b`))
+      }
+      expect(pack.STR_A11Y_TITLE).toBeTruthy()
+      expect(pack.STR_A11Y_MENU_SCORES).toBeTruthy()
+      expect(pack.STR_A11Y_MENU_NO_SCORES).toBeTruthy()
+      const row = pack.STR_A11Y_MENU_SCORE_ROW(1, 'ABC', 12500, 3, '2026-07-12')
+      for (const part of ['1', 'ABC', '12500', '3', '2026-07-12']) expect(row).toContain(part)
+      // Legacy dateless entries must still read as a sentence, not "undefined".
+      expect(pack.STR_A11Y_MENU_SCORE_ROW(2, 'XYZ', 900, 1)).not.toContain('undefined')
+    }
+    expect(en.STR_A11Y_MENU_LINES.length).toBe(sk.STR_A11Y_MENU_LINES.length)
+  })
 })
 
 // The story intro is typed char-by-char with the ZX ROM font (ASCII only) and
