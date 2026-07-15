@@ -1,3 +1,10 @@
+# [0.58.0](https://github.com/zrebec/minefield/compare/v0.57.0...v0.58.0) (2026-07-15)
+
+
+### Features
+
+* **a11y:** mirror the title menu into a navigable screen-reader region ([ce806e7](https://github.com/zrebec/minefield/commit/ce806e777a3bcaebfb86b45e3f311b27e12f686d)), closes [hi#score](https://github.com/hi/issues/score) [#sr-menu](https://github.com/zrebec/minefield/issues/sr-menu) [hi#score](https://github.com/hi/issues/score) [#sr-menu](https://github.com/zrebec/minefield/issues/sr-menu)
+
 # [0.57.0](https://github.com/zrebec/minefield/compare/v0.56.1...v0.57.0) (2026-07-14)
 
 
