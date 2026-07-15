@@ -1,3 +1,10 @@
+# [0.59.0](https://github.com/zrebec/minefield/compare/v0.58.0...v0.59.0) (2026-07-15)
+
+
+### Features
+
+* **a11y:** title menu in a screen-reader region + terse spoken lines ([b1031d5](https://github.com/zrebec/minefield/commit/b1031d5a511ff9e9024d8cfc886690ce6f407626)), closes [#sr-menu](https://github.com/zrebec/minefield/issues/sr-menu) [hi#score](https://github.com/hi/issues/score) [#sr-menu](https://github.com/zrebec/minefield/issues/sr-menu)
+
 # [0.58.0](https://github.com/zrebec/minefield/compare/v0.57.0...v0.58.0) (2026-07-15)
 
 
