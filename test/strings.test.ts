@@ -56,7 +56,9 @@ describe('controls / i18n consistency', () => {
       expect(pack.STR_A11Y_EXIT('2 right')).toContain('2 right')
       expect(pack.STR_A11Y_GEM_NEAREST('cyan', '2 right', 3)).toBeTruthy()
       expect(pack.STR_A11Y_GEM_NONE).toBeTruthy()
-      expect(pack.STR_A11Y_GEM_GOT(pack.STR_A11Y_GEM_COLOUR.red)).toBeTruthy()
+      // Pickup line must carry the remaining count — it's what keeps consecutive
+      // pickups distinct for the status() dedupe (owner playtest 2026-07-15).
+      expect(pack.STR_A11Y_GEM_GOT(pack.STR_A11Y_GEM_COLOUR.red, 7)).toContain('7')
       for (const k of ['red', 'cyan', 'gold', 'green']) expect(pack.STR_A11Y_GEM_COLOUR[k]).toBeTruthy()
       expect(pack.STR_A11Y_ORIENT('2 right', 5)).toBeTruthy()
       expect(pack.STR_A11Y_PLANE_APPROACHING).toBeTruthy()

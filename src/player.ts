@@ -133,7 +133,7 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
     const cMult = comboMultiplier(state.comboCount)
     state.score += Math.round(GEM_SCORE * cMult)
     playGemCollect(state.comboCount)
-    announceGemPickup(gemKind)   // screen-reader twin of the gem's colour + collect sound
+    announceGemPickup(state, gemKind)   // screen-reader twin of the collect sound: colour + gems left
     // Every RED_GEMS_PER_LIFE red gems convert into an extra life, freeing slots.
     if (gemKind === 'red' && state.inventory.red >= RED_GEMS_PER_LIFE) {
       state.inventory.red -= RED_GEMS_PER_LIFE

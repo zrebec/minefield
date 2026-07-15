@@ -45,7 +45,7 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
 | Tests | 483 (Vitest) — incl. run-start race battery (`runstart.test.ts`: story pre-roll always finishes + fresh game's first move always legal) | 2026-07-13 |
 | Build / release | semantic-release → GitHub Pages (latest **0.56.1**) | 2026-07-13 |
-| Accessibility | In progress — visual detector done; ARIA live regions + orientation (`E`/`G`/`H`) shipped; **per-step spoken danger removed 0.56.0** (was off-by-one; beep + detector carry danger with parity); **gem colour + plane approach/reseed spoken 0.56.0**; no built-in TTS (2026-07-11); **title menu → `.sr-only` shipped 2026-07-15** (`#sr-menu` mirror: keys + high-score table, rebuilt on every title entry + locale switch). **Owner playtest 2026-07-15: spoken layer declared DONE for v1.0** — remaining shell (pause "PAUSE", `T`-time, hiscore letter echo) parked until a playtest with real screen-reader users. Playtest findings to fix cheaply: shorten the menu lines; gem-pickup silence on a fast second pickup (`status()` dedupe — fix: speak the remaining count). Next candidate: **on-demand mine scan** (TLOU2-style sweep = audio twin of the budgeted `D` reveal) — decision doc `retro/docs/sk/a11y.md` | 2026-07-15 |
+| Accessibility | In progress — visual detector done; ARIA live regions + orientation (`E`/`G`/`H`) shipped; **per-step spoken danger removed 0.56.0** (was off-by-one; beep + detector carry danger with parity); **gem colour + plane approach/reseed spoken 0.56.0**; no built-in TTS (2026-07-11); **title menu → `.sr-only` shipped 2026-07-15** (`#sr-menu` mirror: keys + high-score table, rebuilt on every title entry + locale switch). **Owner playtest 2026-07-15: spoken layer declared DONE for v1.0** — remaining shell (pause "PAUSE", `T`-time, hiscore letter echo) parked until a playtest with real screen-reader users. Playtest findings fixed same day: spoken lines cut to headwords (menu, title, mode/orient/plane); gem pickup now speaks `colour + n left` — unique text defeats the `status()` dedupe that silenced a fast second pickup. `H`-for-help rework (scoring rules + table on demand) = future session. Next candidate: **on-demand mine scan** (TLOU2-style sweep = audio twin of the budgeted `D` reveal) — decision doc `retro/docs/sk/a11y.md` | 2026-07-15 |
 | Win condition | **Shipped 0.57.0 (2026-07-14)** — reach `WIN_LEVEL` (config, default 10) → `won` phase → epilogue → highscore → menu; deterministic + announced. Owner-verified (daily records, random doesn't, ends after 1/3 levels) | 2026-07-14 |
 
 ## Road to v1.0 (`2026-09-07`) — prioritised backlog
@@ -111,9 +111,11 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    title shows the score row). **Owner decision 2026-07-15: spoken layer is DONE for v1.0** — his own
    playtest verdict: it talks too much; TLOU-style short positional cues beat sentences. The rest is
    **parked until real screen-reader players test it**: (a) **pause announces "PAUSE"**; (b) **`T` reads
-   the remaining time**; (c) high-score letter echo. Cheap pre-playtest fixes: trim `STR_A11Y_MENU_LINES`;
-   gem pickup goes silent on a fast identical second pickup (`status()` dedupe) → speak the remaining
-   count. Next big candidate (prototype right before the playtest): **on-demand radar-sweep mine scan**
+   the remaining time**; (c) high-score letter echo; (d) `H`-for-help rework — H speaks scoring rules
+   (daily scored, random not) + reads the table, title line just points at it (owner spec 2026-07-15,
+   FUTURE session). ✅ Fixed same day: spoken lines cut to headwords; gem pickup speaks `colour + n left`
+   (unique text defeats the `status()` dedupe that silenced a fast second pickup).
+   Next big candidate (prototype right before the playtest): **on-demand radar-sweep mine scan**
    as the audio twin of the budgeted `D` reveal — full analysis + trends research in
    `retro/docs/sk/a11y.md` (2026-07-15).
 7. **Exit beacon tone** + **assist-mode toggle** (flag assisted runs so they're marked on the board).

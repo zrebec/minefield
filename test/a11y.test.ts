@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import html from '../index.html?raw'
 import { STR_TITLE } from '../src/strings.ts'
 import { getLocale, L } from '../src/lang.ts'
-import { announce, status, setLegend, setMenu, describeExit, describeGems, describeOrientation } from '../src/a11y.ts'
+import { announce, status, setLegend, setMenu, announceGemPickup, describeExit, describeGems, describeOrientation } from '../src/a11y.ts'
 import { createGame, type GameState } from '../src/game.ts'
 import { makeTileGround, makeTileGem } from '../src/sprites.ts'
 import { COLS, ROWS } from '../src/constants.ts'
@@ -230,6 +230,25 @@ describe('describeGems — nearest gem + remaining count', () => {
     const s = cleanState(8, 8)
     gem(s, 8, 8)
     expect(describeGems(s)).toContain(L.STR_A11Y_HERE)
+  })
+})
+
+describe('announceGemPickup — colour + remaining count', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="sr-status"></div>'
+  })
+
+  it('two fast same-colour pickups both speak — the count keeps the text unique for the dedupe', () => {
+    const s = cleanState(8, 8)
+    gem(s, 12, 8)                                 // one gem still on the field
+    announceGemPickup(s, 'cyan')                  // → "... 1 left"
+    const first = document.getElementById('sr-status')!.textContent!
+    expect(first).toContain('1')
+    s.map.setTile(12, 8, makeTileGround('a', 'grass'))  // that one collected too
+    announceGemPickup(s, 'cyan')                  // → "... 0 left" — must differ
+    const second = document.getElementById('sr-status')!.textContent!
+    expect(second).not.toBe(first)                // unique text → status() dedupe can't silence it
+    expect(second).toContain('0')
   })
 })
 

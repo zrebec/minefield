@@ -78,12 +78,15 @@ export const STR_A11Y_DOWN  = 'dole'
 export const STR_A11Y_HERE  = 'tu'
 export const STR_A11Y_EXIT = (rel: string) => `Východ: ${rel}.`
 export const STR_A11Y_GEM_COLOUR: Record<string, string> = { red: 'červený', cyan: 'tyrkysový', gold: 'zlatý', green: 'zelený' }
-export const STR_A11Y_GEM_GOT = (colour: string) => `Zobral si ${colour} gem.`
+// Playtest ownera 2026-07-15: stroho — farba + zvyšný počet, žiadna veta. Počet
+// zároveň robí po sebe idúce zbery unikátnym textom, takže dedupe v status()
+// neumlčí rýchly druhý gem tej istej farby.
+export const STR_A11Y_GEM_GOT = (colour: string, left: number) => `${colour} gem, ${left} zostáva.`
 export const STR_A11Y_GEM_NEAREST = (colour: string, rel: string, n: number) =>
-  `Najbližší gem: ${colour}, ${rel}. Zostáva ${n} ${n === 1 ? 'gem' : n >= 2 && n <= 4 ? 'gemy' : 'gemov'}.`
+  `${colour} gem ${rel}. ${n} zostáva.`
 export const STR_A11Y_GEM_NONE = 'Žiadne gemy nezostali.'
 export const STR_A11Y_ORIENT = (exitRel: string, gemCount: number) =>
-  `Východ ${exitRel}. Na poli ${gemCount} ${gemCount === 1 ? 'gem' : gemCount >= 2 && gemCount <= 4 ? 'gemy' : 'gemov'}.`
+  `Východ ${exitRel}. ${gemCount} ${gemCount === 1 ? 'gem' : gemCount >= 2 && gemCount <= 4 ? 'gemy' : 'gemov'}.`
 
 // Status hlásenia (polite región)
 export const STR_A11Y_LEVEL_DONE = (levelOneBased: number) => `Úroveň ${levelOneBased} dokončená.`
@@ -91,34 +94,35 @@ export const STR_A11Y_LIFE_LOST = (lives: number) =>
   `Zásah mínou. Zostáva ${lives} ${lives === 1 ? 'život' : lives >= 2 && lives <= 4 ? 'životy' : 'životov'}.`
 export const STR_A11Y_GAMEOVER = 'Koniec hry.'
 export const STR_A11Y_WIN = 'Vyhral si. Vojna sa skončila — Pás je čistý a dve krajiny sú zas spolu.'
-export const STR_A11Y_MODE_DAILY = 'Denný beh začal.'
-export const STR_A11Y_MODE_RANDOM = 'Tréningový beh začal.'
+export const STR_A11Y_MODE_DAILY = 'Denný beh.'
+export const STR_A11Y_MODE_RANDOM = 'Náhodný beh.'
 
 // Titulné menu, zrkadlené do navigovateľného #sr-menu regiónu, kým je titulná
 // obrazovka hore (setMenu v a11y.ts). Jeden prvok poľa = jeden riadok; musí
 // spomenúť každý kláves, na ktorý titulná obrazovka naozaj počúva.
+// Stroho podľa ownera (2026-07-15): heslá, nie vety — čítačka to číta pri
+// každej návšteve titulnej obrazovky.
 export const STR_A11Y_MENU_LINES: readonly string[] = [
-  'Menu titulnej obrazovky.',
-  'Medzerník, Enter alebo S: spustí denný beh — rovnaké pole pre všetkých; skóre sa počíta.',
-  'R: spustí tréningový beh na náhodnom poli — nikdy nejde do rebríčka.',
-  'I: prehrá úvodný príbeh.',
-  'L: prepne jazyk.',
-  'H: prehrá zvukového sprievodcu. V hre E povie smer k východu a G najbližší gem.',
-  'Šípky alebo d-pad pohyb. F označí podozrivú mínu. P pauza. Plus a mínus hlasitosť.',
+  'Menu.',
+  'Medzerník, Enter alebo S: denný beh — bodovaný, rovnaké pole pre všetkých.',
+  'R: náhodný beh — nebodovaný.',
+  'I: úvodný príbeh.',
+  'L: jazyk.',
+  'H: zvukový sprievodca. V hre: E východ, G najbližší gem.',
+  'Šípky pohyb, F vlajka, P pauza, plus mínus hlasitosť.',
 ]
 export const STR_A11Y_MENU_SCORES    = 'Najlepšie skóre:'
 export const STR_A11Y_MENU_NO_SCORES = 'Zatiaľ žiadne skóre.'
 export const STR_A11Y_MENU_SCORE_ROW = (rank: number, name: string, score: number, level: number, date?: string) =>
   `${rank}. ${name}: ${score} bodov, úroveň ${level}${date ? ', ' + date : ''}.`
-// Hovorené (polite) pri každom návrate na titulnú obrazovku.
-export const STR_A11Y_TITLE =
-  'Titulná obrazovka. Medzerník spustí denný beh, R tréningový. Celé menu a najlepšie skóre si prečítaš pod hrou.'
+// Hovorené (polite) pri každom návrate na titulnú obrazovku — meno + klávesy, nič viac.
+export const STR_A11Y_TITLE = 'The Strip. I intro, R náhodná hra, medzerník denná hra, H pomoc.'
 
 // Lietadlo (blíži sa = assertive varovanie; presiatie = polite hlásenie)
 export const STR_A11Y_PLANE_APPROACHING = 'Blíži sa lietadlo.'
 export const STR_A11Y_PLANE_RESEEDED = (n: number) =>
-  `Lietadlo presialo pole. ${n} ${n === 1 ? 'nová mína' : n >= 2 && n <= 4 ? 'nové míny' : 'nových mín'}.`
-export const STR_A11Y_PLANE_PASSED = 'Lietadlo preletelo. Žiadne nové míny.'
+  `${n} ${n === 1 ? 'nová mína' : n >= 2 && n <= 4 ? 'nové míny' : 'nových mín'}.`
+export const STR_A11Y_PLANE_PASSED = 'Žiadne nové míny.'
 
 // ── Game over overlay ─────────────────────────────────────────────────────
 

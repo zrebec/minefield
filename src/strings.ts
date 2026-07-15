@@ -100,45 +100,50 @@ export const STR_A11Y_DOWN  = 'down'
 export const STR_A11Y_HERE  = 'here'
 export const STR_A11Y_EXIT = (rel: string) => `Exit: ${rel}.`
 export const STR_A11Y_GEM_COLOUR: Record<string, string> = { red: 'red', cyan: 'cyan', gold: 'gold', green: 'green' }
-export const STR_A11Y_GEM_GOT = (colour: string) => `Picked up a ${colour} gem.`
+// Owner playtest 2026-07-15: terse — colour + remaining count, no sentence. The
+// count also makes consecutive pickups distinct text, so status()'s dedupe can't
+// silence a fast second pickup of the same colour.
+export const STR_A11Y_GEM_GOT = (colour: string, left: number) => `${colour} gem, ${left} left.`
 export const STR_A11Y_GEM_NEAREST = (colour: string, rel: string, n: number) =>
-  `Nearest gem: ${colour}, ${rel}. ${n} ${n === 1 ? 'gem' : 'gems'} left.`
+  `${colour} gem ${rel}. ${n} left.`
 export const STR_A11Y_GEM_NONE = 'No gems left.'
 export const STR_A11Y_ORIENT = (exitRel: string, gemCount: number) =>
-  `Exit ${exitRel}. ${gemCount} ${gemCount === 1 ? 'gem' : 'gems'} on the field.`
+  `Exit ${exitRel}. ${gemCount} ${gemCount === 1 ? 'gem' : 'gems'}.`
 
 // Status announcements (polite region)
 export const STR_A11Y_LEVEL_DONE = (levelOneBased: number) => `Level ${levelOneBased} complete.`
 export const STR_A11Y_LIFE_LOST = (lives: number) => `Mine hit. ${lives} ${lives === 1 ? 'life' : 'lives'} left.`
 export const STR_A11Y_GAMEOVER = 'Game over.'
 export const STR_A11Y_WIN = 'You won. The war is over — the Strip is clear and the two countries are reunited.'
-export const STR_A11Y_MODE_DAILY = 'Daily run started.'
-export const STR_A11Y_MODE_RANDOM = 'Practice run started.'
+export const STR_A11Y_MODE_DAILY = 'Daily run.'
+export const STR_A11Y_MODE_RANDOM = 'Random run.'
 
 // Title menu, mirrored into the navigable #sr-menu region while the title is
 // up (setMenu in a11y.ts). One array entry = one browsable line; must advertise
 // every key the title screen actually listens to (main.ts intro branch).
+// Terse by owner decree (2026-07-15): headwords, not sentences — a screen reader
+// reads this at every title visit.
 export const STR_A11Y_MENU_LINES: readonly string[] = [
-  'Title screen menu.',
-  'Space, Enter or S: start the daily run — the same field for everyone today; scores count.',
-  'R: start a practice run on a random field — never on the leaderboard.',
-  'I: replay the story intro.',
-  'L: switch language.',
-  'H: hear the audio guide. In game, E speaks the exit bearing and G the nearest gem.',
-  'Arrows or d-pad move. F flags a suspected mine. P pauses. Plus and minus set the volume.',
+  'Menu.',
+  'Space, Enter or S: daily run — scored, same field for everyone.',
+  'R: random run — not scored.',
+  'I: story intro.',
+  'L: language.',
+  'H: audio guide. In game: E exit, G nearest gem.',
+  'Arrows move, F flag, P pause, plus minus volume.',
 ]
 export const STR_A11Y_MENU_SCORES    = 'High scores:'
 export const STR_A11Y_MENU_NO_SCORES = 'No high scores yet.'
 export const STR_A11Y_MENU_SCORE_ROW = (rank: number, name: string, score: number, level: number, date?: string) =>
   `${rank}. ${name}: ${score} points, level ${level}${date ? ', ' + date : ''}.`
-// Spoken (polite) on every return to the title, pointing at the browsable menu.
-export const STR_A11Y_TITLE =
-  'Title screen. Space starts the daily run, R a practice run. The full menu and high scores can be read below the game.'
+// Spoken (polite) on every return to the title — the owner's exact shape:
+// name + keys, nothing else ("žiadne litánie").
+export const STR_A11Y_TITLE = 'The Strip. I for intro, R for random play, Space for daily play, H for help.'
 
 // Aircraft (approaching = assertive warning; reseed report = polite)
 export const STR_A11Y_PLANE_APPROACHING = 'Plane approaching.'
-export const STR_A11Y_PLANE_RESEEDED = (n: number) => `The plane reseeded the field. ${n} new ${n === 1 ? 'mine' : 'mines'}.`
-export const STR_A11Y_PLANE_PASSED = 'The plane passed. No new mines.'
+export const STR_A11Y_PLANE_RESEEDED = (n: number) => `${n} new ${n === 1 ? 'mine' : 'mines'}.`
+export const STR_A11Y_PLANE_PASSED = 'No new mines.'
 
 // ── Game-over overlay ─────────────────────────────────────────────────────
 

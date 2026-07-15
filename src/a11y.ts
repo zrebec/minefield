@@ -97,10 +97,13 @@ function gemColour(kind: string): string {
   return L.STR_A11Y_GEM_COLOUR[kind] ?? kind
 }
 
-/** Confirm a gem pickup by colour — spoken (polite) the moment it's collected.
- *  Parity: a sighted player sees the gem's colour and which backpack slot ticked. */
-export function announceGemPickup(kind: string): void {
-  status(L.STR_A11Y_GEM_GOT(gemColour(kind)))
+/** Confirm a gem pickup: colour + how many remain — spoken (polite) the moment
+ *  it's collected (parity: a sighted player sees the colour and the backpack).
+ *  Called AFTER the gem's tile is claimed, so findById('gem') is the remainder.
+ *  The count keeps consecutive pickups distinct text — without it, status()'s
+ *  dedupe silenced a fast second gem of the same colour (owner playtest 2026-07-15). */
+export function announceGemPickup(state: GameState, kind: string): void {
+  status(L.STR_A11Y_GEM_GOT(gemColour(kind), state.map.findById('gem').length))
 }
 
 /** Nearest uncollected gem (fewest steps) + its colour + how many remain — the `G`

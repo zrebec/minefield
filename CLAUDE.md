@@ -162,9 +162,13 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   much ("hrozne to kecá") — no new spoken text without a real need; short positional earcons beat
   sentences (TLOU2 model). The rest of the shell agenda — pause announces "PAUSE", `T` reads the time,
   high-score letter echo, exit beacon + assist toggle — is **parked until a playtest with real
-  screen-reader users**. Two cheap pre-playtest fixes noted: trim `STR_A11Y_MENU_LINES`, and the
-  gem-pickup line goes silent on a fast identical second pickup (`status()` dedupe) → fix by speaking
-  the remaining count (unique text). Next candidate feature (prototype just before the playtest): an
+  screen-reader users**. Exception, done same day (owner-directed): spoken lines cut to headwords —
+  `STR_A11Y_MENU_LINES` + `STR_A11Y_TITLE` ("The Strip. I for intro, R for random play, Space for daily
+  play, H for help."), mode/orient/plane lines trimmed, and the gem-pickup line is now
+  `<colour> gem, <n> left.` — the count makes consecutive pickups distinct text, fixing the `status()`
+  dedupe silencing a fast second gem (announceGemPickup takes `state` now). An `H`-for-help rework
+  (H speaks scoring rules + the table) is planned for a FUTURE session — not yet. Next candidate
+  feature (prototype just before the playtest): an
   **on-demand radar-sweep mine scan** as the missing AUDIO channel of the budgeted `D` reveal — this is
   NOT the reverted compass (on-demand + diegetic + budget-gated vs continuous unsolicited density);
   analysis + genre research: `retro/docs/sk/a11y.md`.
