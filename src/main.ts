@@ -1,8 +1,8 @@
 import { C, COLS, ROWS } from './constants.ts'
-import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS, INTRO_PAGE_MS } from './config.ts'
-import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, isFinalLevel, type GameState, type GamePhase, type Dir } from './game.ts'
+import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS, INTRO_PAGE_MS, SCAN_RADIUS, SCAN_MAX_BEEPS } from './config.ts'
+import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, scanMines, isFinalLevel, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap, consumeDirFlag, isHeld } from './input.ts'
-import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playWin, playDenied, startIntroMusic, stopIntroMusic, playTypeClick } from './audio.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playWin, startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
@@ -113,6 +113,14 @@ function enterHiScore(): void {
   resetInput()
   appPhase = 'hiscore'
   flashBorder(C.B_WHITE, 2, 80, C.B_CYAN)
+}
+
+// Exit beacon for the CURRENT player position — the tone twin of the spoken exit
+// bearing (a11y.md §5). Volume = distance to the exit column, pitch = north/south.
+// The E key only: NOT at run start (you're at max distance, so it'd be inaudible)
+// nor on resume (that runs before the first gesture, so audio is still locked).
+function exitBeacon(): void {
+  playExitBeacon(COLS - 1 - state.playerCol, state.exitRow - state.playerRow)
 }
 
 // Begin a fresh run in the chosen mode. No save can exist at the title
@@ -285,21 +293,29 @@ function gameLoop(timestamp: number): void {
     // the key so an in-game press can't linger and trigger a random start later.
     consumeRandomMap()
 
-    // ── [D-GATE] mine-reveal gate — TESTING-PHASE MODE (2026-07-04) ──────────
-    // D is usable ANY TIME while standing: the budget still applies (random =
-    // RANDOM_REVEAL_LIMIT, daily = 0 → always denied) and the next step hides
-    // the reveal again ("debug off" on move in BOTH the idle and running
-    // branches) — a budgeted PEEK. This exists for the playtesting phase
-    // (verifying routes and flag placement mid-run). A denied press beeps
-    // (playDenied) — never a silent no-op. Paused = frozen: drained + dropped.
+    // ── [D-GATE] sonar sweep + mine-reveal gate (a11y.md §5, 2026-07-19) ─────
+    // D now does TWO things on every press while standing (paused = frozen:
+    // drained + dropped):
+    //  1. ALWAYS plays the sonar sweep of mines in SCAN_RADIUS — unlimited, for
+    //     every player. Parity by construction: the audio channel costs nothing
+    //     but the time the sweep sounds on the live clock (idle scouting is
+    //     free, exactly like the visual reveal). Never a silent no-op — an
+    //     empty radius plays the "all clear" blip.
+    //  2. Attempts the VISUAL reveal, which keeps its own budget (random =
+    //     RANDOM_REVEAL_LIMIT, daily = 0 → never shows) — a budgeted PEEK; the
+    //     next step hides it again ("debug off" on move in BOTH the idle and
+    //     running branches). A spent budget no longer beeps playDenied — the
+    //     sweep IS the key's response.
     //
-    // BEFORE v1.0 the owner picks the final mode. TO REVERT to idle-scout-only:
-    // move ONLY this one `if` line to the [D-GATE-IDLE-ANCHOR] mark inside the
-    // idle branch below (the consumeDebug() drains in the running/paused
-    // branches are kept alive exactly so this stays a one-line move), and
-    // update README (controls, `D` row) + CLAUDE.md ("Debug keys") — full
-    // recipe in CLAUDE.md → "D-reveal mode".
-    if (consumeDebug() && state.runState !== 'paused' && !tryToggleReveal(state)) playDenied()
+    // TO REVERT to idle-scout-only: move ONLY this `if` block to the
+    // [D-GATE-IDLE-ANCHOR] mark inside the idle branch below (the
+    // consumeDebug() drains in the running/paused branches are kept alive
+    // exactly so this stays a one-block move), and update README (controls,
+    // `D` row) + CLAUDE.md ("Debug keys") — recipe in CLAUDE.md → "D-reveal mode".
+    if (consumeDebug() && state.runState !== 'paused') {
+      playSonarSweep(scanMines(state, SCAN_RADIUS, SCAN_MAX_BEEPS))  // audio channel — always
+      tryToggleReveal(state)                                         // visual channel — budgeted
+    }
 
     if (state.runState === 'idle') {
       // [D-GATE-IDLE-ANCHOR] — revert target for the [D-GATE] line above.
@@ -507,7 +523,7 @@ function main(): void {
       // On-demand orientation for blind players (Item C): E = exit bearing, G =
       // nearest gem. In-game only, so these letters never reach hiscore name entry.
       if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        if (e.key === 'e' || e.key === 'E') { announce(describeExit(state)); e.preventDefault() }
+        if (e.key === 'e' || e.key === 'E') { announce(describeExit(state)); exitBeacon(); e.preventDefault() }
         else if (e.key === 'g' || e.key === 'G') { announce(describeGems(state)); e.preventDefault() }
       }
     }
@@ -520,6 +536,9 @@ function main(): void {
   if (readSaveLatest(saveProfile).ok) {
     appPhase = 'ingame'
     status(describeOrientation(state))   // re-orient a blind player on resume
+    // No exitBeacon() here: this runs at page load, before any user gesture, so
+    // the AudioContext is still locked and the tone could never sound. E replays
+    // the bearing with its beacon on demand once audio is unlocked.
   } else {
     enterTitle()   // cold load lands on the title — fill the sr-only menu mirror
   }

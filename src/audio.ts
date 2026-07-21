@@ -1,5 +1,28 @@
-import { MASTER_VOLUME, WARN_DEBOUNCE_MS } from './config.ts'
+import {
+  MASTER_VOLUME,
+  WARN_DEBOUNCE_MS,
+  SCAN_RADIUS,
+  SCAN_BEEP_MS,
+  SCAN_GAP_MS,
+  SCAN_FREQ_BASE,
+  SCAN_FREQ_ROW_STEP,
+  SCAN_VOL_NEAR,
+  SCAN_VOL_FAR,
+  SCAN_ALLCLEAR_FREQ,
+  SCAN_ALLCLEAR_MS,
+  BEACON_TONE_MS,
+  BEACON_FREQ_BASE,
+  BEACON_FREQ_ROW_STEP,
+  BEACON_FREQ_MIN,
+  BEACON_NEAR_DIST,
+  BEACON_FAR_DIST,
+  BEACON_VOL_MAX,
+  BEACON_VOL_MIN,
+  BEACON_ALIGN_BEEP_MS,
+  BEACON_ALIGN_GAP_MS,
+} from './config.ts'
 import type { TerrainType } from './sprites.ts'
+import type { ScanHit } from './game.ts'
 import {
   initAudio as _initAudio,
   resumeAudio,
@@ -147,14 +170,118 @@ export function playReveal(): void {
 }
 
 export function playDenied(): void {
-  // Flat low "uh-uh" — a key was understood but refused (e.g. the D reveal
-  // with its budget spent, or on the daily). Ends the silent no-op era: the
-  // player always hears that the key is alive and simply not allowed.
+  // Flat low "uh-uh" — a key was understood but refused. Kept for any future
+  // refused key even though D no longer uses it (the sonar sweep is now the
+  // D key's ever-present response; a spent visual budget just shows nothing).
   playPattern([
     { freq: 110, dur: 60 },
     { freq: 0, dur: 40 },
     { freq: 98, dur: 90 },
   ])
+}
+
+// ── Sonar sweep (D) & exit beacon — a11y.md §5 ─────────────────────────────────
+// The sweep is the AUDIO twin of the visual reveal: pan = east/west, pitch =
+// north/south, volume = distance. Built from raw nodes (osc → gain → panner →
+// master) because zx-kit's beep() has no per-call gain and distance-as-volume
+// needs one. Square wave — beeper style, the AY stays reserved for the intro.
+
+// One panned square blip at an absolute AudioContext time.
+function scheduleBlip(
+  ctx: AudioContext, freq: number, durMs: number, when: number, pan: number, vol: number,
+): void {
+  const gain = ctx.createGain()
+  gain.gain.value = vol
+  const panner = ctx.createStereoPanner()
+  panner.pan.value = pan
+  gain.connect(panner)
+  panner.connect(getMasterGain()!)
+  const osc = ctx.createOscillator()
+  osc.type = 'square'
+  osc.frequency.value = freq
+  osc.connect(gain)
+  osc.start(when)
+  osc.stop(when + durMs / 1000)
+}
+
+/**
+ * Pure pan/pitch/volume mapping for one sweep hit — exported for tests.
+ * Pan: dCol across the scan radius, clamped to full left/right at the edge.
+ * Pitch: BASE on the player's row, +ROW_STEP per row north, − per row south.
+ * Volume: linear NEAR (dist 1) → FAR (dist = SCAN_RADIUS).
+ */
+export function scanBeepParams(hit: ScanHit): { pan: number; freq: number; vol: number } {
+  const pan = Math.max(-1, Math.min(1, hit.dCol / SCAN_RADIUS))
+  const freq = SCAN_FREQ_BASE + -hit.dRow * SCAN_FREQ_ROW_STEP
+  const t = SCAN_RADIUS <= 1 ? 0 : Math.max(0, Math.min(1, (hit.dist - 1) / (SCAN_RADIUS - 1)))
+  const vol = SCAN_VOL_NEAR + (SCAN_VOL_FAR - SCAN_VOL_NEAR) * t
+  return { pan, freq, vol }
+}
+
+// End time (ctx clock) of the sweep now sounding. A D press mid-sweep is
+// ignored — NOT a cooldown, just overlap protection so two sweeps can't
+// interleave into an unreadable chord. Unlimited presses otherwise.
+let sweepUntil = 0
+
+/** Play one radar sweep: a panned blip per hit, nearest first. An empty scan
+ *  plays a single centred low "all clear" — the key always audibly responds. */
+export function playSonarSweep(hits: readonly ScanHit[]): void {
+  const ctx = getAudioContext()
+  if (!ctx) return
+  const now = ctx.currentTime
+  if (now < sweepUntil) return
+  if (hits.length === 0) {
+    scheduleBlip(ctx, SCAN_ALLCLEAR_FREQ, SCAN_ALLCLEAR_MS, now, 0, SCAN_VOL_NEAR)
+    sweepUntil = now + SCAN_ALLCLEAR_MS / 1000
+    return
+  }
+  const slot = (SCAN_BEEP_MS + SCAN_GAP_MS) / 1000
+  hits.forEach((hit, i) => {
+    const { pan, freq, vol } = scanBeepParams(hit)
+    scheduleBlip(ctx, freq, SCAN_BEEP_MS, now + i * slot, pan, vol)
+  })
+  sweepUntil = now + hits.length * slot
+}
+
+/**
+/**
+ * Pure volume/pitch mapping for the exit beacon — exported for tests.
+ * `dCol` = horizontal cells to the exit column (COLS-1 − playerCol, ≥ 0);
+ * `dRow` = exitRow − playerRow. Volume = distance (VOL_MAX within NEAR_DIST,
+ * fading geometrically to VOL_MIN at FAR_DIST — perceptually even per cell).
+ * Pitch = north/south, higher for a northern exit — the sonar's convention.
+ */
+export function exitBeaconParams(dCol: number, dRow: number): { freq: number; vol: number } {
+  const dist = Math.abs(dCol)
+  const span = BEACON_FAR_DIST - BEACON_NEAR_DIST
+  const t = span <= 0 ? 0 : Math.max(0, Math.min(1, (dist - BEACON_NEAR_DIST) / span))
+  const vol = BEACON_VOL_MAX * Math.pow(BEACON_VOL_MIN / BEACON_VOL_MAX, t)   // geometric fade
+  const freq = Math.max(BEACON_FREQ_MIN, BEACON_FREQ_BASE + -dRow * BEACON_FREQ_ROW_STEP)
+  return { freq, vol }
+}
+
+/**
+ * The exit beacon (the E key — always alongside the spoken bearing; the tone
+ * carries the hot/cold + up/down feel, speech carries the exact numbers). One
+ * sustained centred tone: louder the closer you are to the exit column, higher
+ * when the exit is north of you. EXACTLY on the exit's row (dRow = 0) it becomes
+ * a DOUBLE beep — the distinct "you're level, go straight east" marker a
+ * continuous pitch can't give. No pan (the exit is always east). NOT played at
+ * run start — you're at maximum distance there, so the tone would be inaudible;
+ * the spoken orientation covers the start (a11y.md §5).
+ */
+export function playExitBeacon(dCol: number, dRow: number): void {
+  const ctx = getAudioContext()
+  if (!ctx) return
+  const now = ctx.currentTime
+  const { freq, vol } = exitBeaconParams(dCol, dRow)
+  if (dRow === 0) {   // on the exit's row — two beeps mark alignment (volume still = distance)
+    const step = (BEACON_ALIGN_BEEP_MS + BEACON_ALIGN_GAP_MS) / 1000
+    scheduleBlip(ctx, freq, BEACON_ALIGN_BEEP_MS, now, 0, vol)
+    scheduleBlip(ctx, freq, BEACON_ALIGN_BEEP_MS, now + step, 0, vol)
+    return
+  }
+  scheduleBlip(ctx, freq, BEACON_TONE_MS, now, 0, vol)
 }
 
 export function startApproachSound(): void {

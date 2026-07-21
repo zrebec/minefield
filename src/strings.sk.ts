@@ -62,8 +62,13 @@ export const STR_FRIENDLY = '** PRIESKUM **'                // 14 znakov (spriat
 export const STR_A11Y_LEGEND =
   'Zvukový sprievodca. Jemný krok znamená, že si prešiel bezpečne. Pípanie znamená, že blízko sú živé ' +
   'míny — jedno pípnutie na každú mínu, tak ich spočítaj: dve pípnutia znamenajú dve míny. Povedia koľko, ' +
-  'nie kde; pohni sa a počúvaj znova, aby si našiel smer. Lietadlo, ktoré počuješ prilietať, presieva pole ' +
-  'novými mínami. Buchot je výbuch: stúpil si na mínu. Stlač H a sprievodcu si vypočuješ znova.'
+  'nie kde; pohni sa a počúvaj znova, aby si našiel smer. Stlač D a spustíš sonarový sken: jedno pípnutie ' +
+  'na každú mínu v dosahu, od najbližšej — ľavé či pravé ucho znamená západ či východ, vyšší tón sever, ' +
+  'nižší juh, hlasnejšie znamená bližšie. Jediný hlboký tón znamená, že v dosahu nič nie je. Stlač E a ' +
+  'ozve sa východ: jeden tón, ktorý silnie, ako sa k východu blížiš, a stúpa, keď je východ nad tebou — ' +
+  'a keď si presne na jeho úrovni, zmení sa na dvojité pípnutie, tak odtiaľ choď rovno na východ — ' +
+  'spolu s hovoreným smerom. Lietadlo, ktoré počuješ prilietať, presieva pole novými mínami. Buchot je ' +
+  'výbuch: stúpil si na mínu. Stlač H a sprievodcu si vypočuješ znova.'
 // Krátky odkaz v statickom #sr-legend regióne pri štarte (nie plný sprievodca, ktorého
 // vracajúci sa hráč nepotrebuje počuť zakaždým — H ho na požiadanie prehrá).
 export const STR_A11Y_LEGEND_HINT = 'Stlač H a vypočuješ si zvukového sprievodcu.'
@@ -148,7 +153,7 @@ export const CONTROL_DESC: Record<string, string> = {
   flagDir: 'Vlajka - lubovolny smer',
   pause:  'Pauza / pokracovanie',
   save:   'Manualne ulozenie',
-  reveal: 'Odkry miny (v pokoji)',
+  reveal: 'Sonar + odkry miny',
   fps:    'FPS / CPU prekrytie',
   volume: 'Hlasitost +/-',
   start:  'Spustit denny beh',

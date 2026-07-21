@@ -84,8 +84,13 @@ export const STR_FRIENDLY = '**  RECON  **'
 export const STR_A11Y_LEGEND =
   'Sound guide. A soft footstep means you moved safely. Beeps mean live mines are near — one beep for ' +
   'each mine, so count them: two beeps means two mines. They tell you how many, not where; move and ' +
-  'listen again to find the direction. A plane you hear approaching reseeds the field with fresh mines. ' +
-  'A burst of noise is an explosion: you stepped on a mine. Press H to hear this guide again.'
+  'listen again to find the direction. Press D for a sonar sweep: one ping per mine in range, nearest ' +
+  'first — left or right in your ears means west or east, higher pitch means north, lower means south, ' +
+  'louder means closer. A single low tone means nothing in range. Press E to hear the exit: a single ' +
+  'tone that grows louder as you near the exit and rises in pitch when the exit is north of you — and ' +
+  'becomes a double beep when you are level with the exit, so head straight east from there — plus ' +
+  'the spoken bearing. A plane you hear approaching reseeds the field with fresh mines. A burst of ' +
+  'noise is an explosion: you stepped on a mine. Press H to hear this guide again.'
 // Short prompt shown in the static #sr-legend region at start (not the full guide,
 // which a returning player doesn't need re-read every time — H replays it on demand).
 export const STR_A11Y_LEGEND_HINT = 'Press H to hear the audio guide.'
@@ -175,7 +180,7 @@ export const CONTROL_DESC: Record<string, string> = {
   flagDir: 'Flag any direction',
   pause:  'Pause / resume',
   save:   'Manual save',
-  reveal: 'Reveal mines (when idle)',
+  reveal: 'Sonar sweep + reveal',
   fps:    'FPS / CPU overlay',
   volume: 'Volume up / down',
   start:  'Start daily run',

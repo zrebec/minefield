@@ -543,6 +543,33 @@ export function countWarningMines(map: TileMap, col: number, row: number): numbe
   return Math.min(countAdjacentMines(map, col, row) + countBeaconSignals(map, col, row), 8)
 }
 
+// One sonar-sweep hit: player→mine delta + Chebyshev distance (the sweep's
+// pan/pitch/volume are all derived from these three numbers in audio.ts).
+export interface ScanHit {
+  dCol: number
+  dRow: number
+  dist: number
+}
+
+/**
+ * Mines within `radius` cells of the player (Chebyshev — a square window),
+ * nearest first, capped at `maxHits` (nearest win; the rest are dropped so a
+ * dense field can't stretch the sweep). Deterministic order: distance, then
+ * dCol, then dRow — the same board always plays the same sweep. Pure — the
+ * audio layer decides what a hit sounds like.
+ */
+export function scanMines(state: GameState, radius: number, maxHits: number): ScanHit[] {
+  const hits: ScanHit[] = []
+  for (const { x, y } of state.map.findById('mine')) {
+    const dCol = x - state.playerCol
+    const dRow = y - state.playerRow
+    const dist = Math.max(Math.abs(dCol), Math.abs(dRow))
+    if (dist <= radius) hits.push({ dCol, dRow, dist })
+  }
+  hits.sort((a, b) => a.dist - b.dist || a.dCol - b.dCol || a.dRow - b.dRow)
+  return hits.slice(0, maxHits)
+}
+
 export function applyClusterBlast(state: GameState, centerCol: number, centerRow: number): void {
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {

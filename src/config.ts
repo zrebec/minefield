@@ -235,6 +235,82 @@ export const MASTER_VOLUME = 0.2
 // Debounce for proximity warning sound (ms) — prevents chattering during fast movement
 export const WARN_DEBOUNCE_MS = 180
 
+// ── Sonar sweep (D) & exit beacon ─────────────────────────────────────────────
+// The D key ALWAYS plays a sonar sweep of nearby mines — unlimited, for every
+// player (the AUDIO twin of the budgeted visual reveal; a11y.md §5). Encoding:
+// pan = east/west, pitch = north/south (higher = north), volume = distance.
+// Anti-cheese is TIME, not a counter: the sweep sounds while the run clock ticks.
+// All numbers here are ear-tuning knobs — defaults are a starting point.
+
+// Scan reach in cells (Chebyshev — a square window around the player).
+export const SCAN_RADIUS = 5
+
+// One sweep ping: beep length and the silent gap after it (ms).
+export const SCAN_BEEP_MS = 40
+export const SCAN_GAP_MS = 80
+
+// Hard cap on pings per sweep — nearest mines win, the rest are dropped. Keeps
+// the sweep ≤ ~2 s even in a dense field (16 × 120 ms ≈ 1.9 s).
+export const SCAN_MAX_BEEPS = 16
+
+// Pitch = north/south: freq = BASE + (−dRow) · ROW_STEP. A mine on the player's
+// row plays BASE; each row north adds ROW_STEP Hz, each row south subtracts it.
+// With SCAN_RADIUS 5 this spans 165–715 Hz — audible on both ends.
+export const SCAN_FREQ_BASE = 440
+export const SCAN_FREQ_ROW_STEP = 55
+
+// Volume = distance: linear from NEAR (adjacent mine) to FAR (edge of radius).
+export const SCAN_VOL_NEAR = 0.5
+export const SCAN_VOL_FAR = 0.12
+
+// "All clear" — a single centred low blip when no mine is in range. The key must
+// always audibly respond; silence would be ambiguous (did the scan even run?).
+export const SCAN_ALLCLEAR_FREQ = 140
+export const SCAN_ALLCLEAR_MS = 120
+
+// Exit beacon (the E key only — NOT auto-played at run start). A single sustained
+// tone with two independent channels (tuned by ear 2026-07-21, a11y.md §5):
+//   VOLUME = horizontal distance to the exit column — far = near-silent, ≤ NEAR
+//     cells = max. A "hot/cold" cue: it swells as you close on the exit column.
+//   PITCH  = north/south — higher when the exit is north of you, lower when
+//     south. SAME convention as the sonar sweep (one "up = higher" rule to learn).
+// No panning: the exit is always on the east edge (col COLS-1), so stereo would
+// carry nothing (revisit an off-centre exit long after v1.0). The spoken bearing
+// carries the exact numbers; the tone is the feel.
+
+// Length of the single tone (ms).
+export const BEACON_TONE_MS = 200
+
+// Pitch = north/south: freq = BASE + (−dRow) · ROW_STEP, clamped ≥ MIN. dRow is
+// exitRow − playerRow, so exit-north (dRow < 0) raises the pitch. Over the full
+// board (dRow −17..+17) this spans MIN..~750 Hz.
+export const BEACON_FREQ_BASE = 440
+export const BEACON_FREQ_ROW_STEP = 18
+export const BEACON_FREQ_MIN = 90
+
+// Volume = horizontal distance to the exit column. At/below NEAR the tone sits at
+// VOL_MAX; from there it fades geometrically (perceptually even per cell) to
+// VOL_MIN at/beyond FAR — a whisper, never truly silent. FAR = COLS-1 = the
+// distance from the entry, so the very start is the quietest the beacon ever is.
+export const BEACON_NEAR_DIST = 3
+export const BEACON_FAR_DIST = 31
+export const BEACON_VOL_MAX = 0.5
+export const BEACON_VOL_MIN = 0.03
+
+// On the exit's EXACT row (dRow = 0) the beacon becomes a DOUBLE beep instead of
+// the single sustained tone — a categorical "you're level with the exit, go
+// straight east" marker. A continuous pitch alone can't say WHICH pitch is centre
+// (absolute pitch is rare), so the zero-crossing needs its own distinct earcon.
+// Each beep's length + the silent gap between the two (ms). Volume still = distance.
+export const BEACON_ALIGN_BEEP_MS = 80
+export const BEACON_ALIGN_GAP_MS = 70
+
+// Deliberately NO SCAN_COOLDOWN — time on the live clock is the cost. If
+// playtests show scan-spam cheese, add a single cooldown constant here.
+
+// Deliberately NO SCAN_COOLDOWN — time on the live clock is the cost. If
+// playtests show scan-spam cheese, add a single cooldown constant here.
+
 // ── Walk animation ────────────────────────────────────────────────────────────
 
 // Duration of one step between cells (ms) — smooth position tween.

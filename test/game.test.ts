@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, cellKey, tryToggleReveal, tickTimer, isFinalLevel, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from '../src/game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, cellKey, tryToggleReveal, scanMines, tickTimer, isFinalLevel, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from '../src/game.ts'
 import { movePlayer } from '../src/player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from '../src/buildings.ts'
 import { C, COLS, ROWS } from '../src/constants.ts'
-import { GEM_COUNT, BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS, WIN_LEVEL, LEVEL_CONFIGS, atLevel } from '../src/config.ts'
+import { GEM_COUNT, BEACON_MINE_LEVEL, CLUSTER_MINE_LEVEL, START_COL, START_ROW, SAFE_RADIUS, MIN_ENTRY_EXIT_ROW_GAP, DAILY_REVEAL_LIMIT, RANDOM_REVEAL_LIMIT, SCAN_RADIUS, SCAN_MAX_BEEPS, BIG_ROOF_MIN, BUILDING_WALL_HEIGHT, TIMER_BASE_MS, WIN_LEVEL, LEVEL_CONFIGS, atLevel } from '../src/config.ts'
 import { makeTileGround, makeTileMine, makeTileGem, makeTileVisited, makeTileBuilding, makeTileFence, TILE_EXPLODED, type TerrainType } from '../src/sprites.ts'
 
 // ── Map helpers ───────────────────────────────────────────────────────────────
@@ -1491,6 +1491,60 @@ describe('debug mine-reveal budget (tryToggleReveal)', () => {
     const next = createGame(1, s.score)        // new level
     expect(next.revealsUsed).toBe(0)
     expect(next.debugMode).toBe(false)
+  })
+})
+
+describe('sonar sweep — scanMines', () => {
+  // A real state with a hand-built board: swap in an empty map and park the
+  // player mid-field so mines fit on every side of the scan window.
+  function scanState(): GameState {
+    const s = createGame(0, 0, 'scan-seed')
+    s.map = emptyMap()
+    s.playerCol = 16
+    s.playerRow = 9
+    return s
+  }
+
+  it('returns an empty scan when no mine is in radius (the all-clear case)', () => {
+    const s = scanState()
+    setMine(s.map, 16 + SCAN_RADIUS + 1, 9)   // one cell past the edge
+    expect(scanMines(s, SCAN_RADIUS, SCAN_MAX_BEEPS)).toEqual([])
+  })
+
+  it('includes mines up to the Chebyshev radius, excludes beyond — diagonals too', () => {
+    const s = scanState()
+    setMine(s.map, 16 + SCAN_RADIUS, 9 + SCAN_RADIUS)   // corner of the window — in
+    setMine(s.map, 16 - SCAN_RADIUS - 1, 9)             // past the west edge — out
+    expect(scanMines(s, SCAN_RADIUS, SCAN_MAX_BEEPS)).toEqual([
+      { dCol: SCAN_RADIUS, dRow: SCAN_RADIUS, dist: SCAN_RADIUS },
+    ])
+  })
+
+  it('orders nearest first with a deterministic tie-break (dist, then dCol, then dRow)', () => {
+    const s = scanState()
+    setMine(s.map, 19, 9)    // east, dist 3
+    setMine(s.map, 16, 8)    // north, dist 1
+    setMine(s.map, 15, 10)   // south-west, dist 1 — ties on dist, dCol breaks it
+    expect(scanMines(s, SCAN_RADIUS, SCAN_MAX_BEEPS)).toEqual([
+      { dCol: -1, dRow: 1, dist: 1 },
+      { dCol: 0, dRow: -1, dist: 1 },
+      { dCol: 3, dRow: 0, dist: 3 },
+    ])
+  })
+
+  it('caps at maxHits and the nearest mines win', () => {
+    const s = scanState()
+    setMine(s.map, 17, 9)    // dist 1
+    setMine(s.map, 18, 9)    // dist 2
+    setMine(s.map, 19, 9)    // dist 3 — dropped by the cap
+    expect(scanMines(s, SCAN_RADIUS, 2).map((h) => h.dist)).toEqual([1, 2])
+  })
+
+  it('pings every mine type — cluster and beacon sound like normal mines', () => {
+    const s = scanState()
+    setMine(s.map, 17, 9, 'cluster')
+    setMine(s.map, 15, 9, 'beacon')
+    expect(scanMines(s, SCAN_RADIUS, SCAN_MAX_BEEPS)).toHaveLength(2)
   })
 })
 
