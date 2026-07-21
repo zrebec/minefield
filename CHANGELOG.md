@@ -1,3 +1,15 @@
+# [0.60.0](https://github.com/zrebec/minefield/compare/v0.59.0...v0.60.0) (2026-07-21)
+
+
+### Bug Fixes
+
+* **ci:** release when any pushed commit is releasable, not just HEAD ([18d9130](https://github.com/zrebec/minefield/commit/18d91305cbfaa66da5ee366a30d833c708e61546))
+
+
+### Features
+
+* **a11y:** sonar sweep on D plus exit beacon on E ([ba680a6](https://github.com/zrebec/minefield/commit/ba680a6a8a2da14bfdc0cb5d8a4899cdb0c3a5e4))
+
 # [0.59.0](https://github.com/zrebec/minefield/compare/v0.58.0...v0.59.0) (2026-07-15)
 
 
