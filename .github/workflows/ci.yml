@@ -18,12 +18,18 @@ jobs:
   release:
     # Only release (and therefore deploy) on releasable commits. chore/docs/ci and
     # dependabot bumps don't cut a version and don't redeploy. Manual override below.
+    #
+    # Scans EVERY commit in the push (toJSON of the messages), not just the HEAD
+    # one: a feat/fix/perf behind a trailing docs or chore commit must still
+    # release. Checking only head_commit.message once shipped nothing when a
+    # feat was pushed with a docs commit on top of it (2026-07-21). Each message
+    # is JSON-quoted, so '"feat' anchors to a subject that starts with feat.
     if: >
       github.event_name == 'push' &&
-      (startsWith(github.event.head_commit.message, 'feat') ||
-       startsWith(github.event.head_commit.message, 'fix') ||
-       startsWith(github.event.head_commit.message, 'perf') ||
-       contains(github.event.head_commit.message, 'BREAKING CHANGE'))
+      (contains(toJSON(github.event.commits.*.message), '"feat') ||
+       contains(toJSON(github.event.commits.*.message), '"fix') ||
+       contains(toJSON(github.event.commits.*.message), '"perf') ||
+       contains(toJSON(github.event.commits.*.message), 'BREAKING CHANGE'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
