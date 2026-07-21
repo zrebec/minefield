@@ -112,10 +112,10 @@ It's a deliberate homage to the ZX Spectrum (1982): pixel art with no anti-alias
 | `SHIFT + ←→↑↓` | Flag / unflag the adjacent cell in that **absolute** direction (no turning needed) |
 | `P` | Pause / resume |
 | `SHIFT + S` | Manual save |
-| `E` | **Speak the exit's bearing** relative to you (e.g. "22 right, 3 up") — accessibility, in-game only |
+| `E` | **Speak the exit's bearing** relative to you (e.g. "22 right, 3 up") **+ play the exit beacon** — a single tone that grows **louder as you close on the exit column** and **rises in pitch when the exit is north of you** (lower when south); when you're **level with the exit it becomes a double beep** (head straight east from there). No panning (the exit is always east). Accessibility, in-game only |
 | `G` | **Speak the nearest gem's bearing** + how many remain — accessibility, in-game only |
 | `H` | **Replay the audio legend** (what the sounds mean) — any screen except high-score name entry |
-| `D` | Debug: reveal all mines **while standing** — any time, not just before the first step; your next step hides them again (a budgeted *peek*). On **random/practice** it's capped (1 activation per level, `RANDOM_REVEAL_LIMIT`); **disabled on the daily** (it would leak the scored solution). A refused press plays a low "denied" beep. *(Testing-phase mode — may return to start-of-level-only before v1.0.)* |
+| `D` | **Sonar sweep + reveal** (while standing, any time). Every press plays an audio radar sweep of mines within `SCAN_RADIUS`: one ping per mine, nearest first — **pan = east/west, pitch = north/south (higher = north), volume = distance**; a single low tone = nothing in range. The sweep is **unlimited for everyone** (its cost is the ~2 s it takes on the live clock). The **visual** reveal keeps its budget: capped on **random/practice** (1 activation per level, `RANDOM_REVEAL_LIMIT`); **disabled on the daily** (`DAILY_REVEAL_LIMIT = 0` — it would leak the scored solution); your next step hides it again (a budgeted *peek*). |
 | `O` | Toggle the **FPS / CPU debug overlay** (zx-kit `debug` module) |
 | `+` / `-` | Volume up / down |
 
@@ -132,7 +132,7 @@ window — daily until v1.0) or on demand via `I`. During it, **any key** finish
 advances / skips.
 
 > Why `D` and `O`? Browsers reserve most "obvious" debug chords (`F12`, `Ctrl+Shift+B`, `F3`), so
-> game-local single letters are used instead. `D` reveals mines (a budgeted gameplay scouting aid);
+> game-local single letters are used instead. `D` plays the sonar sweep + budgeted visual reveal;
 > `O` toggles the performance overlay (a dev aid, any time). zx-kit's `Ctrl+Shift+B` and gamepad **Y**
 > still map to the mine-reveal debug too.
 

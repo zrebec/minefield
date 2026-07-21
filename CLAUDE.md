@@ -167,11 +167,19 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   play, H for help."), mode/orient/plane lines trimmed, and the gem-pickup line is now
   `<colour> gem, <n> left.` — the count makes consecutive pickups distinct text, fixing the `status()`
   dedupe silencing a fast second gem (announceGemPickup takes `state` now). An `H`-for-help rework
-  (H speaks scoring rules + the table) is planned for a FUTURE session — not yet. Next candidate
-  feature (prototype just before the playtest): an
-  **on-demand radar-sweep mine scan** as the missing AUDIO channel of the budgeted `D` reveal — this is
-  NOT the reverted compass (on-demand + diegetic + budget-gated vs continuous unsolicited density);
-  analysis + genre research: `retro/docs/sk/a11y.md`.
+  (H speaks scoring rules + the table) is planned for a FUTURE session — not yet. The
+  **on-demand radar-sweep mine scan SHIPPED 2026-07-19** as the AUDIO channel of the `D` key
+  (see "Debug keys" below) together with the **exit beacon** on `E` — this is NOT the reverted
+  compass (on-demand vs continuous unsolicited density); design + genre research:
+  `retro/docs/sk/a11y.md` §5. **Beacon retuned 2026-07-21** (`playExitBeacon`/`exitBeaconParams`
+  in audio.ts): a single sustained tone, **volume = horizontal distance to the exit column**
+  (far = near-silent, ≤ `BEACON_NEAR_DIST` = max, geometric fade), **pitch = north/south**
+  (higher = exit north, the SAME rule as the sonar), no pan, and **NOT auto-played at run start**
+  (max distance there → inaudible; the spoken orientation covers it). **Exactly on the exit's row
+  (`dRow === 0`) the tone becomes a DOUBLE beep** (`BEACON_ALIGN_*`) — the "you're level, go
+  straight east" marker a continuous pitch can't give (absolute pitch is rare; the zero-crossing
+  needs its own earcon). All tunables in `config.ts` (`SCAN_*`, `BEACON_*`) — ear-tuning still
+  owner-led, blind-tester playtest the real gate.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 
@@ -287,22 +295,27 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
 - **i18n:** EN/SK packs (`strings.ts`/`strings.sk.ts`). **CRT:** `curveDisplay()` + `drawScanlines()`.
 
 ### Debug keys (two different things)
-- **`D`** = `state.debugMode` — reveals all mines **while standing, any time** (a step hides them
-  again — a budgeted *peek*). **Budget-gated** (`tryToggleReveal`, returns false = denied → main
-  plays `playDenied`): daily `DAILY_REVEAL_LIMIT = 0` (always denied); random `RANDOM_REVEAL_LIMIT`
-  activations per level (`null` = unlimited); turning OFF is free, each ON consumes one. zx-kit
-  `Ctrl+Shift+B` / gamepad **Y** map here too.
-  **D-reveal mode (TESTING-PHASE — final mode decided before v1.0).** The "any time" gate is ONE
-  line in `main.ts` marked `[D-GATE]` (top of the `phase === 'playing'` block). **Revert recipe to
-  the original idle-scout-only behaviour** (safe for any model to follow):
-  1. In `main.ts`, cut the single `if (consumeDebug() && …) playDenied()` line at `[D-GATE]` and
-     paste it at the `[D-GATE-IDLE-ANCHOR]` comment inside the `runState === 'idle'` branch;
-     delete the big `[D-GATE]` comment block.
+- **`D`** = sonar sweep + `state.debugMode` (a11y.md §5, shipped 2026-07-19). Every press while
+  standing (any time except paused) does TWO things: **1.** plays the audio radar sweep of mines in
+  `SCAN_RADIUS` (`scanMines` in game.ts → `playSonarSweep` in audio.ts; pan = E/W, pitch = N/S,
+  volume = distance, nearest first, capped at `SCAN_MAX_BEEPS`; empty radius → "all clear" blip) —
+  **unlimited for everyone**, its only cost is the ~2 s it sounds on the live clock; **2.** attempts
+  the VISUAL reveal, still **budget-gated** (`tryToggleReveal`): daily `DAILY_REVEAL_LIMIT = 0`
+  (never shows); random `RANDOM_REVEAL_LIMIT` activations per level (`null` = unlimited); turning
+  OFF is free, each ON consumes one; a step hides it again (a budgeted *peek*). `playDenied` is NO
+  LONGER wired to D (the sweep is the key's ever-present response). zx-kit `Ctrl+Shift+B` /
+  gamepad **Y** map here too.
+  **D-gate placement (TESTING-PHASE — final placement decided before v1.0).** The "any time" gate
+  is ONE `if` block in `main.ts` marked `[D-GATE]` (top of the `phase === 'playing'` block).
+  **Revert recipe to idle-scout-only** (safe for any model to follow):
+  1. In `main.ts`, cut the `if (consumeDebug() && …) { playSonarSweep(…); tryToggleReveal(…) }`
+     block at `[D-GATE]` and paste it at the `[D-GATE-IDLE-ANCHOR]` comment inside the
+     `runState === 'idle'` branch; delete the big `[D-GATE]` comment block.
   2. Do NOT touch the `consumeDebug()` drains in the running/paused branches — they are kept alive
      exactly for this revert (they stop a mid-run press from firing at the next idle).
   3. The `state.debugMode = false` lines on movement (idle + running branches) stay in both modes.
   4. Update the `D` row in README's controls table back to "idle only (scout before you start)".
-  5. `npm test` — the `tryToggleReveal` tests are mode-independent and must stay green.
+  5. `npm test` — the `tryToggleReveal` + `scanMines` tests are mode-independent and must stay green.
 - **`O`** = `showDebug` — toggles the zx-kit `debug` FPS/CPU overlay (Minefield is its first consumer).
   Single letters because browsers reserve `F3`/`Ctrl+Shift+B`/`F12`.
 
