@@ -1,3 +1,11 @@
+# [0.62.0](https://github.com/zrebec/minefield/compare/v0.61.0...v0.62.0) (2026-07-22)
+
+
+### Features
+
+* **a11y:** blocked-move earcon — descending double beep on a rejected step ([61653a4](https://github.com/zrebec/minefield/commit/61653a44393aaa9957435e831233b5f8e044e83f))
+* **a11y:** blocked-move earcon — descending double beep on a rejected step ([b4ccce3](https://github.com/zrebec/minefield/commit/b4ccce3ac331de14b608200f0e9ed1f97f237ee1))
+
 # [0.61.0](https://github.com/zrebec/minefield/compare/v0.60.0...v0.61.0) (2026-07-22)
 
 
