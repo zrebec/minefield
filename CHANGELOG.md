@@ -1,3 +1,10 @@
+# [0.63.0](https://github.com/zrebec/minefield/compare/v0.62.0...v0.63.0) (2026-07-22)
+
+
+### Features
+
+* **a11y:** pause announce + toggle earcon; trim the spoken title menu ([2f28d85](https://github.com/zrebec/minefield/commit/2f28d8514e1228728393b8eb8fb7965cdba8ef0a)), closes [#sr-menu](https://github.com/zrebec/minefield/issues/sr-menu)
+
 # [0.62.0](https://github.com/zrebec/minefield/compare/v0.61.0...v0.62.0) (2026-07-22)
 
 
