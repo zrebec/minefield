@@ -3,6 +3,8 @@ name: CI & Deploy
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -11,11 +13,32 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  # Scope by ref so PR runs and main runs never cancel each other; main pushes
+  # still serialise among themselves (one Pages deploy at a time).
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  test:
+    # Runs on EVERY trigger — push, pull_request, and manual dispatch. Release,
+    # build and deploy all `needs: test`, so a red suite blocks the version bump
+    # AND the deploy. On a PR this is the only job that runs (a merge gate).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Test
+        run: npm test
+
   release:
+    needs: test
     # Only release (and therefore deploy) on releasable commits. chore/docs/ci and
     # dependabot bumps don't cut a version and don't redeploy. Manual override below.
     #
@@ -51,11 +74,13 @@ jobs:
         run: npx semantic-release --no-ci
 
   build:
-    needs: release
-    # Build/deploy only when the release job actually ran (releasable commit),
-    # or on a manual workflow_dispatch override.
+    needs: [test, release]
+    # Build/deploy only when tests passed AND either the release job actually ran
+    # (releasable commit) or this is a manual workflow_dispatch override. A red
+    # test suite ('failure') or a PR (release 'skipped', not dispatch) → no deploy.
     if: >
       !cancelled() &&
+      needs.test.result == 'success' &&
       (needs.release.result == 'success' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
