@@ -2,7 +2,7 @@ import { C, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS, INTRO_PAGE_MS, SCAN_RADIUS, SCAN_MAX_BEEPS } from './config.ts'
 import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, scanMines, isFinalLevel, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap, consumeDirFlag, isHeld, type Direction } from './input.ts'
-import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playWin, startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon, playFlagBlip, playFlagRemoveBlip, playBlockedMove } from './audio.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playWin, startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon, playFlagBlip, playFlagRemoveBlip, playBlockedMove, playPauseCue } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
@@ -345,7 +345,11 @@ function gameLoop(timestamp: number): void {
     } else if (state.runState === 'running') {
       tickTimer(state, dt)  // clock ticks only while actively running
       consumeDebug()  // no-op today ([D-GATE] consumes first); REQUIRED again after an idle-only revert — keep
-      if (consumePause()) { state.runState = 'paused'; pausePage = 0 }
+      if (consumePause()) {
+        state.runState = 'paused'; pausePage = 0
+        announce(L.STR_A11Y_PAUSE)   // assertive → re-reads on every pause (status() would dedupe repeats)
+        playPauseCue(true)           // descending toggle
+      }
 
       if (state.comboTimer > 0) {
         state.comboTimer -= dt
@@ -371,7 +375,7 @@ function gameLoop(timestamp: number): void {
     } else {
       // paused — paged help screen; arrows leaf the pages, P resumes
       consumeDebug()  // no-op today ([D-GATE] consumes first); REQUIRED again after an idle-only revert — keep
-      if (consumePause()) state.runState = 'running'
+      if (consumePause()) { state.runState = 'running'; playPauseCue(false) }  // ascending toggle — earcon only
       const pdir = tickMovement(dt, WALK_DURATION_MS)
       if (!isHeld('Shift')) {
         if (pdir === 'right' || pdir === 'down') pausePage = (pausePage + 1) % PAUSE_PAGES

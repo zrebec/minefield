@@ -101,6 +101,8 @@ export const STR_A11Y_GAMEOVER = 'Koniec hry.'
 export const STR_A11Y_WIN = 'Vyhral si. Vojna sa skončila — Pás je čistý a dve krajiny sú zas spolu.'
 export const STR_A11Y_MODE_DAILY = 'Denný beh.'
 export const STR_A11Y_MODE_RANDOM = 'Náhodný beh.'
+// Hovorené (assertive) pri pauze — nech sa prehrá pri každej pauze, nie len prvej.
+export const STR_A11Y_PAUSE = 'Pauza.'
 
 // Titulné menu, zrkadlené do navigovateľného #sr-menu regiónu, kým je titulná
 // obrazovka hore (setMenu v a11y.ts). Jeden prvok poľa = jeden riadok; musí
@@ -120,8 +122,10 @@ export const STR_A11Y_MENU_SCORES    = 'Najlepšie skóre:'
 export const STR_A11Y_MENU_NO_SCORES = 'Zatiaľ žiadne skóre.'
 export const STR_A11Y_MENU_SCORE_ROW = (rank: number, name: string, score: number, level: number, date?: string) =>
   `${rank}. ${name}: ${score} bodov, úroveň ${level}${date ? ', ' + date : ''}.`
-// Hovorené (polite) pri každom návrate na titulnú obrazovku — meno + klávesy, nič viac.
-export const STR_A11Y_TITLE = 'The Strip. I intro, R náhodná hra, medzerník denná hra, H pomoc.'
+// Hovorené pri každom návrate na titulnú obrazovku — KRÁTKE, nech nezdržuje
+// nevidiaceho pri každom pristátí (koniec hry → titul atď.). Meno + primárna
+// akcia + pomoc; celý zoznam klávesov je v navigovateľnom #sr-menu a v H sprievodcovi.
+export const STR_A11Y_TITLE = 'The Strip. Medzerník hrá, H pomoc.'
 
 // Lietadlo (blíži sa = assertive varovanie; presiatie = polite hlásenie)
 export const STR_A11Y_PLANE_APPROACHING = 'Blíži sa lietadlo.'

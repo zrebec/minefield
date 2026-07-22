@@ -160,11 +160,14 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   (a11y.test.ts — the wall-of-text mistake 0.56.0 undid).
 - **Spoken layer declared DONE for v1.0 (owner playtest, 2026-07-15).** Verdict: it already talks too
   much ("hrozne to kecá") — no new spoken text without a real need; short positional earcons beat
-  sentences (TLOU2 model). The rest of the shell agenda — pause announces "PAUSE", `T` reads the time,
-  high-score letter echo, exit beacon + assist toggle — is **parked until a playtest with real
-  screen-reader users**. Exception, done same day (owner-directed): spoken lines cut to headwords —
-  `STR_A11Y_MENU_LINES` + `STR_A11Y_TITLE` ("The Strip. I for intro, R for random play, Space for daily
-  play, H for help."), mode/orient/plane lines trimmed, and the gem-pickup line is now
+  sentences (TLOU2 model). **Pause + menu-trim SHIPPED 2026-07-22:** pausing speaks `STR_A11Y_PAUSE`
+  (**assertive**, so it re-reads on every pause — `status()` would dedupe repeats) plus a centred
+  two-tone earcon (`playPauseCue`: pause descends 494→330, resume ascends 330→494, clear of the low
+  short blocked-move); and `STR_A11Y_TITLE` was trimmed to "The Strip. Space to play, H for help." (the
+  full key list stays in the browsable `#sr-menu` + the `H` guide). The rest of the shell agenda — `T`
+  reads the time, high-score letter echo, `0`-for-help, assist toggle — is **parked until a playtest with
+  real screen-reader users**. Exception, done 2026-07-15 (owner-directed): spoken lines cut to headwords —
+  `STR_A11Y_MENU_LINES` + `STR_A11Y_TITLE`, mode/orient/plane lines trimmed, and the gem-pickup line is now
   `<colour> gem, <n> left.` — the count makes consecutive pickups distinct text, fixing the `status()`
   dedupe silencing a fast second gem (announceGemPickup takes `state` now). An `H`-for-help rework
   (H speaks scoring rules + the table) is planned for a FUTURE session — not yet. The

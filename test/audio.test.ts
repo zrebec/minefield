@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon, playFlagBlip, playFlagRemoveBlip, scanBeepParams, exitBeaconParams, flagBlipParams } from '../src/audio.ts'
+import { startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon, playFlagBlip, playFlagRemoveBlip, playBlockedMove, playPauseCue, scanBeepParams, exitBeaconParams, flagBlipParams } from '../src/audio.ts'
 import { SCAN_RADIUS, SCAN_FREQ_BASE, SCAN_VOL_NEAR, SCAN_VOL_FAR, BEACON_FREQ_BASE, BEACON_FREQ_MIN, BEACON_NEAR_DIST, BEACON_FAR_DIST, BEACON_VOL_MAX, BEACON_VOL_MIN, FLAG_FREQ_BASE, FLAG_PAN } from '../src/config.ts'
 
 // The intro audio is NEW (AY underscore + typewriter tick) and must honour the
@@ -41,6 +41,12 @@ describe('sonar sweep & exit beacon — silent before initAudio', () => {
 
   it('playFlagRemoveBlip does not throw without an audio context', () => {
     expect(() => playFlagRemoveBlip()).not.toThrow()
+  })
+
+  it('playBlockedMove / playPauseCue do not throw without an audio context', () => {
+    expect(() => playBlockedMove()).not.toThrow()
+    expect(() => playPauseCue(true)).not.toThrow()
+    expect(() => playPauseCue(false)).not.toThrow()
   })
 })
 

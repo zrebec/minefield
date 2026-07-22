@@ -33,6 +33,11 @@ import {
   BLOCKED_GAP_MS,
   BLOCKED_VOL,
   BLOCKED_DEBOUNCE_MS,
+  PAUSE_FREQ_HI,
+  PAUSE_FREQ_LO,
+  PAUSE_TONE_MS,
+  PAUSE_GAP_MS,
+  PAUSE_VOL,
 } from './config.ts'
 import type { TerrainType } from './sprites.ts'
 import type { ScanHit } from './game.ts'
@@ -342,6 +347,19 @@ export function playBlockedMove(): void {
   scheduleBlip(ctx, BLOCKED_FREQ_HI, BLOCKED_BEEP_MS, now, 0, BLOCKED_VOL)          // first, higher
   scheduleBlip(ctx, BLOCKED_FREQ_LO, BLOCKED_BEEP_MS, now + step, 0, BLOCKED_VOL)   // second, lower = "denied"
   blockedUntil = now + BLOCKED_DEBOUNCE_MS / 1000
+}
+
+/** Pause / resume earcon (a11y.md §6) — a centred two-tone toggle. `paused` = true
+ *  descends (HI→LO, "winding down"); resume ascends (LO→HI). Pause also speaks
+ *  STR_A11Y_PAUSE; resume is the earcon alone. */
+export function playPauseCue(paused: boolean): void {
+  const ctx = getAudioContext()
+  if (!ctx) return
+  const now = ctx.currentTime
+  const step = (PAUSE_TONE_MS + PAUSE_GAP_MS) / 1000
+  const [first, second] = paused ? [PAUSE_FREQ_HI, PAUSE_FREQ_LO] : [PAUSE_FREQ_LO, PAUSE_FREQ_HI]
+  scheduleBlip(ctx, first, PAUSE_TONE_MS, now, 0, PAUSE_VOL)
+  scheduleBlip(ctx, second, PAUSE_TONE_MS, now + step, 0, PAUSE_VOL)
 }
 
 export function startApproachSound(): void {

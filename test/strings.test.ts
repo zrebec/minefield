@@ -76,6 +76,7 @@ describe('controls / i18n consistency', () => {
         expect(all, `menu advertises ${key}`).toMatch(new RegExp(`\\b${key}\\b`))
       }
       expect(pack.STR_A11Y_TITLE).toBeTruthy()
+      expect(pack.STR_A11Y_PAUSE).toBeTruthy()   // both packs speak a pause line
       expect(pack.STR_A11Y_MENU_SCORES).toBeTruthy()
       expect(pack.STR_A11Y_MENU_NO_SCORES).toBeTruthy()
       const row = pack.STR_A11Y_MENU_SCORE_ROW(1, 'ABC', 12500, 3, '2026-07-12')

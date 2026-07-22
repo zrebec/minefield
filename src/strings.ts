@@ -122,6 +122,8 @@ export const STR_A11Y_GAMEOVER = 'Game over.'
 export const STR_A11Y_WIN = 'You won. The war is over — the Strip is clear and the two countries are reunited.'
 export const STR_A11Y_MODE_DAILY = 'Daily run.'
 export const STR_A11Y_MODE_RANDOM = 'Random run.'
+// Spoken (assertive) on pause so it re-reads on every pause, not just the first.
+export const STR_A11Y_PAUSE = 'Paused.'
 
 // Title menu, mirrored into the navigable #sr-menu region while the title is
 // up (setMenu in a11y.ts). One array entry = one browsable line; must advertise
@@ -141,9 +143,11 @@ export const STR_A11Y_MENU_SCORES    = 'High scores:'
 export const STR_A11Y_MENU_NO_SCORES = 'No high scores yet.'
 export const STR_A11Y_MENU_SCORE_ROW = (rank: number, name: string, score: number, level: number, date?: string) =>
   `${rank}. ${name}: ${score} points, level ${level}${date ? ', ' + date : ''}.`
-// Spoken (polite) on every return to the title — the owner's exact shape:
-// name + keys, nothing else ("žiadne litánie").
-export const STR_A11Y_TITLE = 'The Strip. I for intro, R for random play, Space for daily play, H for help.'
+// Spoken on every return to the title — kept SHORT so it doesn't delay a blind
+// player at every landing (game over → title etc.). Name + the primary action +
+// help; the full key list lives in the browsable #sr-menu (STR_A11Y_MENU_LINES)
+// and in the H guide, so the spoken line stays minimal ("hrozne to kecá").
+export const STR_A11Y_TITLE = 'The Strip. Space to play, H for help.'
 
 // Aircraft (approaching = assertive warning; reseed report = polite)
 export const STR_A11Y_PLANE_APPROACHING = 'Plane approaching.'

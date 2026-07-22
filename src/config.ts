@@ -328,6 +328,15 @@ export const BLOCKED_GAP_MS = 30        // silent gap between the two beeps
 export const BLOCKED_VOL = 0.3          // quieter than placement — it fires often
 export const BLOCKED_DEBOUNCE_MS = 250  // holding into a wall won't machine-gun the beep
 
+// Pause / resume earcon — a two-tone toggle, centred. Pause DESCENDS (HI→LO, "winding
+// down"), resume ASCENDS (LO→HI, "spinning up"). Mid register + longer tones keep it
+// clear of the low, short blocked-move beep. Pause also speaks STR_A11Y_PAUSE.
+export const PAUSE_FREQ_HI = 494        // upper tone
+export const PAUSE_FREQ_LO = 330        // lower tone
+export const PAUSE_TONE_MS = 110        // each tone length
+export const PAUSE_GAP_MS = 40          // silent gap between the two tones
+export const PAUSE_VOL = 0.35
+
 // Deliberately NO SCAN_COOLDOWN — time on the live clock is the cost. If
 // playtests show scan-spam cheese, add a single cooldown constant here.
 

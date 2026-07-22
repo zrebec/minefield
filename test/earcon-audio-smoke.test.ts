@@ -37,10 +37,11 @@ vi.mock('zx-kit', async (importOriginal) => {
   return { ...actual, getAudioContext: () => h.fakeCtx, getMasterGain: () => ({} as any) }
 })
 
-import { playFlagBlip, playFlagRemoveBlip, playBlockedMove } from '../src/audio.ts'
+import { playFlagBlip, playFlagRemoveBlip, playBlockedMove, playPauseCue } from '../src/audio.ts'
 import {
   FLAG_FREQ_BASE, FLAG_FREQ_ROW_STEP, FLAG_PAN, FLAG_REMOVE_FREQ,
   BLOCKED_FREQ_HI, BLOCKED_FREQ_LO,
+  PAUSE_FREQ_HI, PAUSE_FREQ_LO,
 } from '../src/config.ts'
 
 beforeEach(() => {
@@ -93,5 +94,24 @@ describe('blocked-move earcon — smoke: descending double beep, centred, deboun
     playBlockedMove()                       // fires: 2 beeps
     playBlockedMove()                       // same currentTime → inside debounce → swallowed
     expect(h.oscillators).toHaveLength(2)   // still just the first pair
+  })
+})
+
+describe('pause / resume earcon — smoke: two centred tones, pause descends, resume ascends', () => {
+  it('pause DESCENDS: first tone higher than the second, both centred', () => {
+    playPauseCue(true)
+    expect(h.oscillators).toHaveLength(2)
+    expect(h.oscillators[0].frequency.value).toBe(PAUSE_FREQ_HI)
+    expect(h.oscillators[1].frequency.value).toBe(PAUSE_FREQ_LO)
+    expect(h.oscillators[1].frequency.value).toBeLessThan(h.oscillators[0].frequency.value)   // descending
+    expect(h.panners[0].pan.value).toBe(0)
+    expect(h.panners[1].pan.value).toBe(0)
+  })
+
+  it('resume ASCENDS: the same two tones in the opposite order', () => {
+    playPauseCue(false)
+    expect(h.oscillators[0].frequency.value).toBe(PAUSE_FREQ_LO)
+    expect(h.oscillators[1].frequency.value).toBe(PAUSE_FREQ_HI)
+    expect(h.oscillators[1].frequency.value).toBeGreaterThan(h.oscillators[0].frequency.value)   // ascending
   })
 })
