@@ -27,6 +27,12 @@ import {
   FLAG_VOL,
   FLAG_REMOVE_FREQ,
   FLAG_REMOVE_MS,
+  BLOCKED_FREQ_HI,
+  BLOCKED_FREQ_LO,
+  BLOCKED_BEEP_MS,
+  BLOCKED_GAP_MS,
+  BLOCKED_VOL,
+  BLOCKED_DEBOUNCE_MS,
 } from './config.ts'
 import type { TerrainType } from './sprites.ts'
 import type { ScanHit } from './game.ts'
@@ -318,6 +324,24 @@ export function playFlagRemoveBlip(): void {
   const ctx = getAudioContext()
   if (!ctx) return
   scheduleBlip(ctx, FLAG_REMOVE_FREQ, FLAG_REMOVE_MS, ctx.currentTime, 0, FLAG_VOL)
+}
+
+// Debounce so a held key into a wall (auto-repeat) can't machine-gun the beep;
+// distinct bumps > BLOCKED_DEBOUNCE_MS apart still each sound.
+let blockedUntil = 0
+
+/** Blocked-move earcon: a short DESCENDING double beep (a11y.md §6.4), centred and
+ *  position-free ("you can't go that way" — you already know which way you pushed).
+ *  main.ts calls this when movePlayer/tickPlayer report a 'blocked' step. */
+export function playBlockedMove(): void {
+  const ctx = getAudioContext()
+  if (!ctx) return
+  const now = ctx.currentTime
+  if (now < blockedUntil) return  // still inside the debounce window — swallow
+  const step = (BLOCKED_BEEP_MS + BLOCKED_GAP_MS) / 1000
+  scheduleBlip(ctx, BLOCKED_FREQ_HI, BLOCKED_BEEP_MS, now, 0, BLOCKED_VOL)          // first, higher
+  scheduleBlip(ctx, BLOCKED_FREQ_LO, BLOCKED_BEEP_MS, now + step, 0, BLOCKED_VOL)   // second, lower = "denied"
+  blockedUntil = now + BLOCKED_DEBOUNCE_MS / 1000
 }
 
 export function startApproachSound(): void {

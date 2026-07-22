@@ -2,7 +2,7 @@ import { C, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS, INTRO_PAGE_MS, SCAN_RADIUS, SCAN_MAX_BEEPS } from './config.ts'
 import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, scanMines, isFinalLevel, type GameState, type GamePhase, type Dir } from './game.ts'
 import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap, consumeDirFlag, isHeld, type Direction } from './input.ts'
-import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playWin, startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon, playFlagBlip, playFlagRemoveBlip } from './audio.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playWin, startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon, playFlagBlip, playFlagRemoveBlip, playBlockedMove } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
@@ -335,7 +335,7 @@ function gameLoop(timestamp: number): void {
       if (dir && !isHeld('Shift')) {
         state.runState = 'running'
         state.debugMode = false   // a step hides the reveal again (the peek ends; budget decides if D can re-arm)
-        movePlayer(state, dir)
+        if (movePlayer(state, dir) === 'blocked') playBlockedMove()
       }
       if (consumeFlag()) commitFlag()
       const dirFlag = consumeDirFlag()
@@ -355,11 +355,11 @@ function gameLoop(timestamp: number): void {
         state.dropFlashTimer -= dt
         if (state.dropFlashTimer <= 0) { state.dropFlashTimer = 0; state.droppedMines = [] }
       }
-      tickPlayer(state, dt)
+      if (tickPlayer(state, dt) === 'blocked') playBlockedMove()  // a buffered press landed on a wall
       const dir = tickMovement(dt, WALK_DURATION_MS)
       if (dir && !isHeld('Shift')) {
         state.debugMode = false  // a step hides the reveal (peek semantics — see [D-GATE])
-        movePlayer(state, dir)
+        if (movePlayer(state, dir) === 'blocked') playBlockedMove()
       }
       if (consumeFlag()) commitFlag()
       const dirFlag = consumeDirFlag()

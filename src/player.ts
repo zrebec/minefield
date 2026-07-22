@@ -18,7 +18,9 @@ function comboMultiplier(comboCount: number): number {
 
 // Per-frame walk progression: ticks the active tween + animation, then drains
 // any buffered direction so continuous key-hold flows step-to-step without gap.
-export function tickPlayer(state: GameState, dt: number): void {
+// Returns the outcome of a drained buffered move (or null if none this frame), so
+// the caller can sound the blocked earcon when a buffered press lands on a wall.
+export function tickPlayer(state: GameState, dt: number): MoveResult | null {
   if (state.walkTween) {
     tickAnimation(state.walkAnim, dt)
     tickTween(state.walkTween, dt)
@@ -27,24 +29,33 @@ export function tickPlayer(state: GameState, dt: number): void {
   if (!state.walkTween && state.bufferedDir && state.phase === 'playing') {
     const dir = state.bufferedDir
     state.bufferedDir = null
-    movePlayer(state, dir)
+    return movePlayer(state, dir)
   }
+  return null
 }
 
-export function movePlayer(state: GameState, dir: Direction): void {
-  if (state.phase !== 'playing') return
+// Outcome of a move attempt, so the caller can react (e.g. the blocked-move
+// earcon). 'moving' = a walk tween started (a normal step OR the win-exit off the
+// right edge). 'buffered' = mid-step, press stored for when the walk lands.
+// 'blocked' = rejected by a wall/fence/building edge or the board edge — NOT the
+// win exit. `null` = not applicable (wrong phase).
+export type MoveResult = 'moving' | 'buffered' | 'blocked'
+
+export function movePlayer(state: GameState, dir: Direction): MoveResult | null {
+  if (state.phase !== 'playing') return null
 
   // Already walking → buffer this press for when the current step lands
   if (state.walkTween) {
     state.bufferedDir = dir
-    return
+    return 'buffered'
   }
 
   state.playerDir = dir
   const newCol = state.playerCol + (dir === 'right' ? 1 : dir === 'left' ? -1 : 0)
   const newRow = state.playerRow + (dir === 'down' ? 1 : dir === 'up' ? -1 : 0)
 
-  // Walking off the right edge — animated exit, level-complete on tween end
+  // Walking off the right edge — animated exit, level-complete on tween end.
+  // This is the WIN, never a block, so it must not trigger the blocked earcon.
   if (newCol >= COLS) {
     resetAnimation(state.walkAnim)
     state.walkTween = createTween(
@@ -53,14 +64,14 @@ export function movePlayer(state: GameState, dir: Direction): void {
       WALK_DURATION_MS,
       { onComplete: () => completeLevel(state) },
     )
-    return
+    return 'moving'
   }
 
-  if (newCol < 0 || newRow < 0 || newRow >= ROWS) return
+  if (newCol < 0 || newRow < 0 || newRow >= ROWS) return 'blocked'  // off the board (left/top/bottom)
 
   const tile = state.map.getTile(newCol, newRow)
-  if (tile === null) return
-  if (tile.solid) return
+  if (tile === null) return 'blocked'
+  if (tile.solid) return 'blocked'                                  // fence or building edge
 
   resetAnimation(state.walkAnim)
   state.walkTween = createTween(
@@ -69,6 +80,7 @@ export function movePlayer(state: GameState, dir: Direction): void {
     WALK_DURATION_MS,
     { onComplete: () => commitMove(state, newCol, newRow) },
   )
+  return 'moving'
 }
 
 function completeLevel(state: GameState): void {

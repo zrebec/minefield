@@ -942,6 +942,54 @@ describe('toggleFlag — result contract (drives the flag earcon)', () => {
   })
 })
 
+// The blocked-move earcon (main.ts → playBlockedMove) fires when movePlayer or
+// tickPlayer report 'blocked'. The WIN exit off the right edge must read as
+// 'moving', never 'blocked', or crossing the finish line would buzz.
+describe('movePlayer / tickPlayer — result outcome (drives the blocked-move earcon)', () => {
+  it("a normal step into open ground is 'moving'", () => {
+    expect(movePlayer(makeState(5, 5), 'right')).toBe('moving')
+  })
+
+  it("walking off the right edge (the WIN exit) is 'moving', NOT 'blocked'", () => {
+    expect(movePlayer(makeState(COLS - 1, 5), 'right')).toBe('moving')
+  })
+
+  it("a solid cell (fence / building edge) is 'blocked'", () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileFence())
+    expect(movePlayer(state, 'right')).toBe('blocked')
+  })
+
+  it("the board edge (left / top / bottom) is 'blocked'", () => {
+    expect(movePlayer(makeState(0, 5), 'left')).toBe('blocked')          // off the left
+    expect(movePlayer(makeState(5, 0), 'up')).toBe('blocked')            // off the top
+    expect(movePlayer(makeState(5, ROWS - 1), 'down')).toBe('blocked')   // off the bottom
+  })
+
+  it("a press during a walk is 'buffered', not a block", () => {
+    const state = makeState(5, 5)
+    expect(movePlayer(state, 'right')).toBe('moving')    // starts the walk
+    expect(movePlayer(state, 'down')).toBe('buffered')   // mid-step → buffered, no beep
+  })
+
+  it('returns null when not playing', () => {
+    const state = makeState(5, 5)
+    state.phase = 'gameover'
+    expect(movePlayer(state, 'right')).toBeNull()
+  })
+
+  it("tickPlayer returns 'blocked' when a buffered press lands on a wall", () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileFence())
+    state.bufferedDir = 'right'          // a press stored during a walk
+    expect(tickPlayer(state, WALK_DURATION_MS)).toBe('blocked')
+  })
+
+  it('tickPlayer returns null when there is no buffered move to drain', () => {
+    expect(tickPlayer(makeState(5, 5), WALK_DURATION_MS)).toBeNull()
+  })
+})
+
 // ── terrain — movePlayer visited tile path color ───────────────────────────────
 
 describe('terrain — movePlayer visited tile path color', () => {

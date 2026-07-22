@@ -317,6 +317,17 @@ export const FLAG_VOL = 0.45
 export const FLAG_REMOVE_FREQ = 110     // very low
 export const FLAG_REMOVE_MS = 40        // very short
 
+// Blocked-move earcon — a short descending double beep when a step is rejected by a
+// wall/fence/building edge (a11y.md §6.4). Centred, no pan, no direction (you already
+// know which way you pushed); descending = "denied". Distinct from the single 110 Hz
+// flag-removal tick by count (two beeps) and range.
+export const BLOCKED_FREQ_HI = 190      // first beep
+export const BLOCKED_FREQ_LO = 130      // second beep, lower = "denied" (kept above the 110 flag-removal tick)
+export const BLOCKED_BEEP_MS = 35       // each beep length
+export const BLOCKED_GAP_MS = 30        // silent gap between the two beeps
+export const BLOCKED_VOL = 0.3          // quieter than placement — it fires often
+export const BLOCKED_DEBOUNCE_MS = 250  // holding into a wall won't machine-gun the beep
+
 // Deliberately NO SCAN_COOLDOWN — time on the live clock is the cost. If
 // playtests show scan-spam cheese, add a single cooldown constant here.
 

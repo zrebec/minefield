@@ -188,8 +188,15 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   back):** a **very low, very short, centred tick — no pan, no pitch** ("some flag removed", not
   which/where), so it can't be mistaken for the placement blip. Fires ONLY on a real event — where a
   flag can't display (solid/crater/off-map/wrong-phase/mid-step, `toggleFlag` → `null`) nothing sounds.
-  Full reference: `docs/accessibility-sonar-beacon.md`; the still-open gaps (blocked-move / east-wall
-  earcon) are `a11y.md` §6.
+  Full reference: `docs/accessibility-sonar-beacon.md`.
+- **Blocked-move earcon SHIPPED 2026-07-22** (`playBlockedMove` in audio.ts, `BLOCKED_*` in config.ts).
+  A **descending double beep** (190→130 Hz), **centred, no pan, no direction** (you know which way you
+  pushed), when a step is rejected by a wall/fence/building edge or the board edge — one generic cue for
+  all of them. `movePlayer`/`tickPlayer` now return a `MoveResult` (`'moving'`/`'buffered'`/`'blocked'`);
+  `main.ts` plays it only on `'blocked'`. **The win-exit off the right edge is `'moving'`, never
+  `'blocked'`** (crossing the finish line must not buzz). Debounced (`BLOCKED_DEBOUNCE_MS`) so a held key
+  into a wall can't machine-gun. This closed the last of the three §6 audio gaps (east wall + building
+  edge + fence); the remaining a11y work is spoken-shell (pause "PAUSE", `0`=help) — `a11y.md` §6.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 
