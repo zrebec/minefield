@@ -1,3 +1,10 @@
+## [0.64.1](https://github.com/zrebec/minefield/compare/v0.64.0...v0.64.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **ui:** green gem legend says "2 = recon plane", not "time only" ([c788369](https://github.com/zrebec/minefield/commit/c788369e55fea58c6daa75f2a55403a5edfff7a0))
+
 # [0.64.0](https://github.com/zrebec/minefield/compare/v0.63.0...v0.64.0) (2026-07-22)
 
 
