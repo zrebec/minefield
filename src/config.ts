@@ -119,7 +119,7 @@ export const SCORE_MULTIPLIERS = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
 // boards/level): L1–L2 match the old fixed counts and their feel (≈50 / ≈80
 // mines, raw-solvable 99.5% / 87.5%); L3 ≈74 (77.8%), L4+ ≈61–63 (61.5–71.5%) —
 // all safely past the ≥50% generation-health criterion, guarded in game.test.ts.
-export const MINE_DENSITY = [0.105, 0.19, 0.19, 0.18]
+export const MINE_DENSITY = [0.09, 0.19, 0.19, 0.18]
 
 export interface LevelConfig {
   lives: number         // starting lives for this level
