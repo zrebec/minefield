@@ -1,3 +1,10 @@
+# [0.61.0](https://github.com/zrebec/minefield/compare/v0.60.0...v0.61.0) (2026-07-22)
+
+
+### Features
+
+* decrease level 1 difficulty ([7060ba2](https://github.com/zrebec/minefield/commit/7060ba2e8919b416d6c920c80c73ed269abb6f62))
+
 # [0.60.0](https://github.com/zrebec/minefield/compare/v0.59.0...v0.60.0) (2026-07-21)
 
 
