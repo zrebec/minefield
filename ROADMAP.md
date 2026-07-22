@@ -81,12 +81,15 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    recon plane**: a purely seeded row sweep that permanently reveals every live mine in it
    (`spawnFriendlyPlane`, `GREEN_GEMS_PER_PLANE`); tested in `airplane.test.ts`. What remains is only
    the by-feel balance check inside the difficulty pass (#2).
-4. **Confirm the jingle relocation** (now once-per-session on a direct game-start, not on first gesture) —
-   quick owner sign-off.
-4b. **Decide the final `D`-reveal mode before v1.0.** Currently (2026-07-04, testing-phase): usable
-   any time while standing — a budgeted peek for playtest route/flag verification. The alternative
-   is the original idle-scout-only gate. The switch is a **one-line move** (`[D-GATE]` in `main.ts`);
-   the full revert recipe lives in `CLAUDE.md` → "D-reveal mode". Effort XS either way.
+4. **~~Confirm the jingle relocation~~ — ✅ CONFIRMED (owner, 2026-07-22).** Jingle now plays once per
+   session on a direct game-start (not on first gesture); owner sign-off given after hearing it. No code
+   change — this closed the open verification.
+4b. **~~Decide the final `D`-reveal mode before v1.0~~ — ✅ DECIDED (owner, 2026-07-22): ANY-TIME is
+   final.** The visual reveal shows mines on any `D` press while standing, until the budget
+   (`DAILY_REVEAL_LIMIT` / `RANDOM_REVEAL_LIMIT` in config.ts) is spent; after that `D` stays
+   sonar-only (no visual). This is the current behaviour and is playtest-verified — owner's verdict:
+   "any-time is cleaner". The idle-scout-only alternative is dropped; the `[D-GATE]` revert recipe in
+   `CLAUDE.md` stays as archived documentation only. No code change (already shipped).
 
 ### P1 — Accessibility moat (in v1.0 because we chose option C — the strongest differentiator)
 5. **~~Stereo / spatial warning~~ — TRIED & REVERTED 2026-07-09.** Shipped in 0.52.0 as a density
