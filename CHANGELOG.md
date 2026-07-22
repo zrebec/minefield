@@ -1,3 +1,10 @@
+# [0.64.0](https://github.com/zrebec/minefield/compare/v0.63.0...v0.64.0) (2026-07-22)
+
+
+### Features
+
+* **a11y:** one-line title prompt + full on-demand H guide ([18023d5](https://github.com/zrebec/minefield/commit/18023d579a202a305c4d08f8765231c6c246f990)), closes [hi#score](https://github.com/hi/issues/score) [#sr-menu](https://github.com/zrebec/minefield/issues/sr-menu)
+
 # [0.63.0](https://github.com/zrebec/minefield/compare/v0.62.0...v0.63.0) (2026-07-22)
 
 
