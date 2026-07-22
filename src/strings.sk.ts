@@ -58,17 +58,39 @@ export const STR_FRIENDLY = '** PRIESKUM **'                // 14 znakov (spriat
 
 // ── Prístupnosť (čítačka obrazovky / TTS) ───────────────────────────────────
 // NEmajú pixel budget — sú hovorené, nie kreslené. Plné vety, plná diakritika.
-// STR_A11Y_LEGEND musí sedieť s tým, čo hra naozaj hrá (playWarning v audio.ts + maják).
+// STR_A11Y_LEGEND je plný sprievodca na požiadanie (hovorí ho H). Nesie všetku
+// hĺbku, aby titulná obrazovka ostala jednou vetou — cieľ, ovládanie, pravidlá,
+// pojmy a zvuky. Zvuková časť MUSÍ sedieť s tým, čo hra naozaj hrá (playWarning /
+// earcony v audio.ts + maják).
 export const STR_A11Y_LEGEND =
-  'Zvukový sprievodca. Jemný krok znamená, že si prešiel bezpečne. Pípanie znamená, že blízko sú živé ' +
-  'míny — jedno pípnutie na každú mínu, tak ich spočítaj: dve pípnutia znamenajú dve míny. Povedia koľko, ' +
-  'nie kde; pohni sa a počúvaj znova, aby si našiel smer. Stlač D a spustíš sonarový sken: jedno pípnutie ' +
-  'na každú mínu v dosahu, od najbližšej — ľavé či pravé ucho znamená západ či východ, vyšší tón sever, ' +
-  'nižší juh, hlasnejšie znamená bližšie. Jediný hlboký tón znamená, že v dosahu nič nie je. Stlač E a ' +
-  'ozve sa východ: jeden tón, ktorý silnie, ako sa k východu blížiš, a stúpa, keď je východ nad tebou — ' +
-  'a keď si presne na jeho úrovni, zmení sa na dvojité pípnutie, tak odtiaľ choď rovno na východ — ' +
-  'spolu s hovoreným smerom. Lietadlo, ktoré počuješ prilietať, presieva pole novými mínami. Buchot je ' +
-  'výbuch: stúpil si na mínu. Stlač H a sprievodcu si vypočuješ znova.'
+  'The Strip — sprievodca. ' +
+  'Cieľ. Prechádzaš cez slepé mínové pole, od medzery v plote vľavo k medzere vpravo. Míny nevidíš; ' +
+  'bezpečnú cestu nájdeš počúvaním. Dostaň sa k východu vpravo a prejdeš úroveň; prejdi všetky úrovne a ' +
+  'vyhráš — vojna sa skončí a Pás je bezpečný. ' +
+  'Ovládanie. Šípky ťa posúvajú o jednu bunku. F označí bunku pred tebou ako podozrivú z míny; podrž ' +
+  'Shift so šípkou a označíš v danom smere. P pozastaví a spustí hru. Plus a mínus menia hlasitosť. ' +
+  'Počas hry: D spustí sonarový sken mín v okolí, E ti povie, kde je východ, G najbližší gem a H zopakuje ' +
+  'tohto sprievodcu. Na titulnej obrazovke: medzerník zahrá dnešné pole, R náhodné pole, I príbeh a L ' +
+  'prepne jazyk. ' +
+  'Pravidlá. Keď stúpiš na mínu, vybuchne: stratíš život, a strata posledného života ukončí hru. Každá ' +
+  'úroveň má aj časovač, ktorý odpočítava; keď dosiahne nulu, hra sa skončí. Denné pole je rovnaké pre ' +
+  'všetkých hráčov a tvoje skóre ide do tabuľky najlepších; náhodné pole je na cvičenie a neboduje sa. ' +
+  'Čo je na poli. Míny sú skryté a smrteľné — pípanie a sonar ťa varujú, keď sú blízko. Gemy sú bezpečné ' +
+  'na zber: každý dá body a čas navyše, a niektoré sú špeciálne — dva červené gemy pridajú život, tri ' +
+  'azúrové odhalia živú mínu, zlatý gem je veľký bonus k skóre a zelené gemy privolajú priateľské ' +
+  'lietadlo, ktoré odhalí míny. Budovy sú pevné, tak ich obchádzaš. Pole obopína plot s jednou cestou ' +
+  'dnu a jednou von. Vlajka je len tvoja poznámka na bunke — nemení to, čo je pod ňou. A z času na čas ' +
+  'preletí nepriateľské lietadlo a rozsype nové míny; budeš ho počuť prilietať. ' +
+  'Zvuky. Jemný krok znamená, že si prešiel bezpečne. Pípanie znamená, že hneď vedľa teba sú živé míny — ' +
+  'jedno pípnutie na každú mínu, tak ich spočítaj; povedia koľko, nie kde, tak sa pohni a počúvaj znova, ' +
+  'aby si našiel smer. Klesajúce dvojité pípnutie znamená, že krok ti zablokovala stena, budova alebo ' +
+  'okraj poľa. Krátke pípnutie potvrdí, že si položil vlajku; hlboký ťuk znamená, že si ju vzal späť. ' +
+  'Buchot je výbuch — stúpil si na mínu. Zo sonaru, klávesa D: jedno pípnutie na každú mínu, od ' +
+  'najbližšej — ľavé či pravé ucho je západ či východ, vyšší tón je sever a nižší juh, hlasnejšie je ' +
+  'bližšie; jediný hlboký tón znamená, že v dosahu nič nie je. Z majáku východu, klávesa E: tón, ktorý ' +
+  'silnie, ako sa blížiš k stĺpcu východu, a stúpa, keď je východ nad tebou, a zmení sa na dvojité ' +
+  'pípnutie, keď si presne na jeho úrovni — vtedy choď rovno na východ. ' +
+  'Kedykoľvek stlač H a tohto sprievodcu si vypočuješ znova.'
 // Krátky odkaz v statickom #sr-legend regióne pri štarte (nie plný sprievodca, ktorého
 // vracajúci sa hráč nepotrebuje počuť zakaždým — H ho na požiadanie prehrá).
 export const STR_A11Y_LEGEND_HINT = 'Stlač H a vypočuješ si zvukového sprievodcu.'
@@ -122,10 +144,10 @@ export const STR_A11Y_MENU_SCORES    = 'Najlepšie skóre:'
 export const STR_A11Y_MENU_NO_SCORES = 'Zatiaľ žiadne skóre.'
 export const STR_A11Y_MENU_SCORE_ROW = (rank: number, name: string, score: number, level: number, date?: string) =>
   `${rank}. ${name}: ${score} bodov, úroveň ${level}${date ? ', ' + date : ''}.`
-// Hovorené pri každom návrate na titulnú obrazovku — KRÁTKE, nech nezdržuje
-// nevidiaceho pri každom pristátí (koniec hry → titul atď.). Meno + primárna
-// akcia + pomoc; celý zoznam klávesov je v navigovateľnom #sr-menu a v H sprievodcovi.
-export const STR_A11Y_TITLE = 'The Strip. Medzerník hrá, H pomoc.'
+// Hovorené pri každom pristátí na titulnej obrazovke — zámerne JEDNA veta (owner
+// 2026-07-22): len ukáž na H. Všetko ostatné (cieľ, ovládanie, pravidlá, pojmy) je
+// v H sprievodcovi (STR_A11Y_LEGEND) a v navigovateľnom #sr-menu, nech štart nekecá.
+export const STR_A11Y_TITLE = 'Stlač H pre pravidlá a pomoc.'
 
 // Lietadlo (blíži sa = assertive varovanie; presiatie = polite hlásenie)
 export const STR_A11Y_PLANE_APPROACHING = 'Blíži sa lietadlo.'

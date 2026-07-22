@@ -79,18 +79,41 @@ export const STR_FRIENDLY = '**  RECON  **'
 
 // ── Accessibility (screen reader / TTS) ─────────────────────────────────────
 // NOT pixel-budgeted — these are spoken, not drawn. Full natural sentences.
-// STR_A11Y_LEGEND is the navigable audio guide; it MUST match what the game
-// actually plays (playWarning in audio.ts + the beacon lamp).
+// STR_A11Y_LEGEND is the full on-demand guide (spoken by H). It carries all the
+// depth so the title screen stays a single line — goal, controls, rules, a
+// glossary, and the sounds. The sound section MUST match what the game actually
+// plays (playWarning / the earcons in audio.ts + the beacon).
 export const STR_A11Y_LEGEND =
-  'Sound guide. A soft footstep means you moved safely. Beeps mean live mines are near — one beep for ' +
-  'each mine, so count them: two beeps means two mines. They tell you how many, not where; move and ' +
-  'listen again to find the direction. Press D for a sonar sweep: one ping per mine in range, nearest ' +
-  'first — left or right in your ears means west or east, higher pitch means north, lower means south, ' +
-  'louder means closer. A single low tone means nothing in range. Press E to hear the exit: a single ' +
-  'tone that grows louder as you near the exit and rises in pitch when the exit is north of you — and ' +
-  'becomes a double beep when you are level with the exit, so head straight east from there — plus ' +
-  'the spoken bearing. A plane you hear approaching reseeds the field with fresh mines. A burst of ' +
-  'noise is an explosion: you stepped on a mine. Press H to hear this guide again.'
+  'The Strip — guide. ' +
+  'The goal. You are crossing a blind minefield, from the gap in the fence on the left to the gap on ' +
+  'the right. You cannot see the mines; you find a safe path by listening. Reach the exit on the right ' +
+  'to clear a level, and clear every level to win — the war ends and the Strip is safe. ' +
+  'Controls. The arrow keys move you one cell at a time. F flags the cell in front of you as a ' +
+  'suspected mine; hold Shift with an arrow to flag in that direction instead. P pauses and resumes. ' +
+  'Plus and minus change the volume. During play: D plays a sonar sweep of nearby mines, E tells you ' +
+  'where the exit is, G tells you the nearest gem, and H repeats this guide. On the title screen: press ' +
+  "Space to play today's field, R for a random field, I for the story, and L to switch language. " +
+  'The rules. Step on a mine and it explodes: you lose a life, and losing your last life ends the game. ' +
+  'Each level also has a timer counting down; if it reaches zero, the game ends. The daily field is the ' +
+  'same for every player and your score goes on the high-score table; a random field is for practice and ' +
+  'is not scored. ' +
+  'What is on the field. Mines are hidden and deadly — the beeps and the sonar warn you when they are ' +
+  'near. Gems are safe to pick up: each gives points and extra time, and some are special — two red gems ' +
+  'earn a life, three cyan reveal a live mine, a gold gem is a large score bonus, and green gems call a ' +
+  'friendly plane that reveals mines. Buildings are solid, so you walk around them. A fence surrounds the ' +
+  'field with one way in and one way out. A flag is only your own note on a cell — it does not change ' +
+  'what is underneath. And an enemy plane flies over now and then to scatter fresh mines; you will hear ' +
+  'it approaching. ' +
+  'The sounds. A soft footstep means you moved safely. Beeps mean live mines are right next to you — one ' +
+  'beep for each mine, so count them; they tell you how many, not where, so move and listen again to ' +
+  'find the direction. A descending double beep means a wall, a building, or the edge of the field ' +
+  'blocked your step. A short blip confirms you placed a flag; a low tick means you took one back. A ' +
+  'burst of noise is an explosion — you stepped on a mine. On the sonar, from D: one ping per mine, ' +
+  'nearest first — left or right in your ears is west or east, a higher pitch is north and a lower pitch ' +
+  'is south, and louder is closer; a single low tone means nothing is in range. On the exit beacon, from ' +
+  "E: a tone that grows louder as you near the exit's column and rises when the exit is north of you, " +
+  'becoming a double beep when you are exactly level with it — then head straight east. ' +
+  'Press H at any time to hear this guide again.'
 // Short prompt shown in the static #sr-legend region at start (not the full guide,
 // which a returning player doesn't need re-read every time — H replays it on demand).
 export const STR_A11Y_LEGEND_HINT = 'Press H to hear the audio guide.'
@@ -143,11 +166,10 @@ export const STR_A11Y_MENU_SCORES    = 'High scores:'
 export const STR_A11Y_MENU_NO_SCORES = 'No high scores yet.'
 export const STR_A11Y_MENU_SCORE_ROW = (rank: number, name: string, score: number, level: number, date?: string) =>
   `${rank}. ${name}: ${score} points, level ${level}${date ? ', ' + date : ''}.`
-// Spoken on every return to the title — kept SHORT so it doesn't delay a blind
-// player at every landing (game over → title etc.). Name + the primary action +
-// help; the full key list lives in the browsable #sr-menu (STR_A11Y_MENU_LINES)
-// and in the H guide, so the spoken line stays minimal ("hrozne to kecá").
-export const STR_A11Y_TITLE = 'The Strip. Space to play, H for help.'
+// Spoken on every landing on the title — deliberately ONE line (owner 2026-07-22):
+// just point at H. Everything else (goal, controls, rules, glossary) lives in the
+// H guide (STR_A11Y_LEGEND) and the browsable #sr-menu, so the start never rambles.
+export const STR_A11Y_TITLE = 'Press H for rules and help.'
 
 // Aircraft (approaching = assertive warning; reseed report = polite)
 export const STR_A11Y_PLANE_APPROACHING = 'Plane approaching.'

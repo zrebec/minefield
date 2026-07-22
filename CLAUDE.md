@@ -163,14 +163,19 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   sentences (TLOU2 model). **Pause + menu-trim SHIPPED 2026-07-22:** pausing speaks `STR_A11Y_PAUSE`
   (**assertive**, so it re-reads on every pause — `status()` would dedupe repeats) plus a centred
   two-tone earcon (`playPauseCue`: pause descends 494→330, resume ascends 330→494, clear of the low
-  short blocked-move); and `STR_A11Y_TITLE` was trimmed to "The Strip. Space to play, H for help." (the
-  full key list stays in the browsable `#sr-menu` + the `H` guide). The rest of the shell agenda — `T`
-  reads the time, high-score letter echo, `0`-for-help, assist toggle — is **parked until a playtest with
-  real screen-reader users**. Exception, done 2026-07-15 (owner-directed): spoken lines cut to headwords —
-  `STR_A11Y_MENU_LINES` + `STR_A11Y_TITLE`, mode/orient/plane lines trimmed, and the gem-pickup line is now
+  short blocked-move). **Title + H-guide reworked 2026-07-22 (owner: "one single sentence"):**
+  `STR_A11Y_TITLE` is now just **"Press H for rules and help."** (SK "Stlač H pre pravidlá a pomoc."),
+  spoken via **`announce`** not `status` (a polite region set at page load was being missed — "then
+  silence" after the `<title>`); and `STR_A11Y_LEGEND` (the `H` guide) was expanded to the **full
+  briefing** — goal, controls, rules (incl. daily-scored / random-not), a glossary (mines, gems,
+  buildings, fence, flags, plane) and the sound cues. The live high-score table stays browsable in
+  `#sr-menu` (not spoken by `H`, so dynamic data isn't duplicated). This closed the old "H-for-help
+  rework". The rest of the shell agenda — `T` reads the time, high-score letter echo, `0`-for-help
+  (should just call `announce(STR_A11Y_LEGEND)`, same as `H`), assist toggle — is **parked until a
+  playtest with real screen-reader users**. Earlier, done 2026-07-15 (owner-directed): spoken lines cut
+  to headwords — `STR_A11Y_MENU_LINES`, mode/orient/plane lines trimmed, and the gem-pickup line is now
   `<colour> gem, <n> left.` — the count makes consecutive pickups distinct text, fixing the `status()`
-  dedupe silencing a fast second gem (announceGemPickup takes `state` now). An `H`-for-help rework
-  (H speaks scoring rules + the table) is planned for a FUTURE session — not yet. The
+  dedupe silencing a fast second gem (announceGemPickup takes `state` now). The
   **on-demand radar-sweep mine scan SHIPPED 2026-07-19** as the AUDIO channel of the `D` key
   (see "Debug keys" below) together with the **exit beacon** on `E` — this is NOT the reverted
   compass (on-demand vs continuous unsolicited density); design + genre research:

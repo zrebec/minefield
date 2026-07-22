@@ -103,7 +103,10 @@ function enterTitle(): void {
   introPageTimer = INTRO_PAGE_MS
   setBorderColor(C.B_BLUE)
   setMenu(titleMenuLines())
-  status(L.STR_A11Y_TITLE)   // tell a blind player where they are + that the menu is browsable
+  // Assertive, not polite: a polite status set right at page load is easily missed
+  // (the reader is still on the <title>), which read as "then silence". Assertive
+  // interrupts and re-reads, so the one-line "press H" prompt is actually heard.
+  announce(L.STR_A11Y_TITLE)
 }
 
 function enterHiScore(): void {
