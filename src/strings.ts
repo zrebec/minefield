@@ -220,7 +220,7 @@ export const GEM_SPECIAL: Record<string, string> = {
   red:   '2 = +1 life',
   cyan:  '3 = reveal a mine',
   gold:  'big points',
-  green: '(time only)',
+  green: '2 = recon plane',
 }
 export const STR_GEM_ALL  = (pts: number) => `Every gem: +${pts} pts`
 export const STR_GEM_FULL = 'Full bag: gem left on field'

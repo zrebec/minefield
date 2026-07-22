@@ -191,7 +191,7 @@ export const GEM_SPECIAL: Record<string, string> = {
   red:   '2 = +1 zivot',
   cyan:  '3 = odkry minu',
   gold:  'vela bodov',
-  green: '(len cas)',
+  green: '2 = lietadlo',
 }
 export const STR_GEM_ALL  = (pts: number) => `Kazdy gem: +${pts} b.`
 export const STR_GEM_FULL = 'Plny batoh: gem ostane na poli'

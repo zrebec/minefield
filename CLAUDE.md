@@ -286,7 +286,8 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
 - 🔴 red — **2 = +1 life** (`RED_GEMS_PER_LIFE`).
 - 🔵 cyan — **3 = reveal one live mine** (`CYAN_GEMS_PER_REVEAL`; seeded, night-visible).
 - 🟡 gold — **+`GOLD_SCORE_BONUS` (5000)** on top of the flat score (implemented in `player.ts`).
-- 🟢 green — **no special yet** (time bonus only); the special is an open ROADMAP decision.
+- 🟢 green — **2 = friendly recon plane** (`GREEN_GEMS_PER_PLANE`; seeded row sweep that permanently
+  reveals every live mine in it — `spawnFriendlyPlane`, shipped 0.51.0) + the time bonus every gem gives.
 
 ### Buildings, terrain, aircraft, audio, save, input
 - **Buildings:** pseudo-3D, solid + mine-free; count rises per level. `fixObstacleTraps()` prevents
