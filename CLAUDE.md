@@ -180,6 +180,16 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   straight east" marker a continuous pitch can't give (absolute pitch is rare; the zero-crossing
   needs its own earcon). All tunables in `config.ts` (`SCAN_*`, `BEACON_*`) — ear-tuning still
   owner-led, blind-tester playtest the real gate.
+- **Flag earcon SHIPPED 2026-07-22** (`playFlagBlip` / `playFlagRemoveBlip` in audio.ts, `FLAG_*` /
+  `FLAG_REMOVE_*` in config.ts). Two cues fired from `commitFlag` in main.ts off `toggleFlag`'s new
+  return (`FlagResult{action:'placed'|'removed',dCol,dRow}` | `null`). **Placement:** positional blip —
+  **pan = east/west** of the flagged cell, **pitch = north/south** (higher = up) — the sonar's rule; it
+  says *which* adjacent cell you flagged (useful for SHIFT+arrow triangulation). **Removal (take a flag
+  back):** a **very low, very short, centred tick — no pan, no pitch** ("some flag removed", not
+  which/where), so it can't be mistaken for the placement blip. Fires ONLY on a real event — where a
+  flag can't display (solid/crater/off-map/wrong-phase/mid-step, `toggleFlag` → `null`) nothing sounds.
+  Full reference: `docs/accessibility-sonar-beacon.md`; the still-open gaps (blocked-move / east-wall
+  earcon) are `a11y.md` §6.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 
@@ -305,9 +315,11 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
   OFF is free, each ON consumes one; a step hides it again (a budgeted *peek*). `playDenied` is NO
   LONGER wired to D (the sweep is the key's ever-present response). zx-kit `Ctrl+Shift+B` /
   gamepad **Y** map here too.
-  **D-gate placement (TESTING-PHASE — final placement decided before v1.0).** The "any time" gate
-  is ONE `if` block in `main.ts` marked `[D-GATE]` (top of the `phase === 'playing'` block).
-  **Revert recipe to idle-scout-only** (safe for any model to follow):
+  **D-gate placement — DECIDED (owner, 2026-07-22): ANY-TIME is FINAL.** The visual reveal shows on any
+  `D` press while standing until the budget is spent, then sonar-only; playtest-verified, owner's verdict
+  "any-time is cleaner". The gate is ONE `if` block in `main.ts` marked `[D-GATE]` (top of the
+  `phase === 'playing'` block). The idle-scout-only alternative is dropped; the **revert recipe below is
+  ARCHIVED documentation only** (kept in case the decision is ever reopened — do not action it now):
   1. In `main.ts`, cut the `if (consumeDebug() && …) { playSonarSweep(…); tryToggleReveal(…) }`
      block at `[D-GATE]` and paste it at the `[D-GATE-IDLE-ANCHOR]` comment inside the
      `runState === 'idle'` branch; delete the big `[D-GATE]` comment block.

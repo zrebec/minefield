@@ -191,14 +191,21 @@ export function respawnPlayer(state: GameState): void {
 // play, where the facing direction after walking around rarely matches the
 // side the mine turned out to be on.
 //
+// What a toggleFlag call did, with the flagged cell's offset from the player
+// (dCol/dRow, each −1/0/+1) so the caller can play a positional earcon. `null`
+// = nothing happened (wrong phase, mid-step, or a cell that can't hold a flag).
+export type FlagResult = { action: 'placed' | 'removed'; dCol: number; dRow: number }
+
 // Flags are a PURE VISUAL OVERLAY (state.flags — see GameState): toggling one
 // never touches the tile, so it cannot change what's really there and nothing
 // that rewrites tiles can ever eat it. Flaggable: anything non-solid except an
 // exploded crater (ground, mine, gem — and the visited trail; the player may
 // annotate whatever they like, whether or not they care what's underneath).
-export function toggleFlag(state: GameState, dir: Direction = state.playerDir): void {
-  if (state.phase !== 'playing') return
-  if (state.walkTween) return  // can't flag mid-step
+// Returns the FlagResult (or null on a no-op) so the audio layer can react to a
+// real PLACEMENT — the sound must NOT fire where a flag can't display.
+export function toggleFlag(state: GameState, dir: Direction = state.playerDir): FlagResult | null {
+  if (state.phase !== 'playing') return null
+  if (state.walkTween) return null  // can't flag mid-step
   const dc = dir === 'right' ? 1 : dir === 'left' ? -1 : 0
   const dr = dir === 'down' ? 1 : dir === 'up' ? -1 : 0
   const fc = state.playerCol + dc
@@ -206,9 +213,10 @@ export function toggleFlag(state: GameState, dir: Direction = state.playerDir): 
   const key = cellKey(fc, fr)
   if (state.flags.has(key)) {
     state.flags.delete(key)
-    return
+    return { action: 'removed', dCol: dc, dRow: dr }
   }
   const tile = state.map.getTile(fc, fr)
-  if (tile === null || tile.solid || tile.id === 'exploded') return
+  if (tile === null || tile.solid || tile.id === 'exploded') return null
   state.flags.add(key)
+  return { action: 'placed', dCol: dc, dRow: dr }
 }

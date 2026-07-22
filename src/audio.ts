@@ -20,6 +20,13 @@ import {
   BEACON_VOL_MIN,
   BEACON_ALIGN_BEEP_MS,
   BEACON_ALIGN_GAP_MS,
+  FLAG_TONE_MS,
+  FLAG_FREQ_BASE,
+  FLAG_FREQ_ROW_STEP,
+  FLAG_PAN,
+  FLAG_VOL,
+  FLAG_REMOVE_FREQ,
+  FLAG_REMOVE_MS,
 } from './config.ts'
 import type { TerrainType } from './sprites.ts'
 import type { ScanHit } from './game.ts'
@@ -282,6 +289,35 @@ export function playExitBeacon(dCol: number, dRow: number): void {
     return
   }
   scheduleBlip(ctx, freq, BEACON_TONE_MS, now, 0, vol)
+}
+
+/**
+ * Pure pan/pitch mapping for the flag earcon — exported for tests. `dCol`/`dRow`
+ * are the flagged cell relative to the player (each −1, 0, or +1). Pan = east/west
+ * (full L/R), pitch = north/south (higher = north) — the sonar's convention.
+ */
+export function flagBlipParams(dCol: number, dRow: number): { pan: number; freq: number } {
+  const pan = Math.max(-1, Math.min(1, Math.sign(dCol) * FLAG_PAN))
+  const freq = FLAG_FREQ_BASE + -dRow * FLAG_FREQ_ROW_STEP
+  return { pan, freq }
+}
+
+/** One short panned blip confirming a flag was PLACED. main.ts calls this ONLY on
+ *  a real placement (never on remove or a blocked cell). Pan = E/W, pitch = N/S. */
+export function playFlagBlip(dCol: number, dRow: number): void {
+  const ctx = getAudioContext()
+  if (!ctx) return
+  const { pan, freq } = flagBlipParams(dCol, dRow)
+  scheduleBlip(ctx, freq, FLAG_TONE_MS, ctx.currentTime, pan, FLAG_VOL)
+}
+
+/** A tiny low centred tick confirming a flag was TAKEN BACK — deliberately carries
+ *  no pan/pitch info ("some flag removed", not which or where), so it can't be
+ *  mistaken for the positional placement blip. main.ts calls this on 'removed'. */
+export function playFlagRemoveBlip(): void {
+  const ctx = getAudioContext()
+  if (!ctx) return
+  scheduleBlip(ctx, FLAG_REMOVE_FREQ, FLAG_REMOVE_MS, ctx.currentTime, 0, FLAG_VOL)
 }
 
 export function startApproachSound(): void {

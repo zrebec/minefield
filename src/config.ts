@@ -305,6 +305,18 @@ export const BEACON_VOL_MIN = 0.03
 export const BEACON_ALIGN_BEEP_MS = 80
 export const BEACON_ALIGN_GAP_MS = 70
 
+// Flag earcon (F / SHIFT+arrow) — plays ONLY when a flag is actually PLACED (a11y.md §6.4;
+// never on remove or a blocked cell). Same encoding as the sonar: pan = east/west of the
+// flagged cell, pitch = north/south (higher = north/up). The cell is always ±1 from the player.
+export const FLAG_TONE_MS = 90
+export const FLAG_FREQ_BASE = 440        // pitch when flagging left/right (same row)
+export const FLAG_FREQ_ROW_STEP = 120    // +up (north) / −down (south); ±1 row only, so keep it audible
+export const FLAG_PAN = 1                // full left/right (mono collapses it); flags are ±1 col
+export const FLAG_VOL = 0.45
+// Flag REMOVAL — a tiny low centred tick ("you took a flag back"): no pan, no pitch info (unlike placement).
+export const FLAG_REMOVE_FREQ = 110     // very low
+export const FLAG_REMOVE_MS = 40        // very short
+
 // Deliberately NO SCAN_COOLDOWN — time on the live clock is the cost. If
 // playtests show scan-spam cheese, add a single cooldown constant here.
 

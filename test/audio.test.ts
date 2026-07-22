@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon, scanBeepParams, exitBeaconParams } from '../src/audio.ts'
-import { SCAN_RADIUS, SCAN_FREQ_BASE, SCAN_VOL_NEAR, SCAN_VOL_FAR, BEACON_FREQ_BASE, BEACON_FREQ_MIN, BEACON_NEAR_DIST, BEACON_FAR_DIST, BEACON_VOL_MAX, BEACON_VOL_MIN } from '../src/config.ts'
+import { startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon, playFlagBlip, playFlagRemoveBlip, scanBeepParams, exitBeaconParams, flagBlipParams } from '../src/audio.ts'
+import { SCAN_RADIUS, SCAN_FREQ_BASE, SCAN_VOL_NEAR, SCAN_VOL_FAR, BEACON_FREQ_BASE, BEACON_FREQ_MIN, BEACON_NEAR_DIST, BEACON_FAR_DIST, BEACON_VOL_MAX, BEACON_VOL_MIN, FLAG_FREQ_BASE, FLAG_PAN } from '../src/config.ts'
 
 // The intro audio is NEW (AY underscore + typewriter tick) and must honour the
 // same silent-guard contract as the rest of audio.ts: safe to call before
@@ -32,6 +32,31 @@ describe('sonar sweep & exit beacon — silent before initAudio', () => {
   it('playExitBeacon does not throw without an audio context', () => {
     expect(() => playExitBeacon(15, -3)).not.toThrow()
     expect(() => playExitBeacon(0, 0)).not.toThrow()
+  })
+
+  it('playFlagBlip does not throw without an audio context', () => {
+    expect(() => playFlagBlip(1, 0)).not.toThrow()
+    expect(() => playFlagBlip(0, -1)).not.toThrow()
+  })
+
+  it('playFlagRemoveBlip does not throw without an audio context', () => {
+    expect(() => playFlagRemoveBlip()).not.toThrow()
+  })
+})
+
+describe('flagBlipParams — pan = east/west, pitch = north/south', () => {
+  it('pan is full left/right for a west/east flag, centre for up/down', () => {
+    expect(flagBlipParams(1, 0).pan).toBe(FLAG_PAN)    // right → hard right
+    expect(flagBlipParams(-1, 0).pan).toBe(-FLAG_PAN)  // left → hard left
+    expect(flagBlipParams(0, -1).pan).toBe(0)          // up → centre
+    expect(flagBlipParams(0, 1).pan).toBe(0)           // down → centre
+  })
+
+  it('pitch: same row = base, up (north) higher, down (south) lower — the sonar convention', () => {
+    expect(flagBlipParams(1, 0).freq).toBe(FLAG_FREQ_BASE)          // left/right → base
+    expect(flagBlipParams(0, -1).freq).toBeGreaterThan(FLAG_FREQ_BASE)  // up → higher
+    expect(flagBlipParams(0, 1).freq).toBeLessThan(FLAG_FREQ_BASE)      // down → lower
+    expect(flagBlipParams(0, 1).freq).toBeGreaterThan(0)                // still audible
   })
 })
 

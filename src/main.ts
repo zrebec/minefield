@@ -1,8 +1,8 @@
 import { C, COLS, ROWS } from './constants.ts'
 import { BLINK_INTERVAL_MS, EXPLOSION_FLASH_MS, WALK_DURATION_MS, INTRO_PAGE_MS, SCAN_RADIUS, SCAN_MAX_BEEPS } from './config.ts'
 import { createGame, dailySeed, seedDate, nextDailySeed, tickTimer, tryToggleReveal, scanMines, isFinalLevel, type GameState, type GamePhase, type Dir } from './game.ts'
-import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap, consumeDirFlag, isHeld } from './input.ts'
-import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playWin, startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon } from './audio.ts'
+import { initInput, tickMovement, consumeFlag, consumeDebug, consumePause, consumeAnyKey, resetInput, consumeManualSave, consumeRandomMap, consumeDirFlag, isHeld, type Direction } from './input.ts'
+import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playWin, startIntroMusic, stopIntroMusic, playTypeClick, playSonarSweep, playExitBeacon, playFlagBlip, playFlagRemoveBlip } from './audio.ts'
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
@@ -121,6 +121,15 @@ function enterHiScore(): void {
 // nor on resume (that runs before the first gesture, so audio is still locked).
 function exitBeacon(): void {
   playExitBeacon(COLS - 1 - state.playerCol, state.exitRow - state.playerRow)
+}
+
+// Toggle a flag and, if one was actually PLACED (not removed, not a blocked
+// cell), play the positional flag earcon (a11y.md §6.4). No dir = the player's
+// facing direction (the F key); an explicit dir = a SHIFT+arrow flag.
+function commitFlag(dir?: Direction): void {
+  const r = toggleFlag(state, dir)
+  if (r?.action === 'placed') playFlagBlip(r.dCol, r.dRow)
+  else if (r?.action === 'removed') playFlagRemoveBlip()  // tiny low tick — a flag was taken back
 }
 
 // Begin a fresh run in the chosen mode. No save can exist at the title
@@ -328,9 +337,9 @@ function gameLoop(timestamp: number): void {
         state.debugMode = false   // a step hides the reveal again (the peek ends; budget decides if D can re-arm)
         movePlayer(state, dir)
       }
-      if (consumeFlag()) toggleFlag(state)
+      if (consumeFlag()) commitFlag()
       const dirFlag = consumeDirFlag()
-      if (dirFlag) toggleFlag(state, dirFlag)
+      if (dirFlag) commitFlag(dirFlag)
       setBorderColor(C.BLACK)
 
     } else if (state.runState === 'running') {
@@ -352,9 +361,9 @@ function gameLoop(timestamp: number): void {
         state.debugMode = false  // a step hides the reveal (peek semantics — see [D-GATE])
         movePlayer(state, dir)
       }
-      if (consumeFlag()) toggleFlag(state)
+      if (consumeFlag()) commitFlag()
       const dirFlag = consumeDirFlag()
-      if (dirFlag) toggleFlag(state, dirFlag)
+      if (dirFlag) commitFlag(dirFlag)
       updateAirplane(state, dt)
       updateFriendlyPlane(state, dt)
       setBorderColor(C.BLACK)

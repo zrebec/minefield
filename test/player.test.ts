@@ -904,6 +904,44 @@ describe('toggleFlag', () => {
   })
 })
 
+// The flag earcon (main.ts → playFlagBlip) fires ONLY on a real placement, and
+// its pan/pitch come from the returned dCol/dRow — so the result contract is
+// the single source of truth for "did a flag display, and where".
+describe('toggleFlag — result contract (drives the flag earcon)', () => {
+  it('placement returns action "placed" with the flagged cell offset per direction', () => {
+    expect(toggleFlag(makeState(5, 5), 'right')).toEqual({ action: 'placed', dCol: 1, dRow: 0 })
+    expect(toggleFlag(makeState(5, 5), 'left')).toEqual({ action: 'placed', dCol: -1, dRow: 0 })
+    expect(toggleFlag(makeState(5, 5), 'up')).toEqual({ action: 'placed', dCol: 0, dRow: -1 })
+    expect(toggleFlag(makeState(5, 5), 'down')).toEqual({ action: 'placed', dCol: 0, dRow: 1 })
+  })
+
+  it('removing an existing flag returns action "removed" (so the earcon can stay silent on remove)', () => {
+    const state = makeState(5, 5)
+    toggleFlag(state, 'right')
+    expect(toggleFlag(state, 'right')).toEqual({ action: 'removed', dCol: 1, dRow: 0 })
+  })
+
+  it('returns null on a no-op so the earcon never fires where a flag cannot display', () => {
+    const fence = makeState(5, 5)
+    fence.map.setTile(6, 5, makeTileFence())
+    expect(toggleFlag(fence, 'right')).toBeNull()                 // solid → no display
+
+    const crater = makeState(5, 5)
+    crater.map.setTile(6, 5, TILE_EXPLODED)
+    expect(toggleFlag(crater, 'right')).toBeNull()               // exploded crater → no display
+
+    expect(toggleFlag(makeState(COLS - 1, 5), 'right')).toBeNull() // off-map → no display
+
+    const over = makeState(5, 5)
+    over.phase = 'gameover'
+    expect(toggleFlag(over, 'right')).toBeNull()                  // wrong phase → no display
+
+    const walking = makeState(5, 5)
+    movePlayer(walking, 'right')                                   // walkTween active
+    expect(toggleFlag(walking, 'down')).toBeNull()               // mid-step → no display
+  })
+})
+
 // ── terrain — movePlayer visited tile path color ───────────────────────────────
 
 describe('terrain — movePlayer visited tile path color', () => {
