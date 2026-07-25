@@ -1,3 +1,10 @@
+## [0.64.2](https://github.com/zrebec/minefield/compare/v0.64.1...v0.64.2) (2026-07-25)
+
+
+### Bug Fixes
+
+* **audio:** cut the startup jingle on the player's first step ([59e3692](https://github.com/zrebec/minefield/commit/59e36921b2967365506b5df1cb367d186c74959f))
+
 ## [0.64.1](https://github.com/zrebec/minefield/compare/v0.64.0...v0.64.1) (2026-07-22)
 
 
