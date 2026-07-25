@@ -47,6 +47,7 @@ import {
   getAudioContext,
   getMasterGain,
   playPattern,
+  stopBeep,
   seq,
   playAYLoop,
   type Note,
@@ -97,8 +98,33 @@ const STARTUP_JINGLE: Note[] = [
   { freq: 185, dur: 700 },  // F#3 — tritone from C, ominous end
 ]
 
+/**
+ * True from the moment the jingle is scheduled until something cuts it short.
+ * `playPattern` hands the whole melody to the audio timeline at once, so this
+ * flag is the only record that there is still something to silence.
+ */
+let startupJingleScheduled = false
+
 export function playStartupJingle(): void {
   playPattern(STARTUP_JINGLE)
+  startupJingleScheduled = true
+}
+
+/**
+ * Cuts the startup jingle short. Called when the player takes their first step —
+ * most players move before the tritone stab has finished, and the jingle playing
+ * over the first footsteps muddies the terrain cue they are meant to be hearing.
+ *
+ * Deliberately narrow: it fires once, on the first step, and then never again.
+ * `stopBeep()` silences every beeper voice, so calling it on every footstep would
+ * also chop the sonar, beacons and warnings that are meant to layer.
+ *
+ * Idempotent and safe before `initAudio` — `stopBeep` is a no-op with no context.
+ */
+export function stopStartupJingle(): void {
+  if (!startupJingleScheduled) return
+  startupJingleScheduled = false
+  stopBeep()
 }
 
 export function initAudio(): void {
@@ -399,6 +425,8 @@ export function isAmbientSoundActive(): boolean {
 }
 
 export function playFootstep(terrain: TerrainType = 'grass'): void {
+  // The first step ends the intro — the step itself must be the thing you hear.
+  stopStartupJingle()
   const patterns: Record<TerrainType, Note[]> = {
     grass: [{ freq: 65, dur: 15 }],
     // double-crunch — two short low pulses, muffled by snow
