@@ -43,9 +43,9 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Daily fairness | **Done** — field **and** highscore dated by the run's **origin** daily (verified 2026-06-29) | 2026-06-29 |
 | Leaderboard integrity | **Done (deterrent-grade)** — random runs off-board; envelope sig on saves + hiscore table (zx-kit `hiscore` adopted, save v6) — see item 16 | 2026-07-12 |
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
-| Tests | 483 (Vitest) — incl. run-start race battery (`runstart.test.ts`: story pre-roll always finishes + fresh game's first move always legal) | 2026-07-13 |
-| Build / release | semantic-release → GitHub Pages (latest **0.56.1**) | 2026-07-13 |
-| Accessibility | In progress — visual detector done; ARIA live regions + orientation (`E`/`G`/`H`) shipped; **per-step spoken danger removed 0.56.0** (was off-by-one; beep + detector carry danger with parity); **gem colour + plane approach/reseed spoken 0.56.0**; no built-in TTS (2026-07-11); **title menu → `.sr-only` shipped 2026-07-15** (`#sr-menu` mirror: keys + high-score table, rebuilt on every title entry + locale switch). **Owner playtest 2026-07-15: spoken layer declared DONE for v1.0** — remaining shell (pause "PAUSE", `T`-time, hiscore letter echo) parked until a playtest with real screen-reader users. Playtest findings fixed same day: spoken lines cut to headwords (menu, title, mode/orient/plane); gem pickup now speaks `colour + n left` — unique text defeats the `status()` dedupe that silenced a fast second pickup. `H`-for-help rework (scoring rules + table on demand) = future session. Next candidate: **on-demand mine scan** (TLOU2-style sweep = audio twin of the budgeted `D` reveal) — decision doc `retro/docs/sk/a11y.md` | 2026-07-15 |
+| Tests | 528 (Vitest) — incl. run-start race battery + the earcon/result-contract batteries (flag, blocked-move, pause) and a live-context audio smoke | 2026-07-22 |
+| Build / release | semantic-release → GitHub Pages (latest **≥0.60.0**; the 2026-07-22 a11y batch releases per commit) | 2026-07-22 |
+| Accessibility | **Deep — the strongest v1.0 moat.** Visual detector (deaf) ✅; ARIA live regions, no built-in TTS; orientation `E`/`G` + legend `H` ✅. **Audio earcons all shipped 2026-07-19→22:** on-demand **sonar sweep** on `D` (pan = E/W, pitch = N/S, volume = distance) + **exit beacon** on `E` (retuned 2026-07-21); **flag** place/remove; **blocked-move** descending double-beep (wall/building/edge); **pause** = assertive "PAUSE" + a descending/ascending two-tone. **Shell reworked 2026-07-22:** title trimmed to one line ("Press H for rules and help", spoken assertive) and **`H` = the full guide** (goal, controls, rules, glossary, sounds). **All three §6 audio gaps closed.** Remaining shell — **parked until a real screen-reader playtest**: `T` reads the time, high-score letter echo, `0` = help (calls the `H` guide), assist-mode toggle. Refs: `docs/accessibility-sonar-beacon.md` + `retro/docs/sk/a11y.md` §5–6 | 2026-07-22 |
 | Win condition | **Shipped 0.57.0 (2026-07-14)** — reach `WIN_LEVEL` (config, default 10) → `won` phase → epilogue → highscore → menu; deterministic + announced. Owner-verified (daily records, random doesn't, ends after 1/3 levels) | 2026-07-14 |
 
 ## Road to v1.0 (`2026-09-07`) — prioritised backlog
@@ -113,15 +113,19 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    `startRun`/`enterStory`, rebuilt on `L`; verified live end-to-end (daily → game over → name entry →
    title shows the score row). **Owner decision 2026-07-15: spoken layer is DONE for v1.0** — his own
    playtest verdict: it talks too much; TLOU-style short positional cues beat sentences. The rest is
-   **parked until real screen-reader players test it**: (a) **pause announces "PAUSE"**; (b) **`T` reads
-   the remaining time**; (c) high-score letter echo; (d) `H`-for-help rework — H speaks scoring rules
-   (daily scored, random not) + reads the table, title line just points at it (owner spec 2026-07-15,
-   FUTURE session). ✅ Fixed same day: spoken lines cut to headwords; gem pickup speaks `colour + n left`
-   (unique text defeats the `status()` dedupe that silenced a fast second pickup).
-   Next big candidate (prototype right before the playtest): **on-demand radar-sweep mine scan**
-   as the audio twin of the budgeted `D` reveal — full analysis + trends research in
-   `retro/docs/sk/a11y.md` (2026-07-15).
-7. **Exit beacon tone** + **assist-mode toggle** (flag assisted runs so they're marked on the board).
+   **Shipped 2026-07-19→22:** the on-demand **sonar sweep** on `D` (audio twin of the budgeted reveal),
+   the **exit beacon** on `E`, the **flag** + **blocked-move** earcons, **pause** = assertive "PAUSE" +
+   a two-tone, the one-line title ("Press H for rules and help", spoken assertive), and **`H` = the full
+   guide** (goal / controls / rules / glossary / sounds — this closed the "H-for-help rework"). ✅ Also
+   2026-07-15: spoken lines cut to headwords; gem pickup speaks `colour + n left` (unique text defeats the
+   `status()` dedupe that silenced a fast second pickup). **All three §6 audio gaps are now closed.**
+   **Still parked until a real screen-reader playtest:** `T` reads the remaining time; high-score letter
+   echo; `0` = help (should just call the `H` guide, i.e. `announce(STR_A11Y_LEGEND)`); assist-mode toggle
+   (item 7). Deep log: `retro/docs/sk/a11y.md` §5–6 + `docs/accessibility-sonar-beacon.md`.
+7. **~~Exit beacon tone~~ ✅ SHIPPED 2026-07-19, retuned 2026-07-21.** Remaining: **assist-mode toggle** —
+   flag assisted runs (above all `D`-sonar use) so they're marked on the leaderboard. This is the one open
+   a11y-*fairness* piece: the parity earcons (beacon/flag/blocked) don't need it, but the sonar gives
+   audio mine-directions unlimited, so a leaderboard flag is the guard. Owner flagged it 2026-07-22.
 
 ### P1/P2 — "Finished product" surface
 8. **RULES screen** (in-game) — controls, gems, the daily, accessibility.
@@ -225,8 +229,11 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Milestone |
 |---|---|
+| 2026-07-22 | **A11y shell reworked** — pause speaks "PAUSE" (assertive, re-reads every pause) + a centred two-tone earcon (`playPauseCue`; pause descends 494→330, resume ascends); the title trimmed to ONE spoken line ("Press H for rules and help", via `announce` not `status` so it isn't missed at page load); and `STR_A11Y_LEGEND` (the `H` guide) expanded to the full briefing — goal, controls, rules, glossary, sounds — closing the old "H-for-help rework". `PAUSE_*` in config.ts; tests 528 |
+| 2026-07-22 | **Green-gem legend fixed** — the in-game gem legend (`GEM_SPECIAL`) and CLAUDE.md still called green "time only"; corrected to "2 = recon plane" / "2 = lietadlo" (the friendly-plane special shipped 0.51.0). The spoken `H` guide was already correct — only the visual legend + doc were stale |
 | 2026-07-22 | **Blocked-move earcon shipped** — a descending double beep (190→130 Hz), centred, no pan/direction, when a step is rejected by a wall/fence/building edge or the board edge (one generic cue). `movePlayer`/`tickPlayer` return a `MoveResult`; `main.ts` beeps only on `'blocked'` — the win-exit off the right edge stays `'moving'` (no buzz at the finish). Debounced vs held-key machine-gun. Closes the last of the three §6 audio gaps (east wall + building edge + fence). `BLOCKED_*` in config.ts; tests 525 (result-contract + descending/centred/debounce smoke). Ref: `docs/accessibility-sonar-beacon.md` |
 | 2026-07-22 | **Flag earcon shipped** — `F`/SHIFT+arrow now sound: **placement** = positional blip (pan = E/W, pitch = N/S, sonar convention — says which adjacent cell you flagged); **removal** = a very low, very short, centred tick (no pan/pitch — "some flag taken back"). Fires only on a real event (`toggleFlag` → `FlagResult`\|`null`; `commitFlag` in main.ts); `FLAG_*`/`FLAG_REMOVE_*` in config.ts. Tests 515 (result-contract + a live-context smoke that the blip is actually scheduled). Ref: `docs/accessibility-sonar-beacon.md`. Also decided same day: `D`-reveal ANY-TIME is final (item 4b) |
+| 2026-07-19 | **Sonar sweep + exit beacon shipped** — `D` plays an on-demand audio sweep of mines in range (pan = E/W, pitch = N/S, volume = distance; nearest first; a low "all clear" blip when empty) as the audio twin of the budgeted visual reveal, unlimited for everyone (its cost is time on the live clock); `E` sounds an exit beacon (retuned 2026-07-21: volume = distance to the exit column, pitch = N/S, a double beep when you are level, no pan). NOT the reverted compass — on-demand + diegetic (the runner built a sonar). `SCAN_*`/`BEACON_*` in config.ts. Ref: `docs/accessibility-sonar-beacon.md` |
 | 2026-07-15 | **Title menu in `.sr-only` shipped** — `#sr-menu` navigable region mirrors the title menu (every title/a11y key + the high-score table as sentences, one `<p>` per line via `setMenu`); `enterTitle()` DRY-funnel fills it on every return to the title + speaks a polite "Title screen" line; cleared on run/story start, rebuilt on `L`. Tests 490; verified live in Chromium (incl. daily → game over → name entry → score row readable) |
 | 2026-07-14 | **Win condition shipped (0.57.0)** — reach `WIN_LEVEL` (default 10) → `won` phase → post-win epilogue → highscore → menu; `isFinalLevel` trigger, deterministic + announced (`STR_A11Y_WIN`), reuses `playWin()`. Owner-verified (daily records, random doesn't, ends after 1/3 levels; tested via `MINE_DENSITY≈0.001`) |
 | 2026-07-13 | **Title menu high-score table → fixed columns (0.56.1)** — each field on a fixed character column, score right-aligned (Excel-style), intro art 2 rows shorter for panel padding, `L:` moved off the 5th-score row (they were colliding into "093L: SK"); dead `STR_HIGH_SCORE_LINE` + its tests removed |
