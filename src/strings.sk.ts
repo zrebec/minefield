@@ -144,6 +144,11 @@ export const STR_A11Y_MENU_SCORES    = 'Najlepšie skóre:'
 export const STR_A11Y_MENU_NO_SCORES = 'Zatiaľ žiadne skóre.'
 export const STR_A11Y_MENU_SCORE_ROW = (rank: number, name: string, score: number, level: number, date?: string) =>
   `${rank}. ${name}: ${score} bodov, úroveň ${level}${date ? ', ' + date : ''}.`
+// Skóre sa ukladá zvlášť pre každý origin (scoreProfile v highscore.ts), takže tá
+// istá hra z webu, z offline launchera a z itch.io má tri oddelené tabuľky.
+// Vidiaci hráč vidí hostiteľa nad tabuľkou; toto je ten istý fakt pre čítačku
+// obrazovky — a tam je dôležitejší, lebo v zvuku by naň inak nič neupozornilo.
+export const STR_A11Y_MENU_PROFILE = (host: string) => `Toto skóre je vedené pre ${host}.`
 // Hovorené pri každom pristátí na titulnej obrazovke — zámerne JEDNA veta (owner
 // 2026-07-22): len ukáž na H. Všetko ostatné (cieľ, ovládanie, pravidlá, pojmy) je
 // v H sprievodcovi (STR_A11Y_LEGEND) a v navigovateľnom #sr-menu, nech štart nekecá.

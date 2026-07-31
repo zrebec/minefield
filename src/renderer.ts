@@ -3,7 +3,7 @@ import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS,
 import type { GameState, AirplaneState, FriendlyPlaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor, type Tile } from 'zx-kit'
-import { loadHighScores, type HighScoreEntry } from './highscore.ts'
+import { loadHighScores, scoreProfile, type HighScoreEntry } from './highscore.ts'
 import { L, getLocale } from './lang.ts'
 import {
   PLAYER_RIGHT_A, PLAYER_RIGHT_B,
@@ -495,6 +495,14 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
   const scores = loadHighScores()
   if (scores.length > 0 && page % 2 === 1) {
     drawTextCentered(ctx, L.STR_HIGH_SCORES_HEADER, 11 * CELL, C.B_YELLOW, C.BLACK)
+    // Row 12 was blank air. It now names the table's origin, because scores are
+    // stored per-origin and a player who moves between the web build, the
+    // offline launcher and itch.io otherwise just sees them vanish
+    // (scoreProfile in highscore.ts explains the why). Built locally rather
+    // than from the L.STR_* pack for the same reason as the language indicator
+    // below: it is a host, not prose, so there is nothing to translate.
+    const profile = scoreProfile()
+    if (profile) drawTextCentered(ctx, profile.slice(0, COLS), 12 * CELL, C.BLUE, C.BLACK)
     scores.forEach((e, i) => drawHiScoreRow(ctx, i + 1, e, (13 + i) * CELL))
   } else {
     drawTextCentered(ctx, L.STR_CTRL_MOVE, 13 * CELL, C.WHITE, C.BLACK)

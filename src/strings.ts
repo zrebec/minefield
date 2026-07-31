@@ -166,6 +166,12 @@ export const STR_A11Y_MENU_SCORES    = 'High scores:'
 export const STR_A11Y_MENU_NO_SCORES = 'No high scores yet.'
 export const STR_A11Y_MENU_SCORE_ROW = (rank: number, name: string, score: number, level: number, date?: string) =>
   `${rank}. ${name}: ${score} points, level ${level}${date ? ', ' + date : ''}.`
+// Scores are stored per origin (scoreProfile in highscore.ts), so the same game
+// played from the web, from the offline launcher and from itch.io keeps three
+// separate tables. A sighted player sees the host printed above the table; this
+// is the same fact for a screen reader, and it matters more there — nothing else
+// in the audio would ever hint at it.
+export const STR_A11Y_MENU_PROFILE = (host: string) => `These scores are kept for ${host}.`
 // Spoken on every landing on the title — deliberately ONE line (owner 2026-07-22):
 // just point at H. Everything else (goal, controls, rules, glossary) lives in the
 // H guide (STR_A11Y_LEGEND) and the browsable #sr-menu, so the start never rambles.

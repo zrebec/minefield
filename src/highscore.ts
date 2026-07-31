@@ -14,6 +14,26 @@ import { SAVE_SECRET, HISCORE_MAX_ENTRIES } from './config.ts'
 // Pre-adoption storage: a raw unsigned JSON array under its own key.
 const LEGACY_KEY = 'minefield_hiscores'
 
+/**
+ * Which high-score table this is — the host the game was loaded from.
+ *
+ * Scores live in localStorage, and browsers scope that to the ORIGIN. So the
+ * same game played from GitHub Pages, from the offline launcher on 127.0.0.1
+ * and from itch.io keeps three separate tables, and a player who moves between
+ * them watches their scores "disappear". Different browsers on the same address
+ * do it too. Nothing can merge them — that is the web's security model, not a
+ * bug we can fix here (docs/offline.md), and carrying scores across needs save
+ * export, which is Post-1.0.
+ *
+ * What we CAN do is stop it being silent, which is why this exists: the title
+ * screen prints it above the table and the screen-reader mirror speaks it.
+ *
+ * Returns '' where there is no document — unit tests run in the node env.
+ */
+export function scoreProfile(): string {
+  return typeof location === 'undefined' ? '' : location.host
+}
+
 export interface HighScoreExtra {
   level: number
   date?: string   // YYYY-MM-DD daily origin date; absent in legacy entries

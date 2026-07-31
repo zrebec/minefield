@@ -25,11 +25,25 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (486 tests)
-npm run build     # dist/
+npm test          # Vitest (548 tests)
+npm run build     # dist/ — the GitHub Pages build, base /minefield/
 npm run smoke     # browser smoke test over dist/ (Playwright; run after build, before a release)
+npm run offline   # offline proof over dist/: install the SW, CUT the network, reload, play a run
+npm run persist   # survives the launcher quitting: kill server + close browser, cold start, play
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
+npm run icons mine       # regenerate the whole icon set (PNG + SVG + .ico) from scripts/icons.mjs
+npm run pack:offline     # release/*.zip for itch.io (second build at --base=./)
+npm run pack:app         # release/The Strip.app + The-Strip.dmg (unsigned; sips + iconutil)
+npm run pack:win         # release/the-strip-offline-windows.zip (UNTESTED — no Windows here)
 ```
+
+**Offline wrap:** `sw.js` is **generated** at build time by `offlineWrap()` in `vite.config.ts` from
+`scripts/sw-template.js` — edit the template, never `dist/sw.js`. Several things in the wrap are
+load-bearing and look like tidy-up bait: `ignoreVary: true`, the dev guard living at registration
+rather than in the worker, the generated precache list, and manifest icons listed **twice**
+(`purpose: "any"` and `purpose: "maskable"`, never `"any maskable"` — WebKit skips anything
+maskable and Safari draws a monogram instead). Each is explained with the failure mode that
+produced it in [docs/offline.md](docs/offline.md). Read it before touching any of them.
 
 **Manual testing shortcuts (dev only, revert before commit):** set `MINE_DENSITY` to ~`0.001` in
 `config.ts` for near-empty fields — cross instantly and collect every gem (a fast way to exercise level

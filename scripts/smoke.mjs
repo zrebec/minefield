@@ -10,23 +10,13 @@
 import { chromium } from 'playwright'
 import { preview } from 'vite'
 
-const CELL_DEV = 32              // 8 game px × SCALE 4 = one cell in device px
-const PLAYFIELD_DEV_H = 18 * CELL_DEV
-const B_CYAN = [0, 255, 255]     // FLAG sprite ink
-const B_YELLOW = [255, 255, 0]   // grass visited-trail ink — unique in the L1 playfield
+import * as probe from './lib/canvas-probe.mjs'
+
+const B_CYAN = probe.B_CYAN       // FLAG sprite ink
+const B_YELLOW = probe.B_YELLOW   // grass visited-trail ink — unique in the L1 playfield
 
 const checks = {}
 let page
-
-const cellCount = (col, row, rgb) => page.evaluate(([c0, r0, want]) => {
-  const c = document.getElementById('game')
-  const img = c.getContext('2d').getImageData(c0 * 32, r0 * 32, 32, 32).data
-  let n = 0
-  for (let i = 0; i < img.length; i += 4) {
-    if (img[i] === want[0] && img[i + 1] === want[1] && img[i + 2] === want[2]) n++
-  }
-  return n
-}, [col, row, rgb])
 
 // On L1 the terrain is always grass, whose walked trail is BRIGHT YELLOW — the
 // gold gem and the HUD yellows are different hexes or outside the crop. The
@@ -35,26 +25,12 @@ const cellCount = (col, row, rgb) => page.evaluate(([c0, r0, want]) => {
 // player has LEFT. "In game at all" is detected separately: the bottom HUD
 // strip shows the red LIVES hearts, and the story cards never paint bright red
 // in that strip (their lower half is the white typewriter text).
-const findTrailRowInCol = (col) => page.evaluate(([c0, h0, rgb]) => {
-  const c = document.getElementById('game')
-  const img = c.getContext('2d').getImageData(c0 * 32, 0, 32, h0).data
-  for (let i = 0; i < img.length; i += 4) {
-    if (img[i] === rgb[0] && img[i + 1] === rgb[1] && img[i + 2] === rgb[2]) {
-      return Math.floor((i / 4) / 32 / 32) // px index -> device row -> cell row
-    }
-  }
-  return null
-}, [col, PLAYFIELD_DEV_H, B_YELLOW])
-
-const isIngame = () => page.evaluate((h0) => {
-  const c = document.getElementById('game')
-  const img = c.getContext('2d').getImageData(0, h0, c.width, c.height - h0).data // HUD strip
-  let red = 0
-  for (let i = 0; i < img.length; i += 4) {
-    if (img[i] === 255 && img[i + 1] === 0 && img[i + 2] === 0) red++
-  }
-  return red >= 10 // the LIVES hearts
-}, PLAYFIELD_DEV_H)
+//
+// The probes themselves live in lib/canvas-probe.mjs — offline.mjs reads the
+// same canvas the same way, and CLAUDE.md rule 1 says extend, don't copy.
+const cellCount = (col, row, rgb) => probe.cellCount(page, col, row, rgb)
+const findTrailRowInCol = (col) => probe.findTrailRowInCol(page, col)
+const isIngame = () => probe.isIngame(page)
 
 const walk = async (key) => { await page.keyboard.press(key); await page.waitForTimeout(380) }
 const dirFlag = async (arrow) => {
@@ -127,7 +103,7 @@ checks.nightFell = await page.evaluate((h0) => {
   let black = 0, total = 0
   for (let i = 0; i < img.length; i += 16) { total++; if (img[i] < 10 && img[i + 1] < 10 && img[i + 2] < 10) black++ }
   return black / total > 0.5
-}, PLAYFIELD_DEV_H)
+}, probe.PLAYFIELD_DEV_H)
 checks.flagVisibleAtNight = (await cellCount(fc.col, fc.row, B_CYAN)) >= 100
 
 // 6. Manual save, hard reload, auto-resume: trail and flag must be back.
