@@ -368,3 +368,113 @@ cache and a green Lighthouse score are all circumstantial next to that.
   registration can be refused. The registration is in a `try`/`catch` and the
   game runs fine without it — it only loses the ability to start a second time
   with no server.
+
+## What is generic, and where the seams are
+
+ChaosBunny and IceHaul will want this too, so this section records what would
+move into a shared tool and what would not. **It is a map, not a plan.**
+`retro/docs/sk/pwa-distribucia.md` §7 already sequences the work — Minefield is
+the pilot, extraction happens when the recipe has settled and a second game
+actually asks — and `ROADMAP.md` carries the same rule for zx-kit itself:
+*extraction deferred until a 2nd real consumer.* Nothing here should be built
+before then. Written down now only because the reasoning is cheap today and
+expensive to reconstruct in December.
+
+Note that Minefield is the **awkward** consumer, not the representative one:
+ChaosBunny and IceHaul already build with `base: './'`, so the two-build dance
+in *One build, two bases* above is a GitHub-Pages problem that only this game
+has.
+
+### Measured split
+
+| | lines | notes |
+|---|---:|---|
+| `launcher/serve.sh` | 127 | **zero game knowledge** — takes `$PORT` and a cwd |
+| `launcher/win/serve.ps1` | 138 | port + one URL in an error message |
+| `scripts/sw-template.js` | 82 | one cache prefix, already a build-time placeholder |
+| `offlineWrap()` in `vite.config.ts` | 48 | reads `outDir`/`base`/version — nothing else |
+| `scripts/pack-{offline,app,win}.mjs` | 247 | name, bundle id, icon paths |
+| `launcher/win/*.cmd`, `shortcut.ps1` | 52 | name only |
+| **near-generic subtotal** | **~695** | |
+| `scripts/icons.mjs` | 237 | machinery generic; the three motifs (~60) are Minefield's |
+| `launcher/*.command`, `app-main.sh` | 135 | structure generic, wording is this game's voice |
+| `test/pwa.test.ts` | 156 | the PWA contract is generic; expected values are not |
+| `scripts/{offline,persist}.mjs` | 185 | harness generic; assertions go through the probe below |
+| `scripts/lib/canvas-probe.mjs` | 66 | **100 % Minefield** — LIVES hearts, trail yellow, 32 px cells |
+| `public/manifest.webmanifest`, `src/` changes | ~110 | content, and the score-profile line |
+
+So roughly **700 lines transfer as-is, 300 do not.** But note what that number
+does *not* capture: writing those 700 lines was the cheap part. The expensive
+part was the five traps above (`ignoreVary`, `purpose`, the guard's placement,
+the Safari container, the accept queue), and **those transfer through this
+document whether or not the code is ever shared.**
+
+### The seams
+
+A shared tool would need exactly these values. Everything else is derivable:
+
+| Config | Minefield's value | Used by |
+|---|---|---|
+| `name` / `shortName` | `The Strip` | manifest, `Info.plist`, zip + app + volume names, launcher text |
+| `id` | `the-strip` | cache prefix, `.icns`/`.ico` names, `CFBundleExecutable`, archive names |
+| `bundleId` | `io.github.zrebec.the-strip` | `CFBundleIdentifier` |
+| `port` | `8137` | both servers, both launchers — **see the warning below** |
+| `homepage` | `https://zrebec.github.io/minefield/` | the "play online instead" fallback in every failure path |
+| `icon` | the SVG motif | every raster output |
+| `themeColor` / `backgroundColor` | `#0000FF` / `#000000` | manifest, `<meta>` |
+| `platforms` | web, macOS, Windows | which packagers run |
+
+**The port is not a copyable constant — it must be allocated per game.** Two
+zx-kit games both serving `127.0.0.1:8137` share an origin, and a service
+worker's scope is origin plus path, so the second one does not sit beside the
+first — it replaces it. Measured, two workers registered at `/` on one origin:
+
+```
+game A registered:        registrations: 1, controller: sw-a.js, caches: [game-a-v1]
+game B, same port:        registrations: 1, controller: sw-b.js, caches: [game-a-v1]
+```
+
+The count stays at **1**: B took the scope rather than joining it, and from then
+on B's precache answers for `/` — including for anyone who bookmarked game A.
+Note the third column too: A's cache is still there, orphaned, because B's
+`activate` only sweeps caches matching B's own prefix.
+
+That prefix filter (`startsWith('the-strip-')`) exists because `github.io` is
+one host for the whole portfolio, and there it is exactly right. It cannot help
+here: it protects caches from each other, not scopes. The same shared origin
+also merges `localStorage`, so the games' save keys would have to stay
+namespaced by hand.
+
+A shared tool must therefore **hand out ports and record them**, not default
+them — and the ports have to be part of the shared config, not each game's
+private constant, or the collision is only a matter of time.
+
+### What should stay per-game
+
+`canvas-probe.mjs` is the honest boundary. Every line of it knows something
+about Minefield — the red LIVES hearts that prove a run is live, the bright
+yellow of a walked trail on grass, `CELL × SCALE = 32`. No other game will share
+those. So the split for the proofs is: a shared tool could own the **harness**
+(seed a cache, cut the network, kill the server, cold-start a persistent
+profile) and take a game-supplied `isRunning()` probe as a callback. The harness
+is the part that took the debugging; the probe is the part only the game can
+write.
+
+Likewise the launcher *wording* should stay with the game. The structure is
+mechanical, but "Waiting for your browser to take its copy…" is the game's
+voice, and a tool that centralises copy ends up with a strings file nobody owns.
+
+### Shape, if it is ever built
+
+A **build-time CLI, not a runtime dependency** — `npx zx-pack` reading `dist/`
+plus a small config. That matters because every project here is its own git
+repository (`retro/` is not a repo), so anything shared has to be published or
+vendored. A build tool that breaks breaks a build; a runtime dependency that
+breaks breaks the game in a player's browser, and it would have to be
+version-bumped through three games to fix.
+
+**Open, and genuinely unknown today:** whether ChaosBunny or IceHaul want a
+desktop app at all, or whether the itch.io web build plus browser install covers
+them. Designing the packagers before one of them answers that is designing
+against one real case and two imagined ones — which is the failure mode the
+2nd-consumer rule exists to prevent.
