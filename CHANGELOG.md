@@ -1,3 +1,10 @@
+# [0.65.0](https://github.com/zrebec/minefield/compare/v0.64.3...v0.65.0) (2026-08-08)
+
+
+### Features
+
+* **offline:** installable PWA + desktop packages ([#10](https://github.com/zrebec/minefield/issues/10)) ([61327db](https://github.com/zrebec/minefield/commit/61327dbb124e19ea7cb3ced7a53c3e31f7dd1144)), closes [hi#score](https://github.com/hi/issues/score)
+
 ## [0.64.3](https://github.com/zrebec/minefield/compare/v0.64.2...v0.64.3) (2026-08-08)
 
 
