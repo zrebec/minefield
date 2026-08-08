@@ -25,7 +25,7 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (486 tests)
+npm test          # Vitest (541 tests)
 npm run build     # dist/
 npm run smoke     # browser smoke test over dist/ (Playwright; run after build, before a release)
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
@@ -292,6 +292,12 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
 ### Buildings, terrain, aircraft, audio, save, input
 - **Buildings:** pseudo-3D, solid + mine-free; count rises per level. `fixObstacleTraps()` prevents
   *obstacle ahead + mines on both perpendicular sides* around any solid (buildings **and** fence).
+- **Craters are PERMANENT (2026-08-08):** a detonated mine becomes `TILE_EXPLODED` — a grey **grave
+  cross** (`GRAVE_CROSS`, its own sprite; the `EXPLOSION_*` frames stay the blast animation's) — and is
+  never rewritten again: it is the only record of where the player lost a life. `commitMove` therefore
+  counts it as an **already-walked** cell alongside `visited` (`alreadyWalked`), which is what stops
+  stepping on and off it from farming cell score, combo and day/night steps. Walkable, unflaggable,
+  visible at night, persisted as `'X'` (no save bump).
 - **Flags (overlay model, 2026-07-04):** `GameState.flags` is a `Set<cellKey>` — flags live entirely
   OUTSIDE the map, so no tile rewrite (walking, airdrops, blasts) can eat one. `toggleFlag` only
   adds/removes set entries (flaggable: non-solid except exploded — incl. the visited trail); the

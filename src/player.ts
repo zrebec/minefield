@@ -123,7 +123,15 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
   const collectGem = hadGem && inventoryTotal(state.inventory) < INVENTORY_CAP
   const claimsCell = !hadGem || collectGem
 
-  if (claimsCell && tile.id !== 'visited') {
+  // Cells that count as ALREADY WALKED: the visited trail, and an exploded
+  // crater — the player paid for that one with a life. A crater is NEVER
+  // rewritten (it is the only record of where a mine went off, so it must
+  // survive being walked over), which is exactly why it has to be listed here:
+  // without it `tile.id !== 'visited'` would stay true forever and stepping on
+  // and off the crater would farm cell score, combo and day/night steps.
+  const alreadyWalked = tile.id === 'visited' || tile.id === 'exploded'
+
+  if (claimsCell && !alreadyWalked) {
     state.map.setTile(newCol, newRow, makeTileVisited(cellVariant(newCol, newRow), state.terrain))
     state.comboCount++
     state.comboTimer = COMBO_DURATION_MS
