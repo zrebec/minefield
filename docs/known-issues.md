@@ -6,6 +6,46 @@
 
 ## Resolved Issues
 
+### The airplane approach tone kept sounding through the game-over screen
+
+- **Resolved:** 2026-08-08 in `main.ts` — the gameover ENTRY hook now calls
+  `stopAmbientSounds()` (and `consumeAnyKey()`, see the next entry).
+- **What happened (owner's report):** losing the last life exactly while the plane-approach
+  warning was sounding left the 1300 Hz square tone playing through the whole game-over/stats
+  screen. It only stopped on the way back to the title.
+- **Why:** `startApproachSound()` (audio.ts) starts a **continuous oscillator with no scheduled
+  stop**. The only things that end it are `startAirplane()` (when the plane actually spawns) and
+  `stopAmbientSounds()`. `updateAirplane` — which would spawn the plane — runs *only* inside
+  `phase === 'playing'` + `runState === 'running'`, so once the run ends nothing is left to finish
+  the job; and `stopAmbientSounds()` on the game-over screen sat inside `if (consumeAnyKey())`,
+  i.e. it ran when the player DISMISSED the screen, not when they reached it. A non-fatal death
+  self-heals (the run resumes and the plane spawns), which is why only the final life showed it.
+  **This is a Minefield bug, not zx-kit:** the oscillator is raw Web Audio in `src/audio.ts`.
+- **Reproduction (deterministic):** pin the plane (`acFirstMs = acFirstMaxMs = 8_000`), give
+  level 1 `lives: 1` and `MINE_DENSITY 0.5`, then instrument `OscillatorNode.prototype.start/stop`
+  via Playwright's `addInitScript` and walk into a mine ~3.5 s in. Before the fix a
+  `square@1300Hz` was still unstopped on the stats screen; after it, none.
+- **Coverage:** `scripts/smoke.mjs` gained `noLeakedAudioAtGameOver` (no oscillator without a
+  `stop()` once the run is over). It is a NET, NOT A PROOF — it only bites when the death-walk
+  ends mid-flyover, and reintroducing the bug did not fail it on the first try. main.ts has no
+  unit-test seam; the deterministic repro above is the real evidence.
+
+### A timeout game over was skipped instantly — the player never saw the summary
+
+- **Resolved:** 2026-08-08, same entry hook: `consumeAnyKey()` now runs on EVERY path into
+  `gameover`, not just the mine path.
+- **What happened:** `pendingAnyKey` (zx-kit input) is a **sticky** flag set by any keydown and
+  cleared only by `consumeAnyKey()`/`resetInput()`. Nothing reads it while `playing`, so it
+  survives from the player's last movement key. The mine path already discarded it in the
+  `exploding` branch ("so gameover doesn't auto-skip"), but a timeout death comes straight from
+  `tickTimer` — so the game-over screen was dismissed on its very first frame. Harmless when the
+  screen only showed a score; with the run summary on it, the player loses the whole thing.
+- **Found by:** the audio-leak reproduction above, which used a timeout death and landed on the
+  title instead of the game-over screen.
+- **Coverage:** the deterministic repro (timeout variant) now shows `Game over.` in
+  `#sr-announcer` and the stats in `#sr-menu`; `statsShownOnGameOver` in the smoke covers the
+  mine path.
+
 ### Walking over a crater erased it — the record of where a mine went off was lost
 
 - **Resolved:** 2026-08-08 in `commitMove` (`player.ts`): the exploded crater joins the visited
