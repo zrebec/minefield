@@ -22,6 +22,14 @@
  * kreslené fontom — tam POUŽÍVAJ plnú diakritiku, nech ich čítačka vysloví správne.
  */
 
+import { formatClock } from './strings.ts'
+
+// Re-exportované, nie skopírované: mm:ss je formátovanie čísla, nie preklad.
+// Musí tu ale BYŤ — lang.ts robí cast bez kontroly kľúčov, takže keby balík
+// formatClock nemal, `L.formatClock(...)` by v slovenčine spadol až za behu
+// (na obrazovke konca hry). Stráži to test v strings.test.ts.
+export { formatClock }
+
 // ── Status bar — horný riadok ─────────────────────────────────────────────
 
 export const STR_SCORE = (score: number) =>
@@ -47,8 +55,9 @@ export const STR_DAY   = (steps: number) => `DEN:${String(steps).padStart(2, '0'
 export const STR_NIGHT = (steps: number) => `NOC:${String(steps).padStart(2, '0')}`  // 6 znakov
 
 // Odpočet času, HUD riadok časovača (vľavo). 'CAS 10:00' = 9 znakov.
-export const STR_TIME = (ms: number) =>
-  `CAS ${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
+// formatClock je zdieľaný z anglického balíka — mm:ss je čisté formátovanie
+// čísla, nie preklad, takže ho nemá zmysel duplikovať (a rozísť sa v ňom).
+export const STR_TIME = (ms: number) => `CAS ${formatClock(ms)}`
 
 export const STR_LIVES_LABEL = 'ZIV:'                       // 4 znaky (skrátené aby srdcia ostali napravo)
 
@@ -166,6 +175,21 @@ export const STR_WIN_LINE2 = 'DVE KRAJINY SU ZAS SPOLU'
 
 export const STR_SCORE_OVERLAY = (score: number) =>
   `SKORE: ${String(score).padStart(5, '0')}`                // 13 znakov
+
+// Popisky záverečnej štatistiky (koniec hry + výhra). KRESLENÉ ROM fontom —
+// teda ASCII bez diakritiky a **max 10 znakov** (renderRunStats dáva popisku 12
+// stĺpcov a hodnote 11, od stĺpca 4). Oba limity stráži test v strings.test.ts.
+export const STAT_LABEL: Record<string, string> = {
+  time: 'CAS',
+  level: 'LEVEL',
+  steps: 'KROKY',
+  backtrack: 'SPAT',
+  combo: 'NAJ KOMBO',
+  deaths: 'UMRTIA',
+  gems: 'GEMY',
+  flags: 'VLAJKY',
+  onMines: 'NA MINACH',
+}
 
 // ── Pause overlay (stránky: ovládanie / gemy / skóre) ─────────────────────
 

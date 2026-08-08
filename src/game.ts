@@ -196,6 +196,54 @@ export interface GameState {
   friendlyPassIndex: number
   /** Per-level countdown budget in ms. Ticks only while running; 0 → game over. */
   timeLeftMs: number
+  /** End-of-run summary counters. RUN-scoped, not level-scoped — see {@link RunStats}. */
+  stats: RunStats
+}
+
+/**
+ * Run-wide statistics for the end-of-run summary (game over AND win screens).
+ *
+ * RUN-scoped, not level-scoped: every level advance builds a FRESH GameState, so
+ * this object has to be handed to `createGame` (exactly like score and inventory)
+ * or the numbers silently restart at level 2. It also rides through save/resume as
+ * an optional field, so a reloaded run keeps its history.
+ *
+ * One counter, one meaning — see the per-field notes for what does NOT count.
+ */
+export interface RunStats {
+  /** Time with the run actually running (ms). Ticked ONLY by tickTimer, which main.ts
+   *  calls only in `runState === 'running'` — so pause and the idle pre-run scout are
+   *  frozen, exactly like the on-screen clock. Never wall-clock. */
+  elapsedMs: number
+  /** Committed moves — a finished walk onto a cell, plus the final step through the
+   *  exit gap. A blocked press (wall/fence/edge) and a buffered press never count. */
+  steps: number
+  /** Of `steps`, the ones onto an already-walked cell: the visited trail or an
+   *  exploded crater (the `alreadyWalked` rule in commitMove — one definition). */
+  backtrackSteps: number
+  /** Flags actually placed. Taking a flag back does NOT decrement (it measures how
+   *  many calls the player made), and a refused flag places nothing to count. */
+  flagsPlaced: number
+  /** Of `flagsPlaced`, the ones whose cell was a live mine AT PLACEMENT TIME. A mine
+   *  the airplane drops later onto a flagged cell never retro-counts as a hit. */
+  flagsOnMines: number
+  /** Fatal steps (the mine branch of commitMove). Cluster chain reactions are not
+   *  deaths — only the cell the player actually stepped on. */
+  deaths: number
+  /** Gems collected across the whole run (`state.gemsCollected` is per level). */
+  gems: number
+  /** Longest combo streak reached — a high-water mark, so it SURVIVES the death that
+   *  resets `comboCount`. */
+  bestCombo: number
+}
+
+/** A zeroed RunStats — the start of a run, and the fallback for saves written
+ *  before stats existed. */
+export function emptyStats(): RunStats {
+  return {
+    elapsedMs: 0, steps: 0, backtrackSteps: 0, flagsPlaced: 0,
+    flagsOnMines: 0, deaths: 0, gems: 0, bestCombo: 0,
+  }
 }
 
 function cellVariant(col: number, row: number): CellVariant {
@@ -622,7 +670,15 @@ function randomSeed(): number {
   return (Math.random() * 0x100000000) >>> 0
 }
 
-export function createGame(level = 0, initialScore = 0, seed?: string | number, initialInventory: Record<string, number> = {}): GameState {
+// `initialStats` carries the run summary across a level advance, exactly like
+// initialScore/initialInventory — a fresh level must NOT restart the counters.
+export function createGame(
+  level = 0,
+  initialScore = 0,
+  seed?: string | number,
+  initialInventory: Record<string, number> = {},
+  initialStats: RunStats = emptyStats(),
+): GameState {
   const cfg = atLevel(LEVEL_CONFIGS, level)
   // Field generation is seeded: pass a `seed` (e.g. dailySeed(level)) for a reproducible
   // daily field; omit it (tests / free play) to get a fresh field each call.
@@ -688,6 +744,9 @@ export function createGame(level = 0, initialScore = 0, seed?: string | number, 
     airplanePassIndex: 0,
     friendlyPassIndex: 0,
     timeLeftMs: TIMER_BASE_MS,
+    // Copied, never aliased — same rule as `inventory` above, so the caller's
+    // object can't be mutated behind its back by the new level.
+    stats: { ...initialStats },
   }
 }
 
@@ -716,6 +775,11 @@ export function tryToggleReveal(state: GameState): boolean {
  * budget hits 0 the run ends immediately (game over) — no respawn, no carry-over.
  */
 export function tickTimer(state: GameState, dtMs: number): void {
+  // The run clock lives here, NOT in the game loop: this function already carries
+  // the "only while running" contract (main.ts calls it in exactly one place), so
+  // pause and the idle scout freeze both clocks together and can never drift apart.
+  // Unlike timeLeftMs it counts UP and is never reset by a new level.
+  state.stats.elapsedMs += dtMs
   state.timeLeftMs = Math.max(0, state.timeLeftMs - dtMs)
   if (state.timeLeftMs === 0) state.phase = 'gameover'
 }

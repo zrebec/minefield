@@ -63,9 +63,15 @@ export const STR_MINES = (remaining: number) =>
 export const STR_DAY   = (steps: number) => `DAY:${String(steps).padStart(2, '0')}`
 export const STR_NIGHT = (steps: number) => `NGT:${String(steps).padStart(2, '0')}`
 
+// m:ss with UNBOUNDED minutes ('74:05') — no hour field, so a long run can never
+// widen the string past the layout it was measured for. The single mm:ss formatter
+// in the game: the HUD countdown, the SK pack and the end-of-run TIME stat all use
+// it, so they can never drift apart.
+export const formatClock = (ms: number): string =>
+  `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
+
 // Countdown clock, HUD timer row (left). 'TIME 10:00' = 10 chars.
-export const STR_TIME = (ms: number) =>
-  `TIME ${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
+export const STR_TIME = (ms: number) => `TIME ${formatClock(ms)}`
 
 // Lives label, followed by heart sprites. Length affects sprite x-position
 // — keep this short or hearts shift left.
@@ -190,6 +196,23 @@ export const STR_WIN_LINE2 = 'TWO LANDS ARE ONE AGAIN'
 // 'SCORE: 99999' = 12 chars.
 export const STR_SCORE_OVERLAY = (score: number) =>
   `SCORE: ${String(score).padStart(5, '0')}`
+
+// End-of-run summary labels (game over + win). DRAWN with the ROM font, so ASCII
+// only — Slovak included — and **≤ 10 chars**: renderRunStats lays each row out as
+// 'LABEL:' padded to 12 columns + an 11-column right-aligned value, starting at
+// column 4, so a longer label pushes the value off the 32-column screen. Both
+// limits are test-guarded in strings.test.ts.
+export const STAT_LABEL: Record<string, string> = {
+  time: 'TIME',
+  level: 'LEVEL',
+  steps: 'STEPS',
+  backtrack: 'BACKTRACK',
+  combo: 'BEST COMBO',
+  deaths: 'DEATHS',
+  gems: 'GEMS',
+  flags: 'FLAGS',
+  onMines: 'ON MINES',
+}
 
 // ── Pause overlay (paged: controls / gems / scoring) ──────────────────────
 

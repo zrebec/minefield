@@ -6,7 +6,7 @@ import { initAudio, stopAmbientSounds, playStartupJingle, playGameOver, playWin,
 import { flashBorder, setupCanvas, curveDisplay, drawVolumeBar, type SpectrumColor, createBlinker, tickBlinker, writeSave, readSaveLatest, deleteSave, createDebugMonitor, beginFrame, endFrame, sampleDebug, drawDebugOverlay } from 'zx-kit'
 import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
-import { renderFrame, renderIntro, renderHiScoreEntry } from './renderer.ts'
+import { renderFrame, renderIntro, renderHiScoreEntry, runStatRows } from './renderer.ts'
 import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen } from './intro.ts'
 import { isHighScore, saveHighScore, loadHighScores } from './highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
@@ -94,6 +94,16 @@ function titleMenuLines(): string[] {
   return lines
 }
 
+// Mirror the end-of-run summary into #sr-menu — the NAVIGABLE (never aria-live)
+// region, the same channel the title menu uses. Deliberately not spoken: the
+// screens already announce one line each, and the owner's standing rule is no new
+// spoken text (a11y.md §6) — a blind player browses the numbers at their own pace
+// instead of having nine sentences read at them. Cleared by whatever comes next
+// (enterTitle rebuilds it, enterHiScore empties it).
+function mirrorRunStats(): void {
+  setMenu(runStatRows(state).map((r) => `${r.label}: ${r.value}`))
+}
+
 // Land on the title. Every path back to the menu funnels through here so the
 // attract cycle restarts AND the sr-only menu mirror exists exactly while the
 // title's keys are live (startRun/enterStory drop it again on the way out).
@@ -114,6 +124,7 @@ function enterHiScore(): void {
   hiCursor = 0
   padLetterIdx = 0
   resetInput()
+  setMenu([])   // the end-of-run stats belong to the screen we just left, not to name entry
   appPhase = 'hiscore'
   flashBorder(C.B_WHITE, 2, 80, C.B_CYAN)
 }
@@ -420,13 +431,16 @@ function gameLoop(timestamp: number): void {
       } else {
         const prevScore = state.score
         const prevInventory = state.inventory
+        // Run-scoped counters: a level advance builds a FRESH GameState, so the
+        // summary has to be handed over explicitly or every stat restarts here.
+        const prevStats = state.stats
         stopAmbientSounds()
         // random run stays random across levels; otherwise the daily field per level.
         // Keep the run on its ORIGIN date (don't re-derive from today) so a run that
         // crosses midnight / is resumed next day stays one coherent daily — and its
         // highscore is dated by the field actually played. Backpack carries over.
         const nextSeed = nextDailySeed(state.dropSeedBase, state.level + 1)
-        state = createGame(state.level + 1, prevScore, nextSeed, prevInventory)
+        state = createGame(state.level + 1, prevScore, nextSeed, prevInventory, prevStats)
         writeSave(saveProfile, 'auto')   // checkpoint at the start of every level
       }
     }
@@ -473,11 +487,13 @@ function gameLoop(timestamp: number): void {
   if (state.phase === 'gameover' && prevGamePhase !== 'gameover') {
     playGameOver()
     announce(L.STR_A11Y_GAMEOVER)
+    mirrorRunStats()
   }
   // Victory jingle + spoken announcement once on entry.
   if (state.phase === 'won' && prevGamePhase !== 'won') {
     playWin()
     announce(L.STR_A11Y_WIN)
+    mirrorRunStats()
   }
 
   prevGamePhase = state.phase

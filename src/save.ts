@@ -5,7 +5,7 @@
 import { createSaveProfile, createAnimation, createTileMap, type TileMap, type SaveProfile } from 'zx-kit'
 import { COLS, ROWS } from './constants.ts'
 import { GEM_COUNT, START_ROW, WALK_FRAME_MS, TIMER_BASE_MS, BLINK_INTERVAL_MS, SAVE_SECRET } from './config.ts'
-import { type GameState, type Dir, gemColor, cellKey } from './game.ts'
+import { type GameState, type Dir, type RunStats, gemColor, cellKey, emptyStats } from './game.ts'
 import {
   type TerrainType, type CellVariant, type BuildingPart,
   makeTileGround, makeTileVisited, makeTileMine, makeTileGem,
@@ -73,6 +73,10 @@ export interface MinefieldSave {
    *  run. Persisted so a resumed random run stays random (and off the
    *  leaderboard). Optional: older saves lack it and resume as daily. */
   dropSeedBase?: string | null
+  /** Run-wide end-of-run summary counters. Optional: saves written before stats
+   *  existed restore zeros, so no version bump was needed (still v6). A resumed
+   *  run MUST keep these — they span the whole run, not the level. */
+  stats?: RunStats
   /** Row-major map encoding; each row is a string of length COLS. */
   map: string[]
 }
@@ -191,6 +195,7 @@ function serializeState(state: GameState): MinefieldSave {
     friendlyPassIndex: state.friendlyPassIndex,
     revealsUsed: state.revealsUsed,
     dropSeedBase: state.dropSeedBase,
+    stats: state.stats,
     map,
   }
 }
@@ -228,6 +233,8 @@ function applyToState(target: GameState, data: MinefieldSave): void {
   // null is meaningful (random run) so check presence, not truthiness; absent in
   // older saves → keep the daily seed the fresh game was created with.
   if (data.dropSeedBase !== undefined) target.dropSeedBase = data.dropSeedBase
+  // Copied, not aliased, so a later mutation can't reach back into the save object.
+  target.stats = data.stats ? { ...data.stats } : emptyStats()
 
   // Replace map wholesale; flags are re-populated by the flag chars below.
   const fresh = createTileMap(COLS, ROWS)

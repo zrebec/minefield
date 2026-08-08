@@ -1118,3 +1118,198 @@ describe('terrain — movePlayer visited tile path color', () => {
     }
   })
 })
+
+// ── Run statistics — the in-play counters ─────────────────────────────────────
+
+// Every counter here is a promise made to the player on the end-of-run screen, so
+// each test pins the ONE thing that would make its number a lie. The definitions
+// are deliberately narrow (see RunStats in game.ts) — a stat that counts "roughly
+// the right thing" teaches the player the wrong lesson about their own run.
+describe('run statistics — steps and backtracking', () => {
+  it('counts a committed move as one step', () => {
+    const state = makeState(5, 5)
+    step(state, 'right')
+    expect(state.stats.steps).toBe(1)
+    expect(state.stats.backtrackSteps).toBe(0)
+  })
+
+  // A blocked press is NOT a move: the player never left the cell, and counting it
+  // would inflate STEPS (and deflate the BACKTRACK percentage) for anyone who
+  // holds a key against a wall.
+  it('does not count a blocked press as a step', () => {
+    const state = makeState(0, 5)
+    state.map.setTile(0, 4, makeTileFence())
+    expect(movePlayer(state, 'up')).toBe('blocked')
+    expect(state.stats.steps).toBe(0)
+  })
+
+  // The step through the exit gap never reaches commitMove (it ends in
+  // completeLevel), so it needs its own increment — otherwise STEPS is short by
+  // exactly one per level cleared, which is invisible until someone counts.
+  it('counts the winning step off the right edge', () => {
+    const state = makeState(COLS - 1, 5)
+    step(state, 'right')
+    expect(state.phase).toBe('levelcomplete')
+    expect(state.stats.steps).toBe(1)
+  })
+
+  it('counts a step onto the visited trail as backtracking', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileVisited(cellVariant(6, 5), 'grass'))
+    step(state, 'right')
+    expect(state.stats.steps).toBe(1)
+    expect(state.stats.backtrackSteps).toBe(1)
+  })
+
+  // Craters are permanent ground you have already walked (see the permanent-crater
+  // rule in commitMove) — the stat reads `alreadyWalked`, the SAME predicate that
+  // decides scoring, so BACKTRACK can never disagree with what the score did.
+  it('counts a step onto an exploded crater as backtracking', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, TILE_EXPLODED)
+    step(state, 'right')
+    expect(state.stats.backtrackSteps).toBe(1)
+  })
+})
+
+describe('run statistics — deaths, gems and combo', () => {
+  // A fatal step is still a step the player spent: STEPS is incremented before the
+  // mine branch returns, so the BACKTRACK percentage keeps an honest denominator.
+  it('counts a fatal step as both a step and a death', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
+    step(state, 'right')
+    expect(state.stats.steps).toBe(1)
+    expect(state.stats.deaths).toBe(1)
+  })
+
+  // Only the cell the player stepped on is a death. A cluster blast detonates up to
+  // 8 more mines — counting those would report 4 deaths for one mistake.
+  it('does not count cluster chain detonations as extra deaths', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileMine('cluster', cellVariant(6, 5), 'grass'))
+    state.map.setTile(6, 4, makeTileMine('normal', cellVariant(6, 4), 'grass'))
+    state.map.setTile(7, 5, makeTileMine('normal', cellVariant(7, 5), 'grass'))
+    step(state, 'right')
+    expect(state.explodedMines).toBeGreaterThan(1)   // the chain really did go off
+    expect(state.stats.deaths).toBe(1)
+  })
+
+  it('accumulates gems for the whole run, unlike the per-level gemsCollected', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileGem('red', C.B_RED))
+    step(state, 'right')
+    expect(state.stats.gems).toBe(1)
+    expect(state.gemsCollected).toBe(1)
+  })
+
+  // GEMS counts what the player PICKED UP, not what is left in the backpack, and
+  // the two legitimately disagree: every gem special SPENDS its gems (2 red → a
+  // life, 3 cyan → a reveal, 2 green → the recon plane). A player who collected 5
+  // and cashed 2 in for a life ends the run showing GEMS 5 with 3 in the backpack.
+  // Pinned because the mismatch looks like a bug from the outside — it is the
+  // stat's whole point (spending a gem does not un-collect it).
+  it('counts picked-up gems even after a special consumes them from the backpack', () => {
+    const state = makeState(5, 5)
+    const lives0 = state.lives
+    state.map.setTile(6, 5, makeTileGem('red', C.RED))
+    state.map.setTile(7, 5, makeTileGem('red', C.RED))
+    step(state, 'right')
+    step(state, 'right')
+
+    expect(state.lives).toBe(lives0 + 1)        // the pair was cashed in for a life
+    expect(state.inventory.red ?? 0).toBe(0)    // …and is gone from the backpack
+    expect(state.stats.gems).toBe(2)            // but both were still collected
+  })
+
+  // The mirror image: a gem left on the field because the backpack is full was
+  // never collected, so it must not count either.
+  it('does not count a gem the full backpack refused', () => {
+    const state = makeState(5, 5)
+    state.inventory = { cyan: INVENTORY_CAP }
+    state.map.setTile(6, 5, makeTileGem('cyan', C.CYAN))
+    step(state, 'right')
+    expect(state.map.getTile(6, 5)?.id).toBe('gem')   // still lying there
+    expect(state.stats.gems).toBe(0)
+  })
+
+  // bestCombo is a HIGH-WATER MARK. Death resets comboCount to 0 (the streak is
+  // broken), but the best streak the player achieved is history and must survive —
+  // otherwise the stat would only ever show the streak that happened to be running
+  // when the game ended.
+  it('keeps the best combo streak through the death that resets the live combo', () => {
+    const state = makeState(5, 5)
+    state.lives = 3
+    step(state, 'right')
+    step(state, 'right')
+    step(state, 'right')
+    expect(state.stats.bestCombo).toBe(3)
+    respawnPlayer(state)
+    expect(state.comboCount).toBe(0)      // the live streak is broken
+    expect(state.stats.bestCombo).toBe(3) // the record is not
+  })
+
+  it('does not raise the record when retreading old ground', () => {
+    const state = makeState(5, 5)
+    step(state, 'right')    // (6,5) — new cell, combo 1
+    step(state, 'left')     // (5,5) — the spawn cell is never marked visited, so still new: combo 2
+    step(state, 'right')    // (6,5) again — THIS one is the retread
+    expect(state.stats.backtrackSteps).toBe(1)
+    expect(state.stats.bestCombo).toBe(2)   // the retread neither breaks nor raises the record
+  })
+})
+
+describe('run statistics — flag accuracy', () => {
+  it('counts a flag on a live mine as a placement AND a hit', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))
+    state.playerDir = 'right'
+    toggleFlag(state)
+    expect(state.stats.flagsPlaced).toBe(1)
+    expect(state.stats.flagsOnMines).toBe(1)
+  })
+
+  it('counts a flag on plain ground as a placement but not a hit', () => {
+    const state = makeState(5, 5)
+    state.playerDir = 'right'
+    toggleFlag(state)
+    expect(state.stats.flagsPlaced).toBe(1)
+    expect(state.stats.flagsOnMines).toBe(0)
+  })
+
+  // Taking a flag back is not "unplacing" it — the player still made the call, and
+  // decrementing would let anyone farm 100% accuracy by removing every wrong flag
+  // before the run ends.
+  it('does not decrement when a flag is taken back', () => {
+    const state = makeState(5, 5)
+    state.playerDir = 'right'
+    toggleFlag(state)   // place
+    toggleFlag(state)   // remove
+    expect(state.stats.flagsPlaced).toBe(1)
+  })
+
+  // Where a flag cannot be displayed, toggleFlag returns null and nothing happened
+  // — so nothing may be counted either, or the denominator would drift away from
+  // the flags actually on the board.
+  it('counts nothing when the flag is refused (crater / solid cell)', () => {
+    const state = makeState(5, 5)
+    state.map.setTile(6, 5, TILE_EXPLODED)
+    state.playerDir = 'right'
+    expect(toggleFlag(state)).toBeNull()
+    state.map.setTile(5, 4, makeTileFence())
+    expect(toggleFlag(state, 'up')).toBeNull()
+    expect(state.stats.flagsPlaced).toBe(0)
+    expect(state.stats.flagsOnMines).toBe(0)
+  })
+
+  // Accuracy is judged at PLACEMENT time: this is a stat about the player's read of
+  // the field, not about the board's final state. An airdrop landing on an already
+  // flagged cell must not retro-award a hit the player never earned.
+  it('does not retro-count a mine dropped onto an already flagged cell', () => {
+    const state = makeState(5, 5)
+    state.playerDir = 'right'
+    toggleFlag(state)                                                        // flagged plain ground
+    state.map.setTile(6, 5, makeTileMine('normal', cellVariant(6, 5), 'grass'))  // airplane drops here later
+    expect(state.stats.flagsOnMines).toBe(0)
+  })
+})

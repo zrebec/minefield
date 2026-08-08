@@ -84,6 +84,9 @@ export function movePlayer(state: GameState, dir: Direction): MoveResult | null 
 }
 
 function completeLevel(state: GameState): void {
+  // The walk through the exit gap is a real step that never reaches commitMove,
+  // so it is counted here — otherwise STEPS would be short by one per level.
+  state.stats.steps++
   state.walkTween = null
   state.bufferedDir = null
   state.phase = 'levelcomplete'
@@ -97,12 +100,16 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
   const tile = state.map.getTile(newCol, newRow)
   if (tile === null) return
 
+  // Counted before the mine branch: a fatal step is still a step the player took.
+  state.stats.steps++
+
   if (tile.id === 'mine') {
     const mineType = tile.metadata?.mineType as MineType
     if (mineType === 'cluster') applyClusterBlast(state, newCol, newRow)
     state.map.setTile(newCol, newRow, TILE_EXPLODED)
     state.flags.delete(cellKey(newCol, newRow)) // detonation — the only way a flag dies
     state.explodedMines++
+    state.stats.deaths++   // only the cell actually stepped on; cluster chains are not deaths
     state.playerCol = newCol
     state.playerRow = newRow
     state.bufferedDir = null
@@ -130,10 +137,14 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
   // without it `tile.id !== 'visited'` would stay true forever and stepping on
   // and off the crater would farm cell score, combo and day/night steps.
   const alreadyWalked = tile.id === 'visited' || tile.id === 'exploded'
+  // Retreading old ground — the same predicate that decides scoring, so the stat
+  // and the score can never disagree about what "already walked" means.
+  if (alreadyWalked) state.stats.backtrackSteps++
 
   if (claimsCell && !alreadyWalked) {
     state.map.setTile(newCol, newRow, makeTileVisited(cellVariant(newCol, newRow), state.terrain))
     state.comboCount++
+    state.stats.bestCombo = Math.max(state.stats.bestCombo, state.comboCount)  // high-water mark, survives death
     state.comboTimer = COMBO_DURATION_MS
     const levelMult = atLevel(SCORE_MULTIPLIERS, state.level)
     const cMult = comboMultiplier(state.comboCount)
@@ -149,6 +160,7 @@ function commitMove(state: GameState, newCol: number, newRow: number): void {
   if (collectGem && gemKind) {
     state.inventory[gemKind] = (state.inventory[gemKind] ?? 0) + 1
     state.gemsCollected++
+    state.stats.gems++   // run-wide twin of gemsCollected (which resets every level)
     state.timeLeftMs += GEM_TIME_BONUS_MS[gemKind] ?? 0  // time bonus by gem colour
     const cMult = comboMultiplier(state.comboCount)
     state.score += Math.round(GEM_SCORE * cMult)
@@ -238,5 +250,10 @@ export function toggleFlag(state: GameState, dir: Direction = state.playerDir): 
   const tile = state.map.getTile(fc, fr)
   if (tile === null || tile.solid || tile.id === 'exploded') return null
   state.flags.add(key)
+  // Accuracy is judged HERE, at placement time — it measures the player's read of
+  // the field. A mine the airplane drops later onto this cell never retro-counts.
+  // Placement is the only site, so a removal or a refused flag counts nothing.
+  state.stats.flagsPlaced++
+  if (tile.id === 'mine') state.stats.flagsOnMines++
   return { action: 'placed', dCol: dc, dRow: dr }
 }
