@@ -136,3 +136,64 @@ describe('story intro cards', () => {
     }
   })
 })
+
+// ── End-of-run statistics labels ──────────────────────────────────────────────
+
+// These labels are DRAWN with the ROM font on a 32-column screen, so they carry
+// two hard constraints that no TypeScript check can catch: the lang.ts pack cast
+// hides a missing key (it shows up as `undefined` on screen), and the SK pack is
+// the one that tends to break both rules — Slovak words are longer and want
+// diacritics the font simply does not have.
+describe('run-statistics labels', () => {
+  it('exists in both languages for every stat', () => {
+    for (const id of Object.keys(en.STAT_LABEL)) {
+      expect(en.STAT_LABEL[id], `EN label for ${id}`).toBeTruthy()
+      expect(sk.STAT_LABEL[id], `SK label for ${id}`).toBeTruthy()
+    }
+    // No extra SK keys either — a stat the renderer never asks for is dead weight
+    // that hides a typo in the id.
+    expect(Object.keys(sk.STAT_LABEL).sort()).toEqual(Object.keys(en.STAT_LABEL).sort())
+  })
+
+  it('is ASCII and ≤ 10 chars, so the value column stays on screen', () => {
+    for (const pack of [en, sk]) {
+      for (const [id, label] of Object.entries(pack.STAT_LABEL)) {
+        // eslint-disable-next-line no-control-regex
+        expect(/^[\x20-\x7E]+$/.test(label), `${id} = "${label}" must be ASCII (the ROM font has no diacritics)`).toBe(true)
+        expect(label.length, `${id} = "${label}" must fit the 12-column label field`).toBeLessThanOrEqual(10)
+      }
+    }
+  })
+})
+
+// One mm:ss formatter for the whole game: the HUD countdown and the end-of-run
+// TIME stat must never drift into different shapes. The SK pack RE-EXPORTS it
+// rather than copying it — and it has to, because lang.ts casts the pack without
+// checking keys, so a missing formatClock would only blow up at runtime, in
+// Slovak, on the game-over screen.
+describe('formatClock — the single mm:ss formatter', () => {
+  it('is exposed by every language pack', () => {
+    for (const pack of [en, sk]) {
+      expect(typeof pack.formatClock).toBe('function')
+    }
+  })
+
+  it('formats minutes and zero-padded seconds', () => {
+    expect(en.formatClock(0)).toBe('0:00')
+    expect(en.formatClock(65_000)).toBe('1:05')
+    expect(en.formatClock(600_000)).toBe('10:00')
+  })
+
+  // Minutes are unbounded on purpose: an hour-long run must widen the string, not
+  // wrap into an hours field the stat layout was never measured for.
+  it('lets minutes run past 60 rather than growing an hours field', () => {
+    expect(en.formatClock(3_600_000)).toBe('60:00')
+    expect(en.formatClock(4_505_000)).toBe('75:05')
+  })
+
+  it('is the formatter the HUD countdown actually uses (both packs)', () => {
+    for (const pack of [en, sk]) {
+      expect(pack.STR_TIME(125_000).endsWith(pack.formatClock(125_000))).toBe(true)
+    }
+  })
+})

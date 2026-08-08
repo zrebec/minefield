@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createTileMap, createRng, type TileMap } from 'zx-kit'
-import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, cellKey, tryToggleReveal, scanMines, tickTimer, isFinalLevel, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from '../src/game.ts'
+import { countWarningMines, countAdjacentMines, countBeaconSignals, createGame, addDropMinesInBand, applyClusterBlast, revealMine, fixObstacleTraps, createsObstacleTrap, isFieldSolvable, buildField, cellKey, tryToggleReveal, scanMines, tickTimer, emptyStats, isFinalLevel, seedDate, nextDailySeed, todaySeed, GEM_KINDS, type MineType, type GameState } from '../src/game.ts'
 import { movePlayer } from '../src/player.ts'
 import { createBuilding, placeBuildings, type BuildingBox } from '../src/buildings.ts'
 import { C, COLS, ROWS } from '../src/constants.ts'
@@ -1750,5 +1750,77 @@ describe('nextDailySeed — a daily run keeps its origin date across levels', ()
   })
   it('falls back to today for a malformed daily seed', () => {
     expect(nextDailySeed('weird', 1)).toBe(`${todaySeed()}:L1`)
+  })
+})
+
+// ── Run statistics — the run-scoped half ──────────────────────────────────────
+
+// RISK #1 (the big one): a level advance builds a FRESH GameState via createGame
+// and only what is handed to it survives. Score and inventory were already wired;
+// stats are the third thing, and if the call site forgets them every number
+// silently restarts at level 2 — the kind of bug nobody notices until level 3.
+// These tests pin createGame's half of that contract (main.ts's call site is
+// exercised end-to-end by the smoke test's save/reload continuity check).
+describe('run statistics — carried across a level advance', () => {
+  it('starts a fresh run with every counter at zero', () => {
+    const state = createGame(0)
+    expect(state.stats).toEqual(emptyStats())
+  })
+
+  it('carries the previous level\'s stats into the next level', () => {
+    const level1 = createGame(0, 0, 'stats-seed')
+    level1.stats.steps = 120
+    level1.stats.deaths = 2
+    level1.stats.elapsedMs = 90_000
+
+    // Exactly the shape main.ts uses when a level is cleared.
+    const level2 = createGame(level1.level + 1, level1.score, 'stats-seed:L1', level1.inventory, level1.stats)
+
+    expect(level2.stats.steps).toBe(120)
+    expect(level2.stats.deaths).toBe(2)
+    expect(level2.stats.elapsedMs).toBe(90_000)
+  })
+
+  it('copies the stats instead of aliasing them (same rule as inventory)', () => {
+    const level1 = createGame(0)
+    level1.stats.steps = 7
+    const level2 = createGame(1, 0, undefined, {}, level1.stats)
+
+    level2.stats.steps = 99
+    // A shared reference would let the new level rewrite the old state's history —
+    // and would make any future "stats at level start" snapshot lie.
+    expect(level1.stats.steps).toBe(7)
+  })
+})
+
+// The run clock lives inside tickTimer on purpose: main.ts calls tickTimer in
+// exactly one place (the runState === 'running' branch), so pause and the idle
+// pre-run scout freeze the run clock and the countdown TOGETHER. A second
+// accumulator in the game loop could drift out of that contract silently.
+describe('run statistics — the run clock rides on tickTimer', () => {
+  it('counts up by the same dt the countdown counts down', () => {
+    const state = createGame(0)
+    const before = state.timeLeftMs
+    tickTimer(state, 1000)
+    tickTimer(state, 500)
+    expect(state.stats.elapsedMs).toBe(1500)
+    expect(state.timeLeftMs).toBe(before - 1500)
+  })
+
+  it('is untouched when the timer is not ticked (pause / idle scout)', () => {
+    const state = createGame(0)
+    // main.ts simply does not call tickTimer while paused or idle — nothing else
+    // in the game may add to elapsedMs, or pausing would inflate the run time.
+    expect(state.stats.elapsedMs).toBe(0)
+  })
+
+  it('keeps accumulating across levels while timeLeftMs resets', () => {
+    const level1 = createGame(0)
+    tickTimer(level1, 60_000)
+    const level2 = createGame(1, 0, undefined, {}, level1.stats)
+    tickTimer(level2, 30_000)
+    // The countdown is per level; the run clock is not.
+    expect(level2.timeLeftMs).toBe(TIMER_BASE_MS - 30_000)
+    expect(level2.stats.elapsedMs).toBe(90_000)
   })
 })

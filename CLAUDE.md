@@ -306,6 +306,13 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
 ### Buildings, terrain, aircraft, audio, save, input
 - **Buildings:** pseudo-3D, solid + mine-free; count rises per level. `fixObstacleTraps()` prevents
   *obstacle ahead + mines on both perpendicular sides* around any solid (buildings **and** fence).
+- **End-of-run stats (2026-08-08):** nine run-wide numbers on the game-over AND win screens (time,
+  level, steps, backtrack %, best combo, deaths, gems, flags, flag accuracy). `RunStats` on
+  `GameState` is **run-scoped** — a level advance builds a fresh state, so it rides `createGame`'s
+  5th param (`initialStats`, copied not aliased) and an optional `stats?` save field (still v6).
+  `runStatRows()` in renderer.ts is the ONE definition; the drawn block and the `#sr-menu` mirror
+  both read it. Layout rows are named constants so the vertical fit is test-asserted (the win
+  screen's prompt is on row 17 — it is the tight one). Full reference: `docs/run-stats.md`.
 - **Craters are PERMANENT (2026-08-08):** a detonated mine becomes `TILE_EXPLODED` — a grey **grave
   cross** (`GRAVE_CROSS`, its own sprite; the `EXPLOSION_*` frames stay the blast animation's) — and is
   never rewritten again: it is the only record of where the player lost a life. `commitMove` therefore

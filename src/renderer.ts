@@ -1,5 +1,5 @@
 import { CANVAS_W, CANVAS_H, ROWS, STATUS_ROWS, COLS, CELL, C } from './constants.ts'
-import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS, DROP_FLASH_BLINK_MS } from './config.ts'
+import { TIMER_LOW_MS, GEM_TIME_BONUS_MS, GEM_SCORE, GOLD_SCORE_BONUS, CONTROLS, DROP_FLASH_BLINK_MS, GEM_COUNT, WIN_LEVEL } from './config.ts'
 import type { GameState, AirplaneState, FriendlyPlaneState } from './game.ts'
 import { countAdjacentMines, countBeaconSignals, GEM_KINDS, INVENTORY_CAP } from './game.ts'
 import { drawSprite, drawChar, drawText, drawTextCentered as _drawTextCentered, drawScanlines, getAnimationFrame, type SpectrumColor, type Tile } from 'zx-kit'
@@ -189,17 +189,82 @@ function renderFlashOverlay(ctx: CanvasRenderingContext2D, state: GameState): vo
   ctx.globalAlpha = 1.0
 }
 
+// ─── End-of-run statistics (game over + win) ─────────────────────────────────
+
+// Layout of one stat row, in 8×8 cells. Single column: the values reach four
+// digits on a full 10-level run ('1024 (26%)' is 10 chars), which is exactly what
+// a two-column layout could not hold. STATS_COL + LABEL + VALUE ≤ COLS is
+// test-guarded, so widening a field can never silently run off the screen.
+export const STATS_COL = 4   // x of the block (leaves a margin either side)
+const STAT_LABEL_COLS = 12   // 'BACKTRACK:' + padding
+const STAT_VALUE_COLS = 11   // right-aligned value
+
+// Where the block starts on each screen, and where the blinking prompt sits below
+// it. Both screens must fit title + score + every stat row + the prompt inside the
+// 18-row playfield; renderer.test.ts asserts it, so adding a tenth stat fails a
+// test instead of quietly drawing over the HUD.
+export const GAMEOVER_STATS_TOP = 5
+export const GAMEOVER_PRESS_ROW = 15
+export const WIN_STATS_TOP = 7
+export const WIN_PRESS_ROW = 17
+
+/** Percentage as a display string. A run with no steps (or no flags) reads '0%',
+ *  never 'NaN%' — the divide-by-zero guard for BACKTRACK and ON MINES. */
+function pct(part: number, total: number): string {
+  return total === 0 ? '0%' : `${Math.round((part / total) * 100)}%`
+}
+
+/**
+ * The end-of-run summary as label/value pairs — ONE definition, laid out visually
+ * by renderRunStats and mirrored verbatim into the screen-reader region by main.ts,
+ * so the two channels can never disagree about what the player achieved.
+ *
+ * GEMS is measured against the levels actually PLAYED (GEM_COUNT per level), not
+ * the whole 10-level run — otherwise dying on level 2 would read as a 4% pickup rate.
+ */
+export function runStatRows(state: GameState): Array<{ label: string; value: string }> {
+  const s = state.stats
+  const gemsPossible = GEM_COUNT * (state.level + 1)
+  return [
+    { label: L.STAT_LABEL.time, value: L.formatClock(s.elapsedMs) },
+    { label: L.STAT_LABEL.level, value: `${state.level + 1}/${WIN_LEVEL}` },
+    { label: L.STAT_LABEL.steps, value: String(s.steps) },
+    { label: L.STAT_LABEL.backtrack, value: `${s.backtrackSteps} (${pct(s.backtrackSteps, s.steps)})` },
+    { label: L.STAT_LABEL.combo, value: String(s.bestCombo) },
+    { label: L.STAT_LABEL.deaths, value: String(s.deaths) },
+    { label: L.STAT_LABEL.gems, value: `${s.gems}/${gemsPossible}` },
+    { label: L.STAT_LABEL.flags, value: String(s.flagsPlaced) },
+    { label: L.STAT_LABEL.onMines, value: `${s.flagsOnMines} (${pct(s.flagsOnMines, s.flagsPlaced)})` },
+  ]
+}
+
+/** The stat block exactly as drawn: one padded line per row. Exported so the
+ *  layout tests measure the real strings instead of re-deriving the padding. */
+export function runStatLines(state: GameState): string[] {
+  return runStatRows(state).map(
+    (r) => `${r.label}:`.padEnd(STAT_LABEL_COLS) + r.value.padStart(STAT_VALUE_COLS),
+  )
+}
+
+function renderRunStats(ctx: CanvasRenderingContext2D, state: GameState, topRow: number): void {
+  runStatLines(state).forEach((line, i) => {
+    drawText(ctx, line, STATS_COL * CELL, (topRow + i) * CELL, C.B_WHITE, C.BLACK)
+  })
+}
+
 function renderGameOver(ctx: CanvasRenderingContext2D, state: GameState): void {
   ctx.fillStyle = C.BLACK
   ctx.globalAlpha = 0.75
   ctx.fillRect(0, 0, CANVAS_W, ROWS * CELL)
   ctx.globalAlpha = 1.0
 
-  const cy = Math.floor(ROWS / 2) - 3
-  drawTextCentered(ctx, L.STR_GAME_OVER, cy * CELL, C.B_RED, C.BLACK)
-  drawTextCentered(ctx, L.STR_SCORE_OVERLAY(state.score), (cy + 2) * CELL, C.B_WHITE, C.BLACK)
+  // Title and score sit above the stat block, which now sets the screen's height
+  // budget — the rows are named constants so the fit is testable, not eyeballed.
+  drawTextCentered(ctx, L.STR_GAME_OVER, 1 * CELL, C.B_RED, C.BLACK)
+  drawTextCentered(ctx, L.STR_SCORE_OVERLAY(state.score), 3 * CELL, C.B_WHITE, C.BLACK)
+  renderRunStats(ctx, state, GAMEOVER_STATS_TOP)
   if (state.blink) {
-    drawTextCentered(ctx, L.STR_PRESS_ANY_KEY, (cy + 5) * CELL, C.B_YELLOW, C.BLACK)
+    drawTextCentered(ctx, L.STR_PRESS_ANY_KEY, GAMEOVER_PRESS_ROW * CELL, C.B_YELLOW, C.BLACK)
   }
 }
 
@@ -267,13 +332,15 @@ function renderWin(ctx: CanvasRenderingContext2D, state: GameState): void {
   ctx.fillRect(0, 0, CANVAS_W, ROWS * CELL)
   ctx.globalAlpha = 1.0
 
-  const cy = Math.floor(ROWS / 2) - 4
-  drawTextCentered(ctx, L.STR_WIN_TITLE, cy * CELL, C.B_YELLOW, C.BLACK)
-  drawTextCentered(ctx, L.STR_WIN_LINE1, (cy + 3) * CELL, C.B_GREEN, C.BLACK)
-  drawTextCentered(ctx, L.STR_WIN_LINE2, (cy + 4) * CELL, C.B_GREEN, C.BLACK)
-  drawTextCentered(ctx, L.STR_SCORE_OVERLAY(state.score), (cy + 6) * CELL, C.B_WHITE, C.BLACK)
+  // The epilogue is compressed upward to make room for the stat block; the same
+  // named rows keep the fit test-guarded (the win screen is the tighter of the two).
+  drawTextCentered(ctx, L.STR_WIN_TITLE, 0 * CELL, C.B_YELLOW, C.BLACK)
+  drawTextCentered(ctx, L.STR_WIN_LINE1, 2 * CELL, C.B_GREEN, C.BLACK)
+  drawTextCentered(ctx, L.STR_WIN_LINE2, 3 * CELL, C.B_GREEN, C.BLACK)
+  drawTextCentered(ctx, L.STR_SCORE_OVERLAY(state.score), 5 * CELL, C.B_WHITE, C.BLACK)
+  renderRunStats(ctx, state, WIN_STATS_TOP)
   if (state.blink) {
-    drawTextCentered(ctx, L.STR_PRESS_ANY_KEY, (cy + 8) * CELL, C.B_CYAN, C.BLACK)
+    drawTextCentered(ctx, L.STR_PRESS_ANY_KEY, WIN_PRESS_ROW * CELL, C.B_CYAN, C.BLACK)
   }
 }
 

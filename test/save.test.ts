@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
-import { writeSave, readSaveLatest } from 'zx-kit'
+import { writeSave, readSaveLatest, _envelopeSig } from 'zx-kit'
 import { saveProfile, setStateGetter } from '../src/save.ts'
-import { createGame, cellKey } from '../src/game.ts'
+import { createGame, cellKey, emptyStats } from '../src/game.ts'
 import { makeTileMine, makeTileGround, makeTileVisited } from '../src/sprites.ts'
+import { SAVE_SECRET } from '../src/config.ts'
 
 function cellVariant(col: number, row: number): 'a' | 'b' {
   return (col + row) % 2 === 0 ? 'a' : 'b'
@@ -201,5 +202,53 @@ describe('save integrity signature', () => {
     const result = readSaveLatest(saveProfile)
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.reason).toBe('tampered')
+  })
+})
+
+// ── Run statistics through a save/reload ──────────────────────────────────────
+
+// RISK #6: the summary spans the WHOLE run, but a browser refresh rebuilds the
+// state from scratch. If stats did not ride along in the save, every resumed run
+// would report the numbers from the reload onward and quietly under-report the
+// player's real history — the one thing an end-of-run summary must not do.
+describe('run statistics survive save → reload', () => {
+  it('round-trips every counter', () => {
+    const saved = createGame(1, 5000, 'stats-seed')
+    Object.assign(saved.stats, {
+      elapsedMs: 754_000, steps: 412, backtrackSteps: 97, flagsPlaced: 23,
+      flagsOnMines: 15, deaths: 2, gems: 19, bestCombo: 31,
+    })
+    setStateGetter(() => saved)
+    expect(writeSave(saveProfile, 'auto').ok).toBe(true)
+
+    const loaded = createGame(1, 0, 'stats-seed')
+    expect(loaded.stats.steps).toBe(0)          // sanity: a fresh state starts empty
+    setStateGetter(() => loaded)
+    expect(readSaveLatest(saveProfile).ok).toBe(true)
+
+    expect(loaded.stats).toEqual(saved.stats)
+  })
+
+  // Optional field, no version bump (still v6): a save written before stats
+  // existed must load cleanly and simply start counting from zero.
+  it('loads a pre-stats save with zeroed counters instead of throwing', () => {
+    const saved = createGame(0, 0, 'old-save-seed')
+    setStateGetter(() => saved)
+    expect(writeSave(saveProfile, 'auto').ok).toBe(true)
+
+    // Strip `stats` from the stored payload and RE-SIGN it, so this is a genuine
+    // older save rather than a tampered one — otherwise the anti-cheat envelope
+    // would reject it and the back-compat path would never actually run.
+    const key = 'zxkit:minefield:auto'
+    const envelope = JSON.parse(localStorage.getItem(key) as string)
+    delete envelope.data.stats
+    envelope.sig = _envelopeSig(envelope.version, envelope.timestamp, JSON.stringify(envelope.data), SAVE_SECRET)
+    localStorage.setItem(key, JSON.stringify(envelope))
+
+    const loaded = createGame(0, 0, 'old-save-seed')
+    loaded.stats.steps = 99                       // prove the load overwrites, not merges
+    setStateGetter(() => loaded)
+    expect(readSaveLatest(saveProfile).ok).toBe(true)   // a real old save still loads
+    expect(loaded.stats).toEqual(emptyStats())
   })
 })

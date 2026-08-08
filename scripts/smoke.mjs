@@ -48,6 +48,47 @@ const dirFlag = async (arrow) => {
   await page.waitForTimeout(300)
 }
 
+// The announcer keeps its last message forever, so a second run would match the
+// previous run's "Game over." instantly. Blanking it makes the next match real.
+const clearAnnouncer = () => page.evaluate(() => {
+  const el = document.getElementById('sr-announcer')
+  if (el) el.textContent = ''
+})
+
+// Walk into unexplored ground until all three lives are gone.
+//
+// Only UNVISITED cells can kill, and the player's own trail is permanently safe,
+// so the cost of each death is "walk back out to the frontier, then find fresh
+// ground". Two things keep that cheap and stop this from flaking:
+//   · sweep a whole COLUMN vertically before stepping right — 17 fresh cells per
+//     column beats marching right, which stalls against the east fence;
+//   · restart the pattern on every death, because a respawn teleports the player
+//     back to the entry (col 0, where only 'right' is even legal) and continuing
+//     mid-sweep would spend dozens of presses retreading known-safe trail.
+const walkUntilGameOver = async (cap = 400) => {
+  const sweep = ['ArrowRight',
+    ...Array(17).fill('ArrowUp'),
+    ...Array(17).fill('ArrowDown'),
+  ]
+  let i = 0
+  for (let pressed = 0; pressed < cap; pressed++) {
+    await page.keyboard.press(sweep[i % sweep.length])
+    i++
+    await page.waitForTimeout(170)
+    const said = (await page.textContent('#sr-announcer')) ?? ''
+    if (said.includes('Game over')) {
+      await page.waitForTimeout(400)   // let the phase settle (jingle + mirror)
+      return true
+    }
+    if (said.includes('Mine hit')) {
+      await page.waitForTimeout(700)   // explosion flash → respawn at the entry
+      await clearAnnouncer()           // so the next death is detected as a new event
+      i = 0                            // back to the entry ⇒ back to the start of the sweep
+    }
+  }
+  return false
+}
+
 const server = await preview({ preview: { port: 4181 } })
 const browser = await chromium.launch()
 page = await browser.newPage()
@@ -72,11 +113,21 @@ for (let i = 0; i < 90 && !ingame; i++) {
 await page.waitForTimeout(500)
 let p1 = null
 if (ingame) {
-  await walk('ArrowRight')                 // entry safe zone is mine-free
   // The step uncovers the spawn cell in column 0 — its yellow trail is the
   // proof the run is interactive AND tells us the spawn row.
-  const spawnRow = await findTrailRowInCol(0)
-  if (spawnRow !== null) p1 = { col: 1, row: spawnRow }
+  //
+  // Retried: the HUD hearts appear the moment the run phase starts, but on a
+  // loaded machine the hand-off can still be settling (startRun resets input),
+  // and a single swallowed keypress used to fail this check outright. Retrying
+  // costs nothing when the first step lands, which is the normal case.
+  // Check BEFORE stepping again, so a landed step is never double-walked (that
+  // would put the player on col 2 while p1 still says col 1, breaking the flag
+  // checks below).
+  for (let attempt = 0; attempt < 4 && p1 === null; attempt++) {
+    const spawnRow = await findTrailRowInCol(0)
+    if (spawnRow !== null) { p1 = { col: 1, row: spawnRow }; break }
+    await walk('ArrowRight')               // entry safe zone is mine-free
+  }
 }
 checks.runStarted = p1 !== null
 if (!checks.runStarted) await finish()   // no interactive player -> bail with the report
@@ -113,6 +164,52 @@ await page.reload()
 await page.waitForTimeout(1200)
 checks.resumedAfterReload = (await cellCount(0, p1.row, B_YELLOW)) >= 20  // the spawn trail is back (col 0 — the player resumes at col 1, covering its own cell)
 checks.flagSurvivedReload = (await cellCount(fc.col, fc.row, B_CYAN)) >= 100
+
+// 7. Run statistics span the WHOLE run, so a refresh must not restart them. The
+//    save payload is the artifact that has to carry them, so read it there rather
+//    than off the canvas: 15 steps were walked before the save above, so the
+//    stored count proves they were counted, and continuing to grow from that
+//    number after the reload proves the resume restored them instead of zeroing.
+const savedSteps = (slot) => page.evaluate((s) => {
+  const raw = localStorage.getItem(`zxkit:minefield:${s}`)
+  return raw ? (JSON.parse(raw).data?.stats?.steps ?? null) : null
+}, slot)
+
+const stepsBeforeReload = await savedSteps('manual')
+checks.statsCountedSteps = stepsBeforeReload >= 12   // 15 walks taken above (allow for a dropped key)
+
+await walk(flagArrow)    // two more steps, both on the player's own (safe) trail
+await walk(backArrow)
+await page.keyboard.down('Shift'); await page.keyboard.press('s'); await page.keyboard.up('Shift')
+await page.waitForTimeout(400)
+const stepsAfterReload = await savedSteps('manual')
+// A wiped counter would restart near 2 here instead of continuing from 15+.
+checks.statsSurvivedReload = stepsAfterReload >= stepsBeforeReload + 2
+
+// 8. Game over: the summary has to reach the player on BOTH channels — drawn on
+//    the canvas and mirrored into #sr-menu for a screen reader.
+await clearAnnouncer()
+checks.reachedGameOver = await walkUntilGameOver()
+const menuAtGameOver = (await page.textContent('#sr-menu')) ?? ''
+checks.statsShownOnGameOver = /STEPS:\s*\d+/.test(menuAtGameOver) && /TIME:\s*\d+:\d\d/.test(menuAtGameOver)
+// Continuity across the whole run: the summary must not undercount what the save
+// already knew about (deaths add steps, so it can only have grown).
+const shownSteps = Number(/STEPS:\s*(\d+)/.exec(menuAtGameOver)?.[1] ?? -1)
+checks.statsContinuousToGameOver = shownSteps >= stepsAfterReload
+
+// 9. The mirror belongs to the screen that filled it. A DAILY run reaches
+//    high-score name entry (the table is empty in this fresh profile), and the
+//    stats must NOT still be sitting in #sr-menu while the player types a name.
+await page.keyboard.press('x')          // leave the random run's game-over screen → title
+await page.waitForTimeout(600)
+await page.keyboard.press('s')          // daily run; the story pre-roll is already marked seen
+await page.waitForTimeout(1200)
+await clearAnnouncer()
+const diedOnDaily = await walkUntilGameOver()
+await page.keyboard.press('x')          // leave game over → name entry (daily + empty table)
+await page.waitForTimeout(600)
+const menuAtNameEntry = (await page.textContent('#sr-menu')) ?? ''
+checks.statsClearedAtNameEntry = diedOnDaily && menuAtNameEntry.trim() === ''
 
 await finish()
 
