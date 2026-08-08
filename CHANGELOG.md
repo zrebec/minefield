@@ -1,3 +1,10 @@
+## [0.66.1](https://github.com/zrebec/minefield/compare/v0.66.0...v0.66.1) (2026-08-08)
+
+
+### Bug Fixes
+
+* stop the airplane approach tone when the run ends, and stop skipping the summary ([#14](https://github.com/zrebec/minefield/issues/14)) ([56f0a0d](https://github.com/zrebec/minefield/commit/56f0a0d8214d51dd071b525be76291b21b11a710)), closes [#sr-menu](https://github.com/zrebec/minefield/issues/sr-menu)
+
 # [0.66.0](https://github.com/zrebec/minefield/compare/v0.65.0...v0.66.0) (2026-08-08)
 
 
