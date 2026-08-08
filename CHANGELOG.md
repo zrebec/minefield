@@ -1,3 +1,10 @@
+# [0.66.0](https://github.com/zrebec/minefield/compare/v0.65.0...v0.66.0) (2026-08-08)
+
+
+### Features
+
+* end-of-run statistics on the game-over and win screens ([#11](https://github.com/zrebec/minefield/issues/11)) ([dcb4076](https://github.com/zrebec/minefield/commit/dcb407642abc686588f504abd457fd4dcf2265a3)), closes [hi#water](https://github.com/hi/issues/water) [#sr-menu](https://github.com/zrebec/minefield/issues/sr-menu) [#sr-menu](https://github.com/zrebec/minefield/issues/sr-menu) [hi#score](https://github.com/hi/issues/score)
+
 # [0.65.0](https://github.com/zrebec/minefield/compare/v0.64.3...v0.65.0) (2026-08-08)
 
 
