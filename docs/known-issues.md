@@ -6,6 +6,29 @@
 
 ## Resolved Issues
 
+### Walking over a crater erased it — the record of where a mine went off was lost
+
+- **Resolved:** 2026-08-08 in `commitMove` (`player.ts`): the exploded crater joins the visited
+  trail as an **already-walked** cell, so it is never rewritten. `TILE_EXPLODED` also stopped
+  borrowing the blast animation's sprite — it is now its own hand-drawn grey grave cross
+  (`GRAVE_CROSS` in `sprites.ts`), because a permanent marker and a transient explosion should not
+  look the same.
+- **What happened (owner's report):** step onto a crater and `commitMove`'s `setTile(visited)`
+  replaced it with plain trail. The player then had no way to see where they had actually lost a
+  life — information they paid for with that life, and information the field offers nowhere else.
+  Same rewrite-eats-state class as the flag bug below, and it also silently unlocked flagging on
+  that cell (`toggleFlag` refuses craters, but the cell was no longer a crater).
+- **The catch:** permanence alone would have opened a score farm. A crater never becomes
+  `'visited'`, so `tile.id !== 'visited'` stays true forever and every re-entry would have re-paid
+  cell score, combo and a day/night step. Hence the explicit `alreadyWalked` rule — a crater is a
+  cell you already walked, and you already paid for it with a life. No save version bump: `'X'`
+  already persisted craters.
+- **Regression coverage:** `player.test.ts` (crater survives a walkover and a walk-away-and-back;
+  no score/combo/cycle; the anti-farm loop; still unflaggable after being walked over),
+  `renderer.test.ts` (`TILE_EXPLODED` uses the grave cross, never an `EXPLOSION_*` frame; grey and
+  walkable). Verified in a real browser: died, respawned, retraced onto the crater and stepped off
+  — the cross is still there and the score never moved.
+
 ### Flags were eaten by tile rewrites (walking onto a flagged cell, airdrops) — fixed by the overlay model
 
 - **Resolved:** 2026-07-04 by moving flags OUT of the map entirely: `GameState.flags` is a

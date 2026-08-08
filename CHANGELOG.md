@@ -1,3 +1,10 @@
+## [0.64.3](https://github.com/zrebec/minefield/compare/v0.64.2...v0.64.3) (2026-08-08)
+
+
+### Bug Fixes
+
+* keep exploded craters permanent and mark them with a grave cross ([df21121](https://github.com/zrebec/minefield/commit/df21121800fbec0691de27e818ce88fef4bd16bb))
+
 ## [0.64.2](https://github.com/zrebec/minefield/compare/v0.64.1...v0.64.2) (2026-07-25)
 
 

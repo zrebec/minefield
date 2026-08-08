@@ -225,6 +225,81 @@ describe('movePlayer — mine hit', () => {
     state.map.setTile(6, 5, { sprite: new Uint8Array(8), ink: C.YELLOW, paper: C.BLACK, solid: false, id: 'exploded' })
     step(state, 'right')
     expect(state.phase).toBe('playing')
+    expect(state.map.getTile(6, 5)?.id).toBe('exploded')  // and the crater survives the step
+  })
+})
+
+// ── the exploded crater is permanent ──────────────────────────────────────────
+
+// A crater is the player's ONLY record of where a mine actually went off — the
+// information they paid a life for. Walking over it used to rewrite it into the
+// visited trail, erasing that record (and, on a save/reload, erasing it for
+// good). It must now survive every later rewrite, which is why commitMove
+// counts it as an already-walked cell: otherwise `id !== 'visited'` would stay
+// true forever and walking on and off it would farm score.
+describe('exploded crater — permanent, never rewritten', () => {
+  function craterAt(state: GameState, col: number, row: number): void {
+    state.map.setTile(col, row, TILE_EXPLODED)
+  }
+
+  it('stays exploded after the player walks over it', () => {
+    const state = makeState(5, 5)
+    craterAt(state, 6, 5)
+    step(state, 'right')
+    expect(state.map.getTile(6, 5)?.id).toBe('exploded')
+    expect(state.playerCol).toBe(6)          // the crater is walkable, just not rewritten
+  })
+
+  it('survives walking away and back again', () => {
+    const state = makeState(5, 5)
+    craterAt(state, 6, 5)
+    step(state, 'right')
+    step(state, 'left')
+    step(state, 'right')
+    expect(state.map.getTile(6, 5)?.id).toBe('exploded')
+  })
+
+  it('awards no score and no combo — it counts as already walked', () => {
+    const state = makeState(5, 5)
+    craterAt(state, 6, 5)
+    step(state, 'right')
+    expect(state.score).toBe(0)
+    expect(state.comboCount).toBe(0)
+    expect(state.comboTimer).toBe(0)
+  })
+
+  // The farm the permanence would otherwise open: the crater never becomes
+  // 'visited', so without the already-walked rule every re-entry would re-score.
+  it('cannot be farmed by stepping on and off it repeatedly', () => {
+    const state = makeState(5, 5)
+    craterAt(state, 6, 5)
+    step(state, 'right')          // onto the crater
+    step(state, 'left')           // back onto (now visited) ground
+    const afterFirstCrossing = state.score
+    step(state, 'right')
+    step(state, 'left')
+    step(state, 'right')
+    expect(state.score).toBe(afterFirstCrossing)
+  })
+
+  it('does not advance the day/night counter', () => {
+    const state = makeState(5, 5)
+    craterAt(state, 6, 5)
+    const before = state.cycleSteps
+    step(state, 'right')
+    expect(state.cycleSteps).toBe(before)
+  })
+
+  // Craters were flaggable the moment a walk turned them into 'visited' — an
+  // accidental loophole in toggleFlag's "no flags on craters" rule.
+  it('stays unflaggable after being walked over', () => {
+    const state = makeState(5, 5)
+    craterAt(state, 6, 5)
+    step(state, 'right')
+    step(state, 'left')
+    state.playerDir = 'right'
+    expect(toggleFlag(state)).toBeNull()
+    expect(state.flags.has(cellKey(6, 5))).toBe(false)
   })
 })
 

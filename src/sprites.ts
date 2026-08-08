@@ -117,6 +117,21 @@ export const EXPLOSION_2 = new Uint8Array([
   0x81, // #......#
 ])
 
+// Grave cross — the PERMANENT mark left where a mine went off (TILE_EXPLODED).
+// The EXPLOSION frames above are the transient blast animation; this is what
+// stays on the field afterwards, so the player can always read their own
+// history. Bottom row is the mound the cross stands in.
+export const GRAVE_CROSS = new Uint8Array([
+  0x18, // ...##...
+  0x18, // ...##...
+  0x7E, // .######.  crossbar
+  0x7E, // .######.
+  0x18, // ...##...
+  0x18, // ...##...
+  0x18, // ...##...
+  0x7E, // .######.  mound
+])
+
 // Airplane — simple silhouette
 export const AIRPLANE_RIGHT = new Uint8Array([
   0x00, // ........
@@ -419,9 +434,14 @@ export function makeTileBuilding(part: BuildingPart, col = 0, row = 0): Tile {
   }
 }
 
+// A detonated mine — a PERMANENT grave marker, never rewritten by anything
+// (commitMove treats it as an already-walked cell, so walking over it can't
+// turn it into the visited trail). It is the player's only record of where a
+// mine actually went off, so it must outlive every later tile rewrite. Grey,
+// not blast-yellow: it is a memorial, not an ongoing danger — the cell is safe.
 export const TILE_EXPLODED: Tile = {
-  sprite: EXPLOSION_2,
-  ink: C.B_YELLOW,
+  sprite: GRAVE_CROSS,
+  ink: C.WHITE,
   paper: C.BLACK,
   solid: false,
   id: 'exploded',
