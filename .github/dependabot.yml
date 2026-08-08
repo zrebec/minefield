@@ -18,6 +18,17 @@
 # level (it only exists inside `groups`), so the fix is to drop `allow` entirely
 # and use GROUPS to keep the queue quiet instead: routine bumps arrive as one
 # batched PR rather than one per package, which is what `allow` was really for.
+#
+# WHY THIS STILL LOOKS BUSY (2026-08-08). Dropping `allow` uncovered a backlog:
+# every dev dependency had been frozen since the filter went in, so the first run
+# produced one large batch PR, and the security group produced another as soon as
+# it was finally allowed to act. That is a ONE-TIME catch-up, not a new PR per
+# merge. What does re-trigger Dependabot is any push that changes
+# package-lock.json — it re-evaluates the dependency graph — which is why the PRs
+# seem to appear "right after every merge".
+#
+# Dependabot does NOT touch the changelog or the version number. Those come from
+# semantic-release in ci.yml, on any releasable (feat/fix/perf) commit.
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -25,13 +36,22 @@ updates:
     schedule:
       interval: "daily"
     versioning-strategy: increase
+    open-pull-requests-limit: 2   # version updates only; security PRs are exempt by design
     groups:
-      # Routine version bumps → ONE PR. (A group without `applies-to` covers
-      # version updates only.)
-      npm-dependencies:
+      # zx-kit is the ONLY runtime dependency and the one bump worth reviewing on
+      # its own — it ships to players. Kept out of the batch so it never waits
+      # behind nine dev-tool bumps.
+      zx-kit:
+        patterns: ["zx-kit"]
+      # Everything else is build/test tooling that never reaches a player, so it
+      # arrives as ONE batched PR. Dependabot UPDATES this PR in place on later
+      # runs — a daily schedule does not pile up new ones.
+      dev-tooling:
         patterns: ["*"]
-      # Security fixes travel in their own PR so they can be merged on their own
-      # schedule without dragging routine bumps along.
+        exclude-patterns: ["zx-kit"]
+      # Security fixes travel in their own PR. NOTE: security updates ignore both
+      # `schedule` and `open-pull-requests-limit` — they fire off the alert, not
+      # the timer — so this group is what keeps them to a single PR.
       npm-security:
         applies-to: security-updates
         patterns: ["*"]
