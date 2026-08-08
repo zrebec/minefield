@@ -1,15 +1,23 @@
-# Dependabot for this repo — two jobs:
+# Dependabot for this repo — two ecosystems:
 #
-# 1. npm — auto-open a PR when a new zx-kit version is published. Automates the
-#    manual "bump zx-kit in package.json + npm update" step; you review and merge.
+# 1. npm — auto-open a PR when a new zx-kit version is published (the only runtime
+#    dependency), plus security fixes for everything else.
 # 2. github-actions — stop the workflow's action versions from silently drifting
 #    apart across the four repos. Grouped into a single PR so it stays quiet.
 #
-# The `allow` block deliberately limits VERSION updates to zx-kit, so routine
-# dev-tool bumps don't flood the queue. SECURITY updates are a SEPARATE mechanism
-# — Settings → Code security → Dependabot security updates, enabled 2026-07-25 —
-# and they reach every dependency regardless of this block. Removing `allow`
-# would add noise, not safety.
+# ERRATA (2026-08-08). This file used to carry an `allow: [zx-kit]` block with a
+# comment claiming security updates reached every dependency "regardless of this
+# block". That was WRONG, and it cost three failing Dependabot runs a day:
+# `allow` filters SECURITY updates too, so every security job (js-yaml,
+# ip-address, postcss, undici) started, found its target excluded by the filter,
+# and died with `all_versions_ignored`. The runs looked like they were colliding
+# with CI because a push that touches package-lock.json re-evaluates the
+# dependency graph and re-fires them — but CI was green the whole time.
+#
+# `applies-to` cannot split version- and security-update rules at the `updates`
+# level (it only exists inside `groups`), so the fix is to drop `allow` entirely
+# and use GROUPS to keep the queue quiet instead: routine bumps arrive as one
+# batched PR rather than one per package, which is what `allow` was really for.
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -17,9 +25,20 @@ updates:
     schedule:
       interval: "daily"
     versioning-strategy: increase
-    allow:
-      - dependency-name: "zx-kit"
+    groups:
+      # Routine version bumps → ONE PR. (A group without `applies-to` covers
+      # version updates only.)
+      npm-dependencies:
+        patterns: ["*"]
+      # Security fixes travel in their own PR so they can be merged on their own
+      # schedule without dragging routine bumps along.
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
     commit-message:
+      # Deliberately `chore`, not `fix`: the CI release gate treats a `fix:`
+      # subject as releasable, and a dev-only dependency bump should not cut a
+      # version of the game by itself.
       prefix: "chore"
       include: "scope"
 
