@@ -1,0 +1,106 @@
+THE STRIP — offline edition
+===========================
+
+Cross a blind minefield by listening. One daily field for the whole world.
+Built to be playable blind and deaf.
+
+
+HOW TO PLAY
+-----------
+
+Double-click "The Strip.command".
+
+A Terminal window opens, a small web server starts, and the game opens in your
+browser. Keep the Terminal window open while you play; close it when you are
+done.
+
+Everything runs on your machine. Nothing is uploaded, nothing is downloaded,
+and the game has no network code at all — you can play with the Wi-Fi off.
+
+
+THE SERVER SHUTS ITSELF DOWN
+----------------------------
+
+That is on purpose, and nothing is wrong.
+
+The server is a starter, not the game. The moment your browser has read the
+files it keeps its own copy, so the launcher hands the page over and exits. The
+tab you are playing in keeps working — reload it, close and reopen it, restart
+your browser, unplug the internet. It has everything it needs.
+
+
+IF YOU WANT AN ICON IN THE DOCK
+-------------------------------
+
+Use "The Strip.app" from the disk image (The-Strip.dmg) and drag it to the Dock.
+
+Do NOT use Safari's "Add to Dock" on this local address. It looks like it works
+— you even get the right icon — but a Safari web app runs in its own separate
+profile with none of the copy your browser made. Launching it goes looking for a
+server that shut down minutes ago, and you get "cannot connect".
+
+Safari's "Add to Dock" IS the right thing to use on the online version:
+
+  https://zrebec.github.io/minefield/
+
+There the server is the internet, so it works whenever you are online, and its
+own copy covers you when you are not.
+
+
+ABOUT YOUR SCORES
+-----------------
+
+Scores and saves are stored by your browser and belong to the address the game
+was opened from. That means this offline copy keeps its OWN high-score table,
+separate from the same game played on the web.
+
+Nothing is lost — but they do not merge, and there is currently no way to carry
+them across. Pick one place to keep your real scores.
+
+
+FIRST-RUN WARNING ON macOS
+--------------------------
+
+If you downloaded this, macOS may refuse the first double-click and say the file
+is "from an unidentified developer". That is macOS quarantining anything that
+arrived from the internet, not a problem with the file.
+
+  Right-click "The Strip.command"  ->  Open  ->  Open
+
+You only have to do that once.
+
+
+IF IT DOES NOT START
+--------------------
+
+The launcher borrows a web server your Mac already has: python3, php, node or
+ruby. If it finds none of them, it will say so.
+
+In that case play in the browser instead:
+
+  https://zrebec.github.io/minefield/
+
+Open that once, and your browser can install it as an app (Chrome/Edge:
+"Install"; Safari: "Add to Dock"). From then on it launches from the Dock and
+works offline, with no server and no Terminal window.
+
+
+CONTROLS
+--------
+
+  Arrow keys        move
+  D                 sonar sweep — one ping per mine in range
+                    (left/right = pan, north/south = pitch, distance = volume)
+  E                 speak the exit's bearing + play the exit beacon
+  G                 speak the nearest gem's bearing + how many are left
+  H                 the full audio guide: goal, controls, rules, sounds
+  F                 flag / unflag the cell in front of you
+  Shift + arrow     flag / unflag a neighbouring cell
+  I                 replay the story intro
+  L                 switch language (English / Slovak)
+  R                 random field (never touches the daily leaderboard)
+  Shift + S         manual save
+  P                 pause / resume
+  + / -             volume
+
+Press H first. It reads the whole game out loud.

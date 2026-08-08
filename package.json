@@ -1,16 +1,23 @@
 {
   "name": "minefield",
   "private": true,
-  "version": "0.64.3",
+  "version": "0.65.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:offline": "tsc && vite build --base=./ --outDir dist-offline",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "capture": "node scripts/capture.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "icons": "node scripts/icons.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "offline": "node scripts/offline.mjs",
+    "persist": "node scripts/persist.mjs",
+    "pack:offline": "npm run build:offline && node scripts/pack-offline.mjs",
+    "pack:app": "npm run build:offline && node scripts/pack-app.mjs",
+    "pack:win": "npm run build:offline && node scripts/pack-win.mjs"
   },
   "dependencies": {
     "zx-kit": "^0.42.0"

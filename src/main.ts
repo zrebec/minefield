@@ -8,7 +8,7 @@ import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry, runStatRows } from './renderer.ts'
 import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen } from './intro.ts'
-import { isHighScore, saveHighScore, loadHighScores } from './highscore.ts'
+import { isHighScore, saveHighScore, loadHighScores, scoreProfile } from './highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
 import { L, cycleLocale } from './lang.ts'
 import { announce, status, setLegend, setMenu, describeExit, describeGems, describeOrientation } from './a11y.ts'
@@ -90,6 +90,9 @@ function titleMenuLines(): string[] {
   } else {
     lines.push(L.STR_A11Y_MENU_SCORES)
     scores.forEach((e, i) => lines.push(L.STR_A11Y_MENU_SCORE_ROW(i + 1, e.name, e.score, e.level, e.date)))
+    // Which table these are — the title screen prints the same host above them.
+    const profile = scoreProfile()
+    if (profile) lines.push(L.STR_A11Y_MENU_PROFILE(profile))
   }
   return lines
 }
@@ -579,6 +582,24 @@ function main(): void {
 }
 
 main()
+
+// ─── Offline wrap (see docs/offline.md) ───────────────────────────────────────
+// PROD only. The dev server must NEVER get a service worker: it would shadow
+// HMR and hand you stale modules that look like your own bug. This is the ONLY
+// dev guard in the offline wrap — the worker itself does not check hostname,
+// because `vite preview` (and therefore scripts/offline.mjs, which proves the
+// game really runs with the network cut) serves a production build on
+// localhost. A hostname guard inside the worker would make offline untestable.
+//
+// Registration failing is not an error worth surfacing: sandboxed iframes (how
+// itch.io serves HTML games), private windows and file:// all refuse workers,
+// and the game needs nothing from the network anyway — it only loses the
+// ability to start a second time without a server.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => { })
+  })
+}
 
 // ─── Capture hook (dev-only, stripped from production builds) ──────────────────
 // Drives deterministic screenshots for docs (scripts/capture.mjs). Deliberately
