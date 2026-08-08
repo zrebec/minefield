@@ -417,7 +417,8 @@ function gameLoop(timestamp: number): void {
       state.flashOn = false
       respawnPlayer(state)
       if (state.lives > 0) announce(L.STR_A11Y_LIFE_LOST(state.lives))  // lives>0 ⇔ respawned (not game over)
-      consumeAnyKey()  // discard mine-step key so gameover doesn't auto-skip
+      // (The "discard the mine-step key" guard moved to the gameover entry hook
+      // below — it fires on the same frame and covers the timeout path too.)
     }
 
   } else if (state.phase === 'levelcomplete') {
@@ -488,6 +489,22 @@ function gameLoop(timestamp: number): void {
 
   // Play the game-over jingle once on entry (covers both a fatal step and timeout).
   if (state.phase === 'gameover' && prevGamePhase !== 'gameover') {
+    // Kill the ambient loops HERE, on entry — not when the player finally
+    // dismisses the screen. updateAirplane only runs while `playing` + `running`,
+    // so once the run ends nothing is left to finish the approach tone's job: the
+    // 1300 Hz square that warns of an incoming plane would keep sounding through
+    // the whole game-over/stats screen. (Reproduced by instrumenting the real
+    // OscillatorNode: the tone survived death and the stats screen, and only
+    // stopped on the way back to the title.) The 'won' path already stops them in
+    // the levelcomplete branch before switching phase.
+    stopAmbientSounds()
+    // Discard whatever key is still pending, or the screen dismisses itself on the
+    // next frame and the player never sees their run summary. `pendingAnyKey` is a
+    // STICKY flag (zx-kit input): nothing reads it while `playing`, so it survives
+    // from the player's last movement key straight into this screen. The mine path
+    // used to handle this alone in the exploding branch; a TIMEOUT game over came
+    // through tickTimer and was auto-skipped. One discard here covers every path in.
+    consumeAnyKey()
     playGameOver()
     announce(L.STR_A11Y_GAMEOVER)
     mirrorRunStats()

@@ -92,6 +92,22 @@ const walkUntilGameOver = async (cap = 400) => {
 const server = await preview({ preview: { port: 4181 } })
 const browser = await chromium.launch()
 page = await browser.newPage()
+
+// Leaked-audio detector. The ambient loops (airplane approach tone, engine drone)
+// are oscillators with NO scheduled stop — they play until the game explicitly
+// stops them, and updateAirplane only runs while the run is live. So a run that
+// ENDS mid-flyover can strand one, and it drones on through the game-over screen
+// (it did, until 2026-08-08). Every deliberate sound effect calls stop(); anything
+// still running with no stop() once the run is over is a leak, whichever loop it is.
+await page.addInitScript(() => {
+  window.__oscs = []
+  const proto = OscillatorNode.prototype
+  const start = proto.start, stop = proto.stop
+  proto.start = function (...a) { window.__oscs.push({ n: this, hz: Math.round(this.frequency.value), stopped: false }); return start.apply(this, a) }
+  proto.stop = function (...a) { const r = window.__oscs.find((o) => o.n === this); if (r) r.stopped = true; return stop.apply(this, a) }
+})
+const leakedOscillators = () => page.evaluate(() =>
+  window.__oscs.filter((o) => !o.stopped).map((o) => o.hz))
 await page.goto('http://localhost:4181/minefield/')
 await page.waitForTimeout(800)
 
@@ -196,6 +212,18 @@ checks.statsShownOnGameOver = /STEPS:\s*\d+/.test(menuAtGameOver) && /TIME:\s*\d
 // already knew about (deaths add steps, so it can only have grown).
 const shownSteps = Number(/STEPS:\s*(\d+)/.exec(menuAtGameOver)?.[1] ?? -1)
 checks.statsContinuousToGameOver = shownSteps >= stepsAfterReload
+
+// The run is over: every looping sound must have been stopped on the way in, not
+// left droning over the summary.
+//
+// HONEST LIMITATION: this only bites when the death-walk above happens to end
+// mid-flyover, so it can pass while the bug is present (verified — reintroducing
+// the 2026-08-08 leak did NOT fail this check on the first try). It raises no
+// false alarms and it costs nothing, but it is a net, not a proof. The
+// deterministic reproduction is a scratchpad script that pins the plane to a fixed
+// schedule and instruments OscillatorNode; see docs/known-issues.md.
+await page.waitForTimeout(1200)   // let any scheduled one-shot (the game-over jingle) finish
+checks.noLeakedAudioAtGameOver = (await leakedOscillators()).length === 0
 
 // 9. The mirror belongs to the screen that filled it. A DAILY run reaches
 //    high-score name entry (the table is empty in this fresh profile), and the
