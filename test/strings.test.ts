@@ -28,6 +28,17 @@ describe('controls / i18n consistency', () => {
     expect(en.STR_PAUSE_TITLES.length).toBe(sk.STR_PAUSE_TITLES.length)
   })
 
+  it('the score-profile line names the host in both languages', () => {
+    // Scores are per-origin (scoreProfile in highscore.ts). The title screen
+    // shows the host visually; a screen-reader user has nothing else to go on,
+    // so the spoken line must actually contain it — a translation that dropped
+    // the interpolation would be silently useless.
+    for (const pack of [en, sk]) {
+      expect(pack.STR_A11Y_MENU_PROFILE('zrebec.github.io')).toContain('zrebec.github.io')
+      expect(pack.STR_A11Y_MENU_PROFILE('127.0.0.1:8137')).toContain('127.0.0.1:8137')
+    }
+  })
+
   it('accessibility strings exist and are non-empty in both languages', () => {
     for (const pack of [en, sk]) {
       expect(pack.STR_A11Y_LEGEND.length).toBeGreaterThan(40)   // a real explanatory paragraph

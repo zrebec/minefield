@@ -9,6 +9,22 @@
       name="description"
       content="THE STRIP — an audio-first ZX Spectrum-style game: cross a blind minefield by listening. One daily field for the whole world. Built to be playable blind and deaf."
     />
+
+    <!-- Offline wrap (see docs/offline.md). Every href below is written with
+         Vite's base-URL placeholder, substituted at build time, so ONE
+         index.html serves both deployments: GitHub Pages (base /minefield/) and
+         the itch.io / offline package (base ./). Hard-coding either one breaks
+         the other silently. theme-color is the ZX border blue the body
+         already paints. -->
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%icons/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%icons/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0000FF" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="The Strip" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
 

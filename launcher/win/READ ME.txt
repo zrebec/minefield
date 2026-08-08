@@ -1,0 +1,87 @@
+THE STRIP — offline edition (Windows)
+=====================================
+
+Cross a blind minefield by listening. One daily field for the whole world.
+Built to be playable blind and deaf.
+
+
+HOW TO PLAY
+-----------
+
+Double-click "The Strip.cmd".
+
+A console window opens, a small web server starts, and the game opens in your
+browser. The server then shuts itself down on its own — that is not an error.
+It only exists to hand the files to your browser once.
+
+Everything runs on your PC. Nothing is uploaded, nothing is downloaded, and the
+game has no network code at all — you can play with the Wi-Fi off.
+
+
+A SHORTCUT YOU CAN KEEP
+-----------------------
+
+Run "Create desktop shortcut.cmd" once. It puts The Strip on your Desktop with
+the game's own icon. Keep the shortcut and this folder together — the shortcut
+points into the folder.
+
+You can also install the game properly from your browser, which is nicer: in
+Edge or Chrome, click Install in the address bar. That gives you a Start menu
+entry and its own window with no browser around it.
+
+
+IF WINDOWS WARNS YOU
+--------------------
+
+A .cmd file downloaded from the internet may make SmartScreen say "Windows
+protected your PC". That is Windows being careful about anything it has not
+seen before, not a problem with the file.
+
+  More info  ->  Run anyway
+
+Nothing here is signed. Signing needs a paid certificate.
+
+
+IF IT DOES NOT START
+--------------------
+
+The launcher uses PowerShell, which every Windows 10 and 11 install has, so
+there is nothing to install. If the port is busy it will say so — something else
+is using 8137.
+
+You can always play online instead:
+
+  https://zrebec.github.io/minefield/
+
+
+CONTROLS
+--------
+
+  Arrow keys        move
+  D                 sonar sweep — one ping per mine in range
+                    (left/right = pan, north/south = pitch, distance = volume)
+  E                 speak the exit's bearing + play the exit beacon
+  G                 speak the nearest gem's bearing + how many are left
+  H                 the full audio guide: goal, controls, rules, sounds
+  F                 flag / unflag the cell in front of you
+  Shift + arrow     flag / unflag a neighbouring cell
+  I                 replay the story intro
+  L                 switch language (English / Slovak)
+  R                 random field (never touches the daily leaderboard)
+  Shift + S         manual save
+  P                 pause / resume
+  + / -             volume
+
+Press H first. It reads the whole game out loud.
+
+
+ABOUT YOUR SCORES
+-----------------
+
+Scores and saves are stored by your browser and belong to the address the game
+was opened from. This offline copy keeps its OWN high-score table, separate from
+the same game played on the web — and separate from the Mac version, which uses
+a different local address.
+
+Nothing is lost, but they do not merge. Pick one place for your real scores.
+The title screen prints which table you are looking at.

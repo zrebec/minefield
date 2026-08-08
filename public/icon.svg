@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#000000"/>
+  <g transform="translate(256 256) scale(1) translate(-256 -256)">
+    <defs><clipPath id="ball"><circle cx="256" cy="256" r="112"/></clipPath></defs>
+    <g transform="translate(256 256)">
+      <g fill="#CD0000"><path d="M -20 -98 L -10 -166 Q 0 -173 10 -166 L 20 -98 Z" transform="rotate(0)"/><path d="M -20 -98 L -10 -166 Q 0 -173 10 -166 L 20 -98 Z" transform="rotate(45)"/><path d="M -20 -98 L -10 -166 Q 0 -173 10 -166 L 20 -98 Z" transform="rotate(90)"/><path d="M -20 -98 L -10 -166 Q 0 -173 10 -166 L 20 -98 Z" transform="rotate(135)"/><path d="M -20 -98 L -10 -166 Q 0 -173 10 -166 L 20 -98 Z" transform="rotate(180)"/><path d="M -20 -98 L -10 -166 Q 0 -173 10 -166 L 20 -98 Z" transform="rotate(225)"/><path d="M -20 -98 L -10 -166 Q 0 -173 10 -166 L 20 -98 Z" transform="rotate(270)"/><path d="M -20 -98 L -10 -166 Q 0 -173 10 -166 L 20 -98 Z" transform="rotate(315)"/></g>
+      <circle r="112" fill="#CD0000"/>
+    </g>
+    <circle cx="226" cy="222" r="106" fill="#FF0000" clip-path="url(#ball)"/>
+    <circle cx="212" cy="206" r="23" fill="#FFFFFF"/></g>
+</svg>

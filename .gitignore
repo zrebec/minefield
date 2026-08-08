@@ -10,7 +10,9 @@ docs/*.sk.md
 
 node_modules
 dist
+dist-offline
 dist-ssr
+release
 *.local
 
 # Editor directories and files

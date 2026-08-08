@@ -43,8 +43,9 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Daily fairness | **Done** — field **and** highscore dated by the run's **origin** daily (verified 2026-06-29) | 2026-06-29 |
 | Leaderboard integrity | **Done (deterrent-grade)** — random runs off-board; envelope sig on saves + hiscore table (zx-kit `hiscore` adopted, save v6) — see item 16 | 2026-07-12 |
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
-| Tests | 528 (Vitest) — incl. run-start race battery + the earcon/result-contract batteries (flag, blocked-move, pause) and a live-context audio smoke | 2026-07-22 |
-| Build / release | semantic-release → GitHub Pages (latest **≥0.60.0**; the 2026-07-22 a11y batch releases per commit) | 2026-07-22 |
+| Tests | 548 (Vitest) — incl. run-start race battery, the earcon/result-contract batteries (flag, blocked-move, pause), a live-context audio smoke, and the offline-wrap contract | 2026-07-31 |
+| Build / release | semantic-release → GitHub Pages (latest **≥0.60.0**; the 2026-07-22 a11y batch releases per commit). Pages build keeps `base: /minefield/`; the itch.io / offline packages are a second build at `--base=./` via `npm run pack:offline` | 2026-07-31 |
+| Offline / PWA | **Done (item 12, 2026-07-31)** — installable manifest + icon set; generated service worker; `npm run offline` + `npm run persist` prove a run is playable with the network cut **and** after the launcher quits; macOS `.app`/`.dmg`, Windows zip, itch.io zip. **Windows path is written but unrun** (no machine here). Ref: `docs/offline.md` | 2026-07-31 |
 | Accessibility | **Deep — the strongest v1.0 moat.** Visual detector (deaf) ✅; ARIA live regions, no built-in TTS; orientation `E`/`G` + legend `H` ✅. **Audio earcons all shipped 2026-07-19→22:** on-demand **sonar sweep** on `D` (pan = E/W, pitch = N/S, volume = distance) + **exit beacon** on `E` (retuned 2026-07-21); **flag** place/remove; **blocked-move** descending double-beep (wall/building/edge); **pause** = assertive "PAUSE" + a descending/ascending two-tone. **Shell reworked 2026-07-22:** title trimmed to one line ("Press H for rules and help", spoken assertive) and **`H` = the full guide** (goal, controls, rules, glossary, sounds). **All three §6 audio gaps closed.** Remaining shell — **parked until a real screen-reader playtest**: `T` reads the time, high-score letter echo, `0` = help (calls the `H` guide), assist-mode toggle. Refs: `docs/accessibility-sonar-beacon.md` + `retro/docs/sk/a11y.md` §5–6 | 2026-07-22 |
 | Win condition | **Shipped 0.57.0 (2026-07-14)** — reach `WIN_LEVEL` (config, default 10) → `won` phase → epilogue → highscore → menu; deterministic + announced. Owner-verified (daily records, random doesn't, ends after 1/3 levels) | 2026-07-14 |
 
@@ -136,7 +137,25 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 10. **Rename → "The Strip"** — focused step: dir + GitHub repo + vite `base` `/minefield/`→`/the-strip/` +
     README/badges/capture paths. **Keep save key `minefield`** (same origin ⇒ saves survive).
 11. **itch.io page** — description, art, build upload, controls + accessibility note.
-12. **PWA / offline** — installable; play the daily offline. (Owner priority.)
+12. **~~PWA / offline~~ — ✅ SHIPPED 2026-07-31.** Installable (manifest + icon set), and the daily
+    plays with the network cut. Service worker is **generated** by an `offlineWrap()` plugin in
+    `vite.config.ts` from `scripts/sw-template.js` — Vite hashes asset filenames, so the
+    hand-written precache list this was adapted from (`timeholder/sw.js`) would have gone stale on
+    the next build. Cache-first for hashed assets, **network-first for `index.html`** (the one
+    mutable name), `ignoreVary: true` on every read (without it the precached bundle is unreachable
+    offline — `addAll` stores no `Origin`, the module request sends one, `Vary: Origin` splits
+    them). Dev guard sits at **registration** (`import.meta.env.PROD`), not inside the worker, so
+    `vite preview` on localhost stays testable. Proof is `npm run offline`: installs the worker,
+    cuts the network, reloads, and **plays a run** with it still cut. Also ships the itch.io
+    packages (`npm run pack:offline` → web zip + macOS offline zip with a launcher), a macOS
+    `.app` + `.dmg` (`npm run pack:app`, unsigned — see the doc's Known limits) and the app icon
+    (`scripts/icons.mjs`, SVG source → PNG + `.ico` set) and a Windows package (`npm run pack:win`,
+    PowerShell `HttpListener` — **written but never executed, no Windows machine here**).
+    Launchers **seed and quit** rather than blocking on a dialog. Tests 548. Ref: `docs/offline.md`.
+    **Known and accepted for v1.0:** `localStorage` is origin-scoped, so Pages, the offline
+    package, `preview` and itch.io each keep a **separate** high-score table. Carrying scores
+    across needs save export — a new feature, frozen out of v1.0, and the same machinery as the
+    replay code, so it should be built once, Post-1.0, not twice.
 
 ### P2 — Stabilisation (robustness for ship)
 13. **Determinism guard test** — assert no `Math.random()` / `Date.now()` / wall-clock in the daily path
@@ -197,6 +216,16 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Decision | Rationale |
 |---|---|---|
+| 2026-07-31 | Offline: **generate** `sw.js` at build time; **never** hand-write the precache list | Vite hashes asset filenames — a literal list (as in `timeholder/sw.js`, the file this was adapted from) names a bundle that stops existing on the next build, and the breakage is invisible until someone goes offline |
+| 2026-07-31 | `ignoreVary: true` on every service-worker cache read | `addAll` stores entries fetched without `Origin`; the module request sends one (Vite's `crossorigin`); a host answering `Vary: Origin` then misses every lookup and the game dies offline with a full cache |
+| 2026-07-31 | Dev guard at **registration** (`import.meta.env.PROD`), not `hostname` inside the worker | Timeholder's hostname guard would bypass the cache on localhost — where `vite preview` serves the production build, i.e. exactly where `npm run offline` proves offline works. The guard would have made the proof a no-op |
+| 2026-07-31 | Pages build keeps `base: /minefield/`; itch/offline is a **second** build at `--base=./` | itch serves HTML games from a path it chooses, so absolute URLs 404 there; switching the shared base instead would risk the live Pages deploy for no gain |
+| 2026-07-31 | App icon is **SVG-sourced**, not an 8×8 sprite | The 8×8 rule governs the 256×192 playfield, not a 1024 px Dock icon; the palette constraint (zx-kit `C`, no gradients) is what actually carries the identity |
+| 2026-07-31 | Manifest icons listed **twice** — `purpose: "any"` and `purpose: "maskable"` — never `"any maskable"` | Shipped as `"any maskable"` first and Safari drew a monogram instead: WebKit skips any icon whose purpose contains `maskable` and uses only `any`. Same files, separate entries; guarded by `test/pwa.test.ts`. Acceptance test is `WKManifestIconKind` in the app Safari generates |
+| 2026-07-31 | Launchers **seed and quit** (serve → open browser → wait for quiet → exit), no blocking dialog | The server only exists to hand the files over once; `npm run persist` proves the game then survives a dead server, a closed browser and a cold start. The first version blocked on a Quit dialog: a modal every launch and a server still listening after the tab was closed |
+| 2026-07-31 | The local package's desktop icon is **`The Strip.app`**, never Safari's *Add to Dock* | A Safari web app gets its own sandboxed container (`~/Library/Containers/com.apple.Safari.WebApp`) and inherits no service worker or cache from Safari. Added from `127.0.0.1:8137` it looks perfect and fails on first launch with "cannot connect". `scripts/persist.mjs` reuses one profile, so it does **not** cover this — noted in both files |
+| 2026-07-31 | Windows server is **PowerShell `HttpListener`** on `http://localhost:8137/`, no runtime ladder | PowerShell ships with every Win10+, so the "no runtime" failure mode cannot happen; the loopback *name* needs no admin URL ACL, the numeric form would. Side effect: Windows origin `localhost:8137` ≠ macOS `127.0.0.1:8137` ⇒ separate score tables |
+| 2026-07-31 | Score profile (the host) is **shown on the title screen and spoken** | Per-origin `localStorage` cannot be merged (v1.0 is frozen; export is Post-1.0 with the replay code). Silence was the real problem — a player just sees scores vanish. `scoreProfile()` in `highscore.ts`; row 12 in `renderIntro` + `STR_A11Y_MENU_PROFILE` |
 | 2026-06-23 | Airplane guard checks **entry→exit** (not player position) | Player-independent → keeps daily deterministic; safe-trail invariant still guarantees winnability |
 | 2026-06-23 | Forward bias instead of strict "never drop behind player" | "Behind player" is player-dependent → would break daily determinism |
 | 2026-06-22 | Daily debug reveal = 0; random capped (`RANDOM_REVEAL_LIMIT`) | Screenshots can't be blocked; protect daily fairness at the source |

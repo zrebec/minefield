@@ -220,6 +220,46 @@ HUD row (1:1 sprites, cap 32); a full backpack leaves a gem on the field — and
 
 ---
 
+## Install and play offline
+
+The game needs no network. There is no server, no account, no telemetry, and the
+daily field is computed from your own clock — so once you have it, you have it.
+
+**Install it from the browser.** Open the hosted game once, then Chrome/Edge →
+*Install*, or Safari → **File → Add to Dock…** (Safari has the feature but no
+install prompt, so it is easy to miss). It gets its own window and its own icon,
+and from then on it launches and plays with the network off. That one first visit
+is the only thing it needs online: a service worker can only cache what it was
+allowed to fetch. Install from the **hosted** address, not from the local
+launcher below — a browser installs whatever URL is in the address bar, and a
+Dock icon pointing at `127.0.0.1` is dead whenever the launcher is not running.
+
+**Or take the download.** On macOS, `The-Strip.dmg` (drag **The Strip.app** to
+Applications) or `the-strip-offline-macos.zip`; on Windows,
+`the-strip-offline-windows.zip` (double-click **The Strip.cmd**, then run
+**Create desktop shortcut.cmd** once). None of them need a network at all —
+useful on a plane, or on a USB stick. None can be a plain double-click on
+`index.html`, because browsers refuse to load ES modules over `file://`, so each
+starts a tiny loopback server first.
+
+**That server is a starter, not the game** — it shuts itself down once your
+browser has taken its copy, and the tab keeps working with it gone. That is not a
+crash; it is the launcher's whole job finishing.
+
+**For a desktop icon on the offline copy**, use `The Strip.app` on macOS or
+*Create desktop shortcut.cmd* on Windows — **not** Safari's *Add to Dock*. A
+Safari web app runs in its own separate profile with none of that copy, so added
+from a local address it launches straight into "cannot connect". *Add to Dock* is
+the right move on the **online** version, where the server is the internet.
+
+**Scores are per install.** Browsers file saved data under the address it came
+from, so each copy keeps its own high-score table and they never merge. The title
+screen prints which one you are looking at, above the table.
+
+Build the packages yourself with `npm run pack:offline`, `npm run pack:app` and
+`npm run pack:win`. How the wrap works, and the decisions in it that are not
+obvious, are in [docs/offline.md](docs/offline.md).
+
 ## Under the hood
 
 Colour-clash-correct rendering, the density-based mine budget, the perimeter fence with an
@@ -231,6 +271,7 @@ airdrops), the two-plane seeded sky, the signed v6 save format and the full modu
 ## Related Links
 
 - [docs/architecture.md](docs/architecture.md) — technical highlights, module map, local dev
+- [docs/offline.md](docs/offline.md) — PWA install, the service worker, the itch.io packages
 - [AGENTS.md](AGENTS.md) — permanent agent rules
 - [CLAUDE.md](CLAUDE.md) — execution guide / architecture
 - [ROADMAP.md](ROADMAP.md) — live backlog
