@@ -569,7 +569,7 @@ export function stopAmbientSounds(): void {
   stopFriendlyPlane()
 }
 
-// ── Story intro audio ("The Strip") ────────────────────────────────────────
+// ── Story intro audio ("Minefield") ────────────────────────────────────────
 // The intro is the only place the kit's AY chip is used (everything else is the
 // beeper). A somber, sparse minor loop underscores the typewriter story; a dry
 // per-character tick is the "key strike". Both are NEW sounds — nothing existing

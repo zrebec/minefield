@@ -20,12 +20,12 @@ import { COLS, ROWS } from '../src/constants.ts'
 const doc = new DOMParser().parseFromString(html, 'text/html')
 
 describe('game title', () => {
-  it('the document <title> names the game THE STRIP (ZX Spectrum Edition)', () => {
-    expect(doc.title).toBe('THE STRIP — ZX Spectrum Edition')
+  it('the document <title> names the game MINEFIELD (ZX Spectrum Edition)', () => {
+    expect(doc.title).toBe('MINEFIELD — ZX Spectrum Edition')
   })
 
   it('the document <title> matches the in-game title (STR_TITLE) — one name everywhere', () => {
-    // STR_TITLE is letter-spaced for the ZX screen ('T H E   S T R I P'), so
+    // STR_TITLE is letter-spaced for the ZX screen ('M I N E F I E L D'), so
     // compare with whitespace stripped: the NAME must match, not the kerning.
     const squash = (s: string): string => s.replace(/\s+/g, '')
     expect(squash(doc.title)).toContain(squash(STR_TITLE))
@@ -33,7 +33,7 @@ describe('game title', () => {
 
   it('the meta description exists and names the game', () => {
     const desc = doc.querySelector('meta[name="description"]')?.getAttribute('content') ?? ''
-    expect(desc).toContain('THE STRIP')
+    expect(desc).toContain('MINEFIELD')
     expect(desc.length).toBeGreaterThan(40)
   })
 })
@@ -98,7 +98,7 @@ describe('ARIA attributes', () => {
   })
 
   it('a <noscript> fallback exists for browsers without JS', () => {
-    expect(doc.querySelector('noscript')?.textContent ?? '').toContain('THE STRIP')
+    expect(doc.querySelector('noscript')?.textContent ?? '').toContain('MINEFIELD')
   })
 
   it('#sr-legend exists as a navigable .sr-only audio guide', () => {

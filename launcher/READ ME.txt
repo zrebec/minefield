@@ -1,4 +1,4 @@
-THE STRIP — offline edition
+MINEFIELD — offline edition
 ===========================
 
 Cross a blind minefield by listening. One daily field for the whole world.
@@ -8,7 +8,7 @@ Built to be playable blind and deaf.
 HOW TO PLAY
 -----------
 
-Double-click "The Strip.command".
+Double-click "Minefield.command".
 
 A Terminal window opens, a small web server starts, and the game opens in your
 browser. Keep the Terminal window open while you play; close it when you are
@@ -32,7 +32,7 @@ your browser, unplug the internet. It has everything it needs.
 IF YOU WANT AN ICON IN THE DOCK
 -------------------------------
 
-Use "The Strip.app" from the disk image (The-Strip.dmg) and drag it to the Dock.
+Use "Minefield.app" from the disk image (minefield.dmg) and drag it to the Dock.
 
 Do NOT use Safari's "Add to Dock" on this local address. It looks like it works
 — you even get the right icon — but a Safari web app runs in its own separate
@@ -65,7 +65,7 @@ If you downloaded this, macOS may refuse the first double-click and say the file
 is "from an unidentified developer". That is macOS quarantining anything that
 arrived from the internet, not a problem with the file.
 
-  Right-click "The Strip.command"  ->  Open  ->  Open
+  Right-click "Minefield.command"  ->  Open  ->  Open
 
 You only have to do that once.
 

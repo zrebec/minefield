@@ -31,12 +31,13 @@ const manifest = JSON.parse(manifestRaw) as {
 }
 
 describe('manifest', () => {
-  it('is named for the game, not the repository', () => {
-    // The directory, the repo and the URL stay `minefield` until ROADMAP item 10
-    // does the rename in one focused step — but the desktop icon is user-facing
-    // and the game has called itself The Strip since the title screen.
-    expect(manifest.name).toBe('The Strip')
-    expect(manifest.short_name).toBe('The Strip')
+  it('is named for the game', () => {
+    // The installed app's name is what a player sees on their home screen, so
+    // it has to be the game's name and nothing else. Game, directory, repo and
+    // URL have all read `minefield` since the rename was cancelled (2026-08-16),
+    // so there is no longer any gap between them to guard.
+    expect(manifest.name).toBe('Minefield')
+    expect(manifest.short_name).toBe('Minefield')
   })
 
   it('installs as a standalone window', () => {
@@ -150,7 +151,11 @@ describe('service worker template', () => {
 
   it('deletes only this game\'s old caches', () => {
     // github.io is one origin for the whole portfolio; an unprefixed sweep
-    // would delete the other games' caches too.
-    expect(template).toContain("startsWith('the-strip-')")
+    // would delete the other games' caches too. `the-strip-` is this game's
+    // too — builds shipped under the cancelled rename (2026-08-16) — and it is
+    // listed so those orphans still get collected.
+    expect(template).toContain("'minefield-'")
+    expect(template).toContain("'the-strip-'")
+    expect(template).toMatch(/OWNED_PREFIXES\.some\(/)
   })
 })

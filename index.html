@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- The game's name is THE STRIP (repo/package/URL keep `minefield` until the focused rename). -->
-    <title>THE STRIP — ZX Spectrum Edition</title>
+    <!-- The game is MINEFIELD, and the repo, package and URL all agree. A rename
+         to "The Strip" was considered and dropped — see ROADMAP Decisions, 2026-08-16. -->
+    <title>MINEFIELD — ZX Spectrum Edition</title>
     <meta
       name="description"
-      content="THE STRIP — an audio-first ZX Spectrum-style game: cross a blind minefield by listening. One daily field for the whole world. Built to be playable blind and deaf."
+      content="MINEFIELD — an audio-first ZX Spectrum-style game: cross a blind minefield by listening. One daily field for the whole world. Built to be playable blind and deaf."
     />
 
     <!-- Offline wrap (see docs/offline.md). Every href below is written with
@@ -22,7 +23,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%icons/apple-touch-icon.png" />
     <meta name="theme-color" content="#0000FF" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="The Strip" />
+    <meta name="apple-mobile-web-app-title" content="Minefield" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
     <style>
@@ -70,7 +71,7 @@
     <canvas
       id="game"
       role="img"
-      aria-label="The Strip — a minefield-crossing game rendered on this canvas. Game announcements are read aloud below."
+      aria-label="Minefield — a minefield-crossing game rendered on this canvas. Game announcements are read aloud below."
     ></canvas>
 
     <!-- ARIA live regions (accessibility skeleton, 2026-07-03). The game writes
@@ -94,7 +95,7 @@
          on write. -->
     <div id="sr-menu" class="sr-only" aria-label="Menu"></div>
 
-    <noscript>THE STRIP needs JavaScript to run — it is a browser game rendered on a canvas with Web Audio sound.</noscript>
+    <noscript>MINEFIELD needs JavaScript to run — it is a browser game rendered on a canvas with Web Audio sound.</noscript>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

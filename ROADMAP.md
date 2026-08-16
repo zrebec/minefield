@@ -9,11 +9,11 @@ An audio-first, blind minefield traversal that is **fair** (one daily field for 
 and **authentically ZX Spectrum**. Polished to a "finished product": complete loop, leaderboard, save,
 accessibility, and a clear RULES screen. The strongest moat is accessibility (genuinely playable blind).
 
-## Release — v1.0 (The Strip on itch.io)
+## Release — v1.0 (Minefield on itch.io)
 
-**We ship.** v1.0 is a **firm-date, feature-frozen** release of The Strip on itch.io — not perpetual
+**We ship.** v1.0 is a **firm-date, feature-frozen** release of Minefield on itch.io — not perpetual
 development. After 1.0: bug-fixes and balance only, no new mechanics. (zx-kit's own road to 1.0 is a
-separate track; The Strip's release does not block on extracting anything into the kit — see Decisions.)
+separate track; Minefield's release does not block on extracting anything into the kit — see Decisions.)
 
 **Definition of done for v1.0:**
 - **Win condition + post-win screen** — the daily has a definite ending (reach `WIN_LEVEL`; epilogue →
@@ -21,7 +21,8 @@ separate track; The Strip's release does not block on extracting anything into t
 - Story intro complete: 4 cards with bespoke hand-drawn art, copy + tempo + AY/typewriter tuned by ear.
 - Difficulty tuned (a daily L1–L2 reliably beatable); the **green-gem** special ✅ shipped 0.51.0
   (friendly recon plane).
-- Renamed to **The Strip** (dir + GitHub repo + Pages base + README/badges/capture paths; save key stays).
+- ~~Renamed to **The Strip**~~ — **cancelled 2026-08-16, the game is Minefield.** No longer part of
+  the definition of done; see Decisions. Nothing about the repo, directory, Pages base or URL moves.
 - **RULES** screen + refreshed screenshots (intro + fenced field).
 - **Accessibility moat** (option-C scope, updated 2026-07-11): screen-reader playability via ARIA live
   regions (no built-in TTS — the voice is the reader's), orientation + legend keys, exit beacon,
@@ -134,8 +135,11 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    fence/exit), then regenerate intro + play shots.
 
 ### P2 — Branding & release logistics
-10. **Rename → "The Strip"** — focused step: dir + GitHub repo + vite `base` `/minefield/`→`/the-strip/` +
-    README/badges/capture paths. **Keep save key `minefield`** (same origin ⇒ saves survive).
+10. **~~Rename → "The Strip"~~ — ✗ CANCELLED 2026-08-16.** Not deferred: dropped. The game is
+    **Minefield** and the repo, directory, Pages base and URL all stay as they are, which is why
+    this item is now zero work rather than a step. Rationale in Decisions. The only trace left is
+    `SAVE_SECRET` in `config.ts`, which must keep its string or every existing save fails as
+    `tampered`.
 11. **itch.io page** — description, art, build upload, controls + accessibility note.
 12. **~~PWA / offline~~ — ✅ SHIPPED 2026-07-31.** Installable (manifest + icon set), and the daily
     plays with the network cut. Service worker is **generated** by an `offlineWrap()` plugin in
@@ -216,6 +220,7 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Decision | Rationale |
 |---|---|---|
+| 2026-08-16 | **The rename to "The Strip" is cancelled — the game is Minefield**, and so are the repo, the directory, the Pages base and the URL. A red line, not another deferral | A game released for the ZX Spectrum in 1982 would have been called Minefield. The rename bought nothing and spent the identity. "The Strip" survives only as the *place* in the story (Slovak: "Pás") — the brand and the place are two different words, and both locales keep them apart. `SAVE_SECRET` still reads `minefield:the-strip:v1`: it is an opaque signing key minted during that window, and changing it would fail every existing save as `tampered` (see `config.ts`) |
 | 2026-07-31 | Offline: **generate** `sw.js` at build time; **never** hand-write the precache list | Vite hashes asset filenames — a literal list (as in `timeholder/sw.js`, the file this was adapted from) names a bundle that stops existing on the next build, and the breakage is invisible until someone goes offline |
 | 2026-07-31 | `ignoreVary: true` on every service-worker cache read | `addAll` stores entries fetched without `Origin`; the module request sends one (Vite's `crossorigin`); a host answering `Vary: Origin` then misses every lookup and the game dies offline with a full cache |
 | 2026-07-31 | Dev guard at **registration** (`import.meta.env.PROD`), not `hostname` inside the worker | Timeholder's hostname guard would bypass the cache on localhost — where `vite preview` serves the production build, i.e. exactly where `npm run offline` proves offline works. The guard would have made the proof a no-op |
@@ -223,7 +228,7 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 | 2026-07-31 | App icon is **SVG-sourced**, not an 8×8 sprite | The 8×8 rule governs the 256×192 playfield, not a 1024 px Dock icon; the palette constraint (zx-kit `C`, no gradients) is what actually carries the identity |
 | 2026-07-31 | Manifest icons listed **twice** — `purpose: "any"` and `purpose: "maskable"` — never `"any maskable"` | Shipped as `"any maskable"` first and Safari drew a monogram instead: WebKit skips any icon whose purpose contains `maskable` and uses only `any`. Same files, separate entries; guarded by `test/pwa.test.ts`. Acceptance test is `WKManifestIconKind` in the app Safari generates |
 | 2026-07-31 | Launchers **seed and quit** (serve → open browser → wait for quiet → exit), no blocking dialog | The server only exists to hand the files over once; `npm run persist` proves the game then survives a dead server, a closed browser and a cold start. The first version blocked on a Quit dialog: a modal every launch and a server still listening after the tab was closed |
-| 2026-07-31 | The local package's desktop icon is **`The Strip.app`**, never Safari's *Add to Dock* | A Safari web app gets its own sandboxed container (`~/Library/Containers/com.apple.Safari.WebApp`) and inherits no service worker or cache from Safari. Added from `127.0.0.1:8137` it looks perfect and fails on first launch with "cannot connect". `scripts/persist.mjs` reuses one profile, so it does **not** cover this — noted in both files |
+| 2026-07-31 | The local package's desktop icon is **`Minefield.app`**, never Safari's *Add to Dock* | A Safari web app gets its own sandboxed container (`~/Library/Containers/com.apple.Safari.WebApp`) and inherits no service worker or cache from Safari. Added from `127.0.0.1:8137` it looks perfect and fails on first launch with "cannot connect". `scripts/persist.mjs` reuses one profile, so it does **not** cover this — noted in both files |
 | 2026-07-31 | Windows server is **PowerShell `HttpListener`** on `http://localhost:8137/`, no runtime ladder | PowerShell ships with every Win10+, so the "no runtime" failure mode cannot happen; the loopback *name* needs no admin URL ACL, the numeric form would. Side effect: Windows origin `localhost:8137` ≠ macOS `127.0.0.1:8137` ⇒ separate score tables |
 | 2026-07-31 | Score profile (the host) is **shown on the title screen and spoken** | Per-origin `localStorage` cannot be merged (v1.0 is frozen; export is Post-1.0 with the replay code). Silence was the real problem — a player just sees scores vanish. `scoreProfile()` in `highscore.ts`; row 12 in `renderIntro` + `STR_A11Y_MENU_PROFILE` |
 | 2026-06-23 | Airplane guard checks **entry→exit** (not player position) | Player-independent → keeps daily deterministic; safe-trail invariant still guarantees winnability |
@@ -234,7 +239,7 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 | 2026-06-24 | Winter→spring handled by the 4th intro card (not a forced snow start) | Keeps terrain variety; bridges the wintry setup to a spring first-crossing |
 | 2026-06-24 | **Rename to "The Strip" deferred** to a focused step (dir + GitHub + Pages base); save key stays `minefield` | Avoids a half-renamed repo mid-feature; same origin ⇒ saves survive |
 | 2026-06-24 | **zx-kit extraction deferred** until a 2nd real consumer (kit's own rule) | Candidates: typewriter reveal, story-card stepper, dither/shade fill — lift them when chaosBunny/IceHaul needs one, not speculatively (and not during the kit's pre-1.0 freeze) |
-| 2026-06-24 | **dither/shade extracted to zx-kit** (`drawShade` + `DITHER`, 0.35.0); The Strip consumes it | Foundational ZX primitive the kit lacked; pre-1.0 is the right window; chaosBunny is the confirmed 2nd consumer |
+| 2026-06-24 | **dither/shade extracted to zx-kit** (`drawShade` + `DITHER`, 0.35.0); Minefield consumes it | Foundational ZX primitive the kit lacked; pre-1.0 is the right window; chaosBunny is the confirmed 2nd consumer |
 | 2026-06-25 | Daily run carries its **origin date** across levels; highscore dated by it (not wall-clock) | A resumed/older daily scores under its own date — keeps the leaderboard fair (verified 2026-06-29) |
 | 2026-06-25 | Intro flow: **title-first**; `I` replays; intro pre-rolls on a mode-start when "due" (localStorage; daily until v1.0) | Save-resume skipped the intro entirely; this makes it reachable + first-time-gated |
 | 2026-06-25 | Startup jingle moved off first-gesture → once per session on a **direct** game-start | It clashed with the intro AY underscore; only the *timing* changed (sound unchanged) |

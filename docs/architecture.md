@@ -87,7 +87,7 @@ src/
 ├── player.ts      ← movement, collision, flag, respawn, scoring, gem pickup, combo
 ├── a11y.ts        ← screen-reader bridge: announce/status live regions, legend, describeStep/orientation
 ├── airplane.ts    ← both aircraft: enemy bomber (timer, mine drop) + friendly recon plane (green-gem reward)
-├── intro.ts       ← "The Strip" story intro: typewriter state machine + 5 hand-drawn scenes
+├── intro.ts       ← "Minefield" story intro: typewriter state machine + 5 hand-drawn scenes
 ├── renderer.ts    ← canvas rendering: TileMap, sprites, HUD, detector, night, overlays
 ├── save.ts        ← zx-kit save profile wiring (version 6, signed envelope)
 ├── highscore.ts   ← zx-kit hiscore adoption: level+date extras, auto-dating, legacy-table migration

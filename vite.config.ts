@@ -53,7 +53,7 @@ function offlineWrap(): Plugin {
       // the comment instead of the constant — shipping an sw.js whose PRECACHE
       // was the literal token. The leftover check below makes that class of
       // mistake a build failure rather than a silent one.
-      const cache = `the-strip-${appVersion}-${digest.digest('hex').slice(0, 8)}`
+      const cache = `minefield-${appVersion}-${digest.digest('hex').slice(0, 8)}`
       const sw = readFileSync(resolve('./scripts/sw-template.js'), 'utf-8')
         .replace("const CACHE = '__CACHE__'", `const CACHE = ${JSON.stringify(cache)}`)
         .replace("const INDEX = '__INDEX__'", `const INDEX = ${JSON.stringify(`${base}index.html`)}`)

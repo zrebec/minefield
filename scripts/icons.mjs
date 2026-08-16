@@ -226,8 +226,8 @@ if (arg === '--candidates') {
   // the launcher that actually uses it.
   const ico = []
   for (const size of ICO_SIZES) ico.push({ size, buf: await rasterise(page, svgFor(cand), size) })
-  await write(resolve(root, 'launcher/win/the-strip.ico'), toIco(ico))
-  written.push('launcher/win/the-strip.ico')
+  await write(resolve(root, 'launcher/win/minefield.ico'), toIco(ico))
+  written.push('launcher/win/minefield.ico')
 
   await write(resolve(root, 'public/icon.svg'), svgFor(cand))
   written.push('public/icon.svg')
