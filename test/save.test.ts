@@ -205,6 +205,50 @@ describe('save integrity signature', () => {
   })
 })
 
+// ── The signing secret must never move ───────────────────────────────────────
+
+// The test this file was missing, and the gap is instructive: every other test
+// here writes AND reads with whatever `SAVE_SECRET` currently is, so the whole
+// suite stays green while the constant changes underneath — which is exactly
+// what happened on 2026-08-16, when a rename swept `minefield:the-strip:v1` to
+// `minefield:minefield:v1` and 594 passing tests said nothing. The secret is an
+// opaque key, not a name: a save signed with the old one fails as `tampered`,
+// so moving it silently wipes every player's run and high-score table.
+describe('SAVE_SECRET is frozen', () => {
+  // Written out as a literal rather than imported, so this test cannot follow
+  // the constant it exists to pin.
+  const SHIPPED_SECRET = 'minefield:the-strip:v1'
+
+  it('still has the value every save on disk was signed with', () => {
+    expect(
+      SAVE_SECRET,
+      'Changing SAVE_SECRET invalidates every existing save and high-score table ' +
+      '(they load as `tampered`). It may only move together with a save `version` ' +
+      'bump and a migration that re-signs. See ROADMAP Decisions, 2026-08-16.',
+    ).toBe(SHIPPED_SECRET)
+  })
+
+  it('loads a save signed with that exact secret', () => {
+    // The property behind the constant: sign an envelope the way a shipped
+    // build did, and the game must still read it back.
+    const saved = createGame(2, 7777, 'frozen-secret-seed')
+    setStateGetter(() => saved)
+    expect(writeSave(saveProfile, 'auto').ok).toBe(true)
+
+    const key = 'zxkit:minefield:auto'
+    const envelope = JSON.parse(localStorage.getItem(key) as string)
+    envelope.sig = _envelopeSig(
+      envelope.version, envelope.timestamp, JSON.stringify(envelope.data), SHIPPED_SECRET,
+    )
+    localStorage.setItem(key, JSON.stringify(envelope))
+
+    const loaded = createGame(0, 0, 'frozen-secret-seed')
+    setStateGetter(() => loaded)
+    expect(readSaveLatest(saveProfile).ok).toBe(true)
+    expect(loaded.score).toBe(7777)
+  })
+})
+
 // ── Run statistics through a save/reload ──────────────────────────────────────
 
 // RISK #6: the summary spans the WHOLE run, but a browser refresh rebuilds the

@@ -6,7 +6,7 @@
 
 ## Mission
 
-The Strip (repo/package still `minefield` until a focused rename) is a browser homage to early-1980s ZX
+Minefield is a browser homage to early-1980s ZX
 Spectrum "minefield" games: cross a **blind** minefield left→right, warned only by sound and a visual HUD
 detector, while an aircraft periodically drops more mines. It must always stay: **audio-primary but not
 audio-only**, **fair** (a daily field is the same for everyone and **always winnable**), and **visually
@@ -16,10 +16,23 @@ across) is the in-world reason the daily field changes and the aircraft keeps dr
 
 ## Name
 
-The game's name is **The Strip**; the on-screen title (`STR_TITLE`) and the document `<title>` in
-`index.html` both read `THE STRIP` (since 2026-07-03). The repository, npm package, GitHub Pages base and
-capture paths still read `minefield` — a full rename is a deliberate, deferred step. **Keep the internal
-save key `minefield`** through any rename (same origin ⇒ existing saves and high-scores survive).
+The game's name is **Minefield**, and everything agrees with it: the on-screen title (`STR_TITLE`),
+the document `<title>`, the repository, the npm package, the GitHub Pages base, the URL and the
+capture paths. **No rename is pending.** One was planned — to "The Strip" — and cancelled on
+2026-08-16 (ROADMAP Decisions): a game released for the Spectrum in 1982 would have been called
+Minefield.
+
+Two things survive from that window, and both are deliberate:
+
+- **"the Strip" is still the name of the *place* in the story** — the no-man's-land between the two
+  countries, `Pás` in the Slovak pack. The brand and the place are different words; do not sweep one
+  into the other, and keep the two locales in step when either changes.
+- **`SAVE_SECRET` still reads `minefield:the-strip:v1`.** It is an opaque signing key, not a name.
+  Changing it fails every existing save and the whole high-score table as `tampered`; it may only
+  move together with a save `version` bump and a re-signing migration. Pinned by `test/save.test.ts`.
+
+Likewise **keep the storage keys** `minefield` (run save), `minefield-hiscore`, `minefield_hiscores`
+(legacy), `minefield_language` and `minefield_intro` exactly as they are.
 
 ## Permanent Audio Rule
 

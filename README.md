@@ -1,9 +1,8 @@
-# THE STRIP — ZX Spectrum Edition
+# MINEFIELD — ZX Spectrum Edition
 
-> *The game's name is **The Strip** — shown on the title screen, in the browser tab (`<title>`)
-> and told in the story intro. The repository, npm package and live URL are still `minefield` until
-> a focused rename (dir + GitHub + Pages base); the internal save key stays `minefield` so existing
-> saves survive. See [ROADMAP](ROADMAP.md).*
+> *The game's name is **Minefield** — on the title screen, in the browser tab, in the repository, in
+> the URL. A rename to "The Strip" was planned and cancelled on 2026-08-16; that name now belongs
+> only to the **place** in the story. See [ROADMAP](ROADMAP.md) → Decisions.*
 
 > A retro browser game inspired by 1980s ZX Spectrum titles. Cross a blind minefield by **listening** —
 > the closer the mines, the more urgent the sound — backed by a visual danger detector for players
@@ -64,7 +63,7 @@ A **5-chapter typewriter intro** (THE DIVIDE · TORN APART · NO WAY ACROSS · T
 the first time you play (replay anytime with `I`; any key advances / skips). Each chapter is **hand-drawn in
 8×8 tiles** (clash-correct by construction; dithered night skies via the kit's `drawShade`) and carries its
 own **AY underscore** — a melancholic loop per card that darkens to a funeral dirge for *No Way Across* and
-resolves into Beethoven's *Ode to Joy* for *New Hope*. AY is the **only** place The Strip touches the chip;
+resolves into Beethoven's *Ode to Joy* for *New Hope*. AY is the **only** place Minefield touches the chip;
 gameplay stays pure beeper.
 
 ---
@@ -234,9 +233,9 @@ allowed to fetch. Install from the **hosted** address, not from the local
 launcher below — a browser installs whatever URL is in the address bar, and a
 Dock icon pointing at `127.0.0.1` is dead whenever the launcher is not running.
 
-**Or take the download.** On macOS, `The-Strip.dmg` (drag **The Strip.app** to
-Applications) or `the-strip-offline-macos.zip`; on Windows,
-`the-strip-offline-windows.zip` (double-click **The Strip.cmd**, then run
+**Or take the download.** On macOS, `minefield.dmg` (drag **Minefield.app** to
+Applications) or `minefield-offline-macos.zip`; on Windows,
+`minefield-offline-windows.zip` (double-click **Minefield.cmd**, then run
 **Create desktop shortcut.cmd** once). None of them need a network at all —
 useful on a plane, or on a USB stick. None can be a plain double-click on
 `index.html`, because browsers refuse to load ES modules over `file://`, so each
@@ -246,7 +245,7 @@ starts a tiny loopback server first.
 browser has taken its copy, and the tab keeps working with it gone. That is not a
 crash; it is the launcher's whole job finishing.
 
-**For a desktop icon on the offline copy**, use `The Strip.app` on macOS or
+**For a desktop icon on the offline copy**, use `Minefield.app` on macOS or
 *Create desktop shortcut.cmd* on Windows — **not** Safari's *Add to Dock*. A
 Safari web app runs in its own separate profile with none of that copy, so added
 from a local address it launches straight into "cannot connect". *Add to Dock* is
@@ -282,7 +281,7 @@ airdrops), the two-plane seeded sky, the signed v6 save format and the full modu
 
 ## Accessibility
 
-**Our public commitment: v1.0 (The Strip, `2026-09-07`) will be fully playable by blind and by
+**Our public commitment: v1.0 (Minefield, `2026-09-07`) will be fully playable by blind and by
 deaf players.** Not "compatible" — playable, start to finish, including the menus.
 
 - **Deaf players — done.** The game is audio-primary but **not** audio-only: the HUD detector

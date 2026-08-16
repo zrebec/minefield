@@ -112,7 +112,7 @@ await page.goto('http://localhost:4181/minefield/')
 await page.waitForTimeout(800)
 
 // 1. Shell: document title + the ARIA live regions (the a11y contract, live).
-checks.title = (await page.title()).includes('THE STRIP')
+checks.title = (await page.title()).includes('MINEFIELD')
 checks.ariaRegions = await page.evaluate(() =>
   document.getElementById('sr-announcer') !== null && document.getElementById('sr-status') !== null)
 

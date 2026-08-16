@@ -1,4 +1,4 @@
-THE STRIP — offline edition (Windows)
+MINEFIELD — offline edition (Windows)
 =====================================
 
 Cross a blind minefield by listening. One daily field for the whole world.
@@ -8,7 +8,7 @@ Built to be playable blind and deaf.
 HOW TO PLAY
 -----------
 
-Double-click "The Strip.cmd".
+Double-click "Minefield.cmd".
 
 A console window opens, a small web server starts, and the game opens in your
 browser. The server then shuts itself down on its own — that is not an error.
@@ -21,7 +21,7 @@ game has no network code at all — you can play with the Wi-Fi off.
 A SHORTCUT YOU CAN KEEP
 -----------------------
 
-Run "Create desktop shortcut.cmd" once. It puts The Strip on your Desktop with
+Run "Create desktop shortcut.cmd" once. It puts Minefield on your Desktop with
 the game's own icon. Keep the shortcut and this folder together — the shortcut
 points into the folder.
 

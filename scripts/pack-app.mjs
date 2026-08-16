@@ -1,4 +1,4 @@
-// Builds "The Strip.app" and a drag-to-Applications disk image.
+// Builds "Minefield.app" and a drag-to-Applications disk image.
 //
 //   npm run pack:app        (runs build:offline first)
 //
@@ -6,10 +6,10 @@
 // packaging tool — only `sips` and `iconutil`, which ship with macOS, to turn
 // our 1024 px icon into the .icns Finder wants.
 //
-//   The Strip.app/Contents/
+//   Minefield.app/Contents/
 //     Info.plist            what Finder reads
-//     MacOS/the-strip       launcher/app-main.sh
-//     Resources/the-strip.icns
+//     MacOS/minefield       launcher/app-main.sh
+//     Resources/minefield.icns
 //     Resources/serve.sh    shared with the .command launcher
 //     Resources/game/       the --base=./ build
 //
@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const build = resolve(root, 'dist-offline')
 const out = resolve(root, 'release')
-const app = resolve(out, 'The Strip.app')
+const app = resolve(out, 'Minefield.app')
 const contents = resolve(app, 'Contents')
 
 const version = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf-8')).version
@@ -51,7 +51,7 @@ await mkdir(resolve(contents, 'Resources/game'), { recursive: true })
 // ── Icon ──────────────────────────────────────────────────────────────────────
 // iconutil wants a directory of exactly-named PNGs. Every size is downscaled
 // from the same 1024 master, so nothing is ever upscaled.
-const iconset = resolve(out, 'the-strip.iconset')
+const iconset = resolve(out, 'minefield.iconset')
 await mkdir(iconset, { recursive: true })
 const master = resolve(root, 'public/icons/icon-1024.png')
 for (const [px, name] of [
@@ -63,7 +63,7 @@ for (const [px, name] of [
 ]) {
   run('sips', ['-z', String(px), String(px), master, '--out', resolve(iconset, name)], { stdio: 'ignore' })
 }
-run('iconutil', ['-c', 'icns', iconset, '-o', resolve(contents, 'Resources/the-strip.icns')])
+run('iconutil', ['-c', 'icns', iconset, '-o', resolve(contents, 'Resources/minefield.icns')])
 await rm(iconset, { recursive: true, force: true })
 
 // ── Bundle ────────────────────────────────────────────────────────────────────
@@ -71,11 +71,11 @@ await writeFile(resolve(contents, 'Info.plist'), `<?xml version="1.0" encoding="
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>The Strip</string>
-  <key>CFBundleDisplayName</key><string>The Strip</string>
-  <key>CFBundleIdentifier</key><string>io.github.zrebec.the-strip</string>
-  <key>CFBundleExecutable</key><string>the-strip</string>
-  <key>CFBundleIconFile</key><string>the-strip</string>
+  <key>CFBundleName</key><string>Minefield</string>
+  <key>CFBundleDisplayName</key><string>Minefield</string>
+  <key>CFBundleIdentifier</key><string>io.github.zrebec.minefield</string>
+  <key>CFBundleExecutable</key><string>minefield</string>
+  <key>CFBundleIconFile</key><string>minefield</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>${version}</string>
   <key>CFBundleVersion</key><string>${version}</string>
@@ -85,8 +85,8 @@ await writeFile(resolve(contents, 'Info.plist'), `<?xml version="1.0" encoding="
 </plist>
 `)
 
-await cp(resolve(root, 'launcher/app-main.sh'), resolve(contents, 'MacOS/the-strip'))
-await chmod(resolve(contents, 'MacOS/the-strip'), 0o755)
+await cp(resolve(root, 'launcher/app-main.sh'), resolve(contents, 'MacOS/minefield'))
+await chmod(resolve(contents, 'MacOS/minefield'), 0o755)
 await cp(resolve(root, 'launcher/serve.sh'), resolve(contents, 'Resources/serve.sh'))
 await cp(build, resolve(contents, 'Resources/game'), { recursive: true })
 
@@ -94,13 +94,13 @@ await cp(build, resolve(contents, 'Resources/game'), { recursive: true })
 // The /Applications symlink is what makes a .dmg an installer: open it and you
 // drag the app across. UDZO = compressed read-only, the normal format.
 const stage = resolve(out, 'dmg')
-const dmg = resolve(out, 'The-Strip.dmg')
+const dmg = resolve(out, 'minefield.dmg')
 await rm(stage, { recursive: true, force: true })
 await mkdir(stage, { recursive: true })
-await cp(app, resolve(stage, 'The Strip.app'), { recursive: true })
+await cp(app, resolve(stage, 'Minefield.app'), { recursive: true })
 run('ln', ['-s', '/Applications', resolve(stage, 'Applications')])
 await rm(dmg, { force: true })
-run('hdiutil', ['create', '-volname', 'The Strip', '-srcfolder', stage, '-ov', '-quiet', '-format', 'UDZO', dmg])
+run('hdiutil', ['create', '-volname', 'Minefield', '-srcfolder', stage, '-ov', '-quiet', '-format', 'UDZO', dmg])
 await rm(stage, { recursive: true, force: true })
 
 console.log(JSON.stringify({

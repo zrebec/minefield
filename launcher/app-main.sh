@@ -1,7 +1,7 @@
 #!/bin/sh
-# THE STRIP — the executable inside The Strip.app.
+# MINEFIELD — the executable inside Minefield.app.
 #
-# Same job as ../The Strip.command: hand the game to the browser once, then get
+# Same job as ../Minefield.command: hand the game to the browser once, then get
 # out of the way. Three differences that come from being an app bundle:
 #
 #   1. No Terminal window. A bundle's executable runs headless, so every echo
@@ -23,18 +23,18 @@ RES="$HERE/../Resources"
 
 PORT=8137
 URL="http://127.0.0.1:$PORT/"
-STATE="$HOME/Library/Application Support/The Strip"
+STATE="$HOME/Library/Application Support/Minefield"
 HINT_SHOWN="$STATE/install-hint-shown"
 
 notify() {
-  osascript -e "display notification \"$1\" with title \"The Strip\"" >/dev/null 2>&1 || true
+  osascript -e "display notification \"$1\" with title \"Minefield\"" >/dev/null 2>&1 || true
 }
 
 . "$RES/serve.sh"
 cd "$RES/game"
 
 if ! start_server; then
-  osascript -e 'display dialog "The Strip could not start a local server.\n\nIt needs one of python3, php, node or ruby, and this Mac has none of them.\n\nPlay in a browser instead:\nhttps://zrebec.github.io/minefield/" buttons {"OK"} default button 1 with title "The Strip" with icon stop' >/dev/null 2>&1
+  osascript -e 'display dialog "Minefield could not start a local server.\n\nIt needs one of python3, php, node or ruby, and this Mac has none of them.\n\nPlay in a browser instead:\nhttps://zrebec.github.io/minefield/" buttons {"OK"} default button 1 with title "Minefield" with icon stop' >/dev/null 2>&1
   exit 1
 fi
 
@@ -42,7 +42,7 @@ cleanup() { kill "$SERVER_PID" 2>/dev/null || true; rm -f "$SERVE_LOG"; }
 trap cleanup EXIT INT TERM
 
 if ! wait_for_server; then
-  osascript -e "display dialog \"The Strip could not open port $PORT.\n\nSomething else on this Mac is probably using it.\" buttons {\"OK\"} default button 1 with title \"The Strip\" with icon stop" >/dev/null 2>&1
+  osascript -e "display dialog \"Minefield could not open port $PORT.\n\nSomething else on this Mac is probably using it.\" buttons {\"OK\"} default button 1 with title \"Minefield\" with icon stop" >/dev/null 2>&1
   exit 1
 fi
 

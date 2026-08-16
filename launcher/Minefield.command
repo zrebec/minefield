@@ -1,5 +1,5 @@
 #!/bin/sh
-# THE STRIP — offline launcher (macOS). Double-click me.
+# MINEFIELD — offline launcher (macOS). Double-click me.
 #
 # This is an INSTALLER, not the game.
 #
@@ -20,7 +20,7 @@ URL="http://127.0.0.1:$PORT/"
 
 . ./serve.sh
 
-echo "THE STRIP — offline"
+echo "MINEFIELD — offline"
 echo
 
 start_server || {

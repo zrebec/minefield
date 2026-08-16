@@ -377,6 +377,18 @@ export const DROP_FLASH_BLINK_MS = 100
 export const AUTOSAVE_THROTTLE_MS = 5000
 
 // Envelope-signature secret (FNV-1a, deterrent-grade — ships in the bundle); signs run saves AND the hiscore table.
+//
+// DO NOT CHANGE THIS STRING. It is an opaque key, not a name. zx-kit signs every
+// save envelope and the whole hiscore table with it and verifies on read; a
+// mismatch fails as `tampered`, exactly like a corrupt file — so editing it
+// silently invalidates every save and every high score already on a player's
+// machine. It may only move together with a bump of the save `version` and a
+// migration that re-signs the old payload.
+//
+// That is also why it still says `the-strip`: the game was briefly going to be
+// renamed (abandoned 2026-08-16, see ROADMAP Decisions) and the secret was
+// minted during that window. The name it contains is meaningless; its
+// stability is not.
 export const SAVE_SECRET = 'minefield:the-strip:v1'
 
 // ── High scores ───────────────────────────────────────────────────────────────

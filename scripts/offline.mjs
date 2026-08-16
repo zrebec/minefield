@@ -40,7 +40,7 @@ checks.swRegistered = await page.evaluate(async () => {
 checks.swControlling = await page.evaluate(() => navigator.serviceWorker.controller !== null)
 
 checks.precacheFilled = await page.evaluate(async () => {
-  const names = (await caches.keys()).filter((k) => k.startsWith('the-strip-'))
+  const names = (await caches.keys()).filter((k) => k.startsWith('minefield-'))
   if (names.length !== 1) return false
   const keys = await (await caches.open(names[0])).keys()
   return keys.length >= 5 && keys.some((r) => r.url.endsWith('/index.html'))
@@ -65,7 +65,7 @@ await page.waitForTimeout(900)
 const alive = await canvasAlive(page)
 checks.bundleRan = alive.sized
 checks.canvasPainted = alive.colours >= 3
-checks.title = (await page.title()).includes('THE STRIP')
+checks.title = (await page.title()).includes('MINEFIELD')
 checks.ariaRegions = await page.evaluate(() =>
   document.getElementById('sr-announcer') !== null && document.getElementById('sr-status') !== null)
 

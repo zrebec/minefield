@@ -33,8 +33,8 @@ npm run persist   # survives the launcher quitting: kill server + close browser,
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
 npm run icons mine       # regenerate the whole icon set (PNG + SVG + .ico) from scripts/icons.mjs
 npm run pack:offline     # release/*.zip for itch.io (second build at --base=./)
-npm run pack:app         # release/The Strip.app + The-Strip.dmg (unsigned; sips + iconutil)
-npm run pack:win         # release/the-strip-offline-windows.zip (UNTESTED — no Windows here)
+npm run pack:app         # release/Minefield.app + minefield.dmg (unsigned; sips + iconutil)
+npm run pack:win         # release/minefield-offline-windows.zip (UNTESTED — no Windows here)
 ```
 
 **Offline wrap:** `sw.js` is **generated** at build time by `offlineWrap()` in `vite.config.ts` from
@@ -94,7 +94,7 @@ src/
 ├── player.ts      # movement, collision, flag, respawn, scoring, gem pickup, combo
 ├── a11y.ts        # screen-reader bridge: announce/status live-region writes, setLegend, describeStep sentence
 ├── airplane.ts    # aircraft timer, animation, mine drop (calls addDropMinesInBand)
-├── intro.ts       # "The Strip" intro: stepStory machine + typewriter + 5 hand-drawn scenes (8×8) + chapter titles + isIntroDue/markIntroSeen (seen-gate)
+├── intro.ts       # "Minefield" intro: stepStory machine + typewriter + 5 hand-drawn scenes (8×8) + chapter titles + isIntroDue/markIntroSeen (seen-gate)
 ├── renderer.ts    # TileMap, sprites, HUD, detector, night, overlays
 ├── save.ts        # zx-kit save profile wiring (version 6, signed envelope)
 ├── highscore.ts   # zx-kit hiscore adoption: level+date extras, auto-dating, 3-char names, legacy migration
@@ -222,7 +222,7 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
 
-### Story intro ("The Strip") — `intro.ts` + the `'story'` phase in `main.ts`
+### Story intro ("Minefield") — `intro.ts` + the `'story'` phase in `main.ts`
 - **Story (5 chapters):** two countries that never declared/ended a war carve a no-man's-land (the Strip);
   a nightly plane reseeds it with mines, keeping torn-apart families apart; a runner reads the **pattern**,
   builds a home-made **sonar** that hears mines, and carries **parcels** to loved ones across. Maps to the
@@ -247,7 +247,7 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   session on a **direct** game-start. **Music is tuned by ear by the owner.**
 - **Visual (`intro.ts`):** **all 5 chapters are hand-drawn** (`drawEstablishingShot` / `drawSowerScene` /
   `drawDespairScene` / `drawCrossingScene` / `drawDeliveryScene`) from bespoke 8×8 tiles; dithered skies use
-  zx-kit `drawShade` + `DITHER`. One ink + one paper per cell ⇒ colour-clash-correct. Title is **THE STRIP**
+  zx-kit `drawShade` + `DITHER`. One ink + one paper per cell ⇒ colour-clash-correct. Title is **MINEFIELD**
   (`STR_TITLE`).
 
 ### Field, fence & solvability

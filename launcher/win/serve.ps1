@@ -1,4 +1,4 @@
-# THE STRIP — offline launcher (Windows). Started by "The Strip.cmd".
+# MINEFIELD — offline launcher (Windows). Started by "Minefield.cmd".
 #
 # Same shape as the macOS launcher: serve this folder, hand the page to the
 # browser, and shut down once the browser has taken its copy. From then on a
@@ -46,7 +46,7 @@ $Mime = @{
   '.json'        = 'application/json'
 }
 
-Write-Host 'THE STRIP - offline'
+Write-Host 'MINEFIELD - offline'
 Write-Host ''
 
 $listener = New-Object System.Net.HttpListener

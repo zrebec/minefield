@@ -72,7 +72,7 @@ export const STR_FRIENDLY = '** PRIESKUM **'                // 14 znakov (spriat
 // pojmy a zvuky. Zvuková časť MUSÍ sedieť s tým, čo hra naozaj hrá (playWarning /
 // earcony v audio.ts + maják).
 export const STR_A11Y_LEGEND =
-  'The Strip — sprievodca. ' +
+  'Minefield — sprievodca. ' +
   'Cieľ. Prechádzaš cez slepé mínové pole, od medzery v plote vľavo k medzere vpravo. Míny nevidíš; ' +
   'bezpečnú cestu nájdeš počúvaním. Dostaň sa k východu vpravo a prejdeš úroveň; prejdi všetky úrovne a ' +
   'vyhráš — vojna sa skončí a Pás je bezpečný. ' +
@@ -252,9 +252,10 @@ export const STR_HISCORE_HINT_KEYBOARD  = 'KLAVESNICA: PISAJ PISMENA'        // 
 
 // ── Intro / title screen ──────────────────────────────────────────────────
 
-// "The Strip" je názov hry (brand, nechávame anglicky); repo/adresár zatiaľ
-// ostáva "minefield" do neskoršieho cieleného premenovania.
-export const STR_TITLE    = 'T H E   S T R I P'             // 17 znakov
+// "Minefield" je názov hry (brand, nechávame anglicky) a rovnako sa volá aj
+// repo, adresár aj URL. Premenovanie na "The Strip" sa zrušilo 2026-08-16
+// (ROADMAP Decisions). "Pás" zostáva ako názov *miesta* v príbehu.
+export const STR_TITLE    = 'M I N E F I E L D'             // 17 znakov
 
 export const STR_SUBTITLE = 'ZX  SPECTRUM  EDICIA'          // 20 znakov
 
@@ -269,7 +270,9 @@ export const STR_AUDIO_HINT = 'KLIK/TAP PRE ZVUK'           // 17 znakov
 
 export const STR_START_HINT = 'SPACE=DENNY R=NAHODNY I=INTRO' // 29 znakov; I = prehrať intro
 
-// ── Príbehové intro ("The Strip") ──────────────────────────────────────────
+// ── Príbehové intro ────────────────────────────────────────────────────────
+// Zem nikoho sa v príbehu volá "Pás" — je to miesto, nie názov hry. Anglický
+// balík tam má "the Strip"; obe musia zostať v páre.
 // Bez diakritiky (ROM font), každý riadok ≤ 30 znakov, '-' namiesto pomlčky.
 // Počet kariet musí sedieť s EN (stráži strings.test.ts).
 // Pozn.: v hre sa zobrazujú ANGLICKE karty (default locale = EN); toto je SK

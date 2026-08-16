@@ -51,7 +51,7 @@ let pausePage = 0
 let introPage = 0
 let introPageTimer = INTRO_PAGE_MS
 
-// Story intro ("The Strip"): a typewriter pre-roll. Shown when "due" (isIntroDue)
+// Story intro ("Minefield"): a typewriter pre-roll. Shown when "due" (isIntroDue)
 // on a mode start, or on demand via the title's `I` key. `storyReturn` is where it
 // hands off when finished/skipped: into the chosen game, or back to the title.
 let story = createStoryState()

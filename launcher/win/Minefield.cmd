@@ -1,5 +1,5 @@
 @echo off
-rem THE STRIP - offline launcher (Windows). Double-click me.
+rem MINEFIELD - offline launcher (Windows). Double-click me.
 rem
 rem All the work is in serve.ps1; this exists because Windows will not let you
 rem double-click a .ps1 to run it. -ExecutionPolicy Bypass applies to THIS
