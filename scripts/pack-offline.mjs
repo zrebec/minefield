@@ -3,10 +3,10 @@
 //   npm run pack:offline
 //
 // Output in release/:
-//   the-strip-web.zip           index.html at the ROOT — this is the itch.io
+//   minefield-web.zip           index.html at the ROOT — this is the itch.io
 //                               HTML5 upload. itch unzips it and serves it from
 //                               a path it chooses, so nothing may be absolute.
-//   the-strip-offline-macos.zip the same build plus a launcher and a READ ME,
+//   minefield-offline-macos.zip the same build plus a launcher and a READ ME,
 //                               inside a folder, for the itch "downloads"
 //                               section and for a USB stick.
 //
@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const build = resolve(root, 'dist-offline')
 const out = resolve(root, 'release')
-const stage = resolve(out, 'The Strip')
+const stage = resolve(out, 'Minefield')
 
 const zip = (cwd, archive, what) => {
   // -r recurse, -q quiet, -X drop Finder junk. zip preserves the unix mode
@@ -45,19 +45,19 @@ await rm(out, { recursive: true, force: true })
 await mkdir(stage, { recursive: true })
 
 // 1. The itch.io web upload: the build, nothing else, index.html at the root.
-const web = zip(build, resolve(out, 'the-strip-web.zip'), files)
+const web = zip(build, resolve(out, 'minefield-web.zip'), files)
 
 // 2. The downloadable offline package: same build + how to run it.
 await cp(build, stage, { recursive: true })
-await cp(resolve(root, 'launcher/The Strip.command'), resolve(stage, 'The Strip.command'))
+await cp(resolve(root, 'launcher/Minefield.command'), resolve(stage, 'Minefield.command'))
 // serve.sh is sourced by the .command at runtime, so it has to travel with it.
 // It stays non-executable on purpose: double-clicking it should open an editor,
 // not look like a second way to start the game.
 await cp(resolve(root, 'launcher/serve.sh'), resolve(stage, 'serve.sh'))
 await cp(resolve(root, 'launcher/READ ME.txt'), resolve(stage, 'READ ME.txt'))
-await chmod(resolve(stage, 'The Strip.command'), 0o755)
+await chmod(resolve(stage, 'Minefield.command'), 0o755)
 await chmod(resolve(stage, 'serve.sh'), 0o644)
-const desktop = zip(out, resolve(out, 'the-strip-offline-macos.zip'), ['The Strip'])
+const desktop = zip(out, resolve(out, 'minefield-offline-macos.zip'), ['Minefield'])
 await rm(stage, { recursive: true, force: true })
 
 console.log(JSON.stringify({

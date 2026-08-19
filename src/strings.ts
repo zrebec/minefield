@@ -90,7 +90,7 @@ export const STR_FRIENDLY = '**  RECON  **'
 // glossary, and the sounds. The sound section MUST match what the game actually
 // plays (playWarning / the earcons in audio.ts + the beacon).
 export const STR_A11Y_LEGEND =
-  'The Strip — guide. ' +
+  'Minefield — guide. ' +
   'The goal. You are crossing a blind minefield, from the gap in the fence on the left to the gap on ' +
   'the right. You cannot see the mines; you find a safe path by listening. Reach the exit on the right ' +
   'to clear a level, and clear every level to win — the war ends and the Strip is safe. ' +
@@ -288,9 +288,11 @@ export const STR_HISCORE_HINT_KEYBOARD  = 'KEYBOARD: TYPE LETTERS'
 // ── Intro / title screen ──────────────────────────────────────────────────
 
 // Game title — uses single-spaced letters for the retro spread effect.
-// 17 chars including spaces. "The Strip" is the game's name (see the story
-// intro); the repo/dir still read "minefield" until a later focused rename.
-export const STR_TITLE    = 'T H E   S T R I P'
+// 17 chars including spaces. The game is "Minefield", and so are the repo, the
+// directory and the URL: a 1982 Spectrum release would have carried this name,
+// and the rename to "The Strip" was dropped on that reasoning (ROADMAP
+// Decisions, 2026-08-16). "The Strip" survives only as the *place* in the story.
+export const STR_TITLE    = 'M I N E F I E L D'
 
 // Subtitle under the title. 21 chars.
 export const STR_SUBTITLE = 'ZX  SPECTRUM  EDITION'
@@ -310,7 +312,9 @@ export const STR_AUDIO_HINT = 'CLICK/TAP TO ENABLE SOUND'
 // "Press to start" banner — blinks. ≤ 32 chars. `I` replays the story intro.
 export const STR_START_HINT = 'SPACE=DAILY  R=RANDOM  I=INTRO'
 
-// ── Story intro ("The Strip") ──────────────────────────────────────────────
+// ── Story intro ──────────────────────────────────────────────────────────
+// The no-man's-land the story names is "the Strip" — a place, not the game.
+// Keep it: the Slovak pack calls it "Pás" and the two must stay in step.
 // Played once on cold load before the title (see intro.ts / main.ts 'story'
 // phase). Each card is an array of left-aligned lines, typed out one char at a
 // time. Keep every line ≤ 30 chars (ASCII only — the ZX ROM font has no em-dash;

@@ -41,11 +41,21 @@ self.addEventListener('install', (event) => {
 // ACTIVATE — drop every older build of THIS game and claim open pages. The
 // prefix filter matters: on github.io the origin is shared with the other games
 // in this portfolio, and deleting caches by "not mine" would wipe theirs.
+//
+// `the-strip-` is here for the builds shipped while the game was briefly going
+// to be renamed (cancelled 2026-08-16). Nothing writes that prefix any more, so
+// anyone carrying one has a cache no later release would ever collect — this is
+// the one activate that can still reach it. Safe to delete this line once no
+// device can plausibly be that far behind.
+const OWNED_PREFIXES = ['minefield-', 'the-strip-']
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
-        keys.filter((k) => k !== CACHE && k.startsWith('the-strip-')).map((k) => caches.delete(k)),
+        keys
+          .filter((k) => k !== CACHE && OWNED_PREFIXES.some((p) => k.startsWith(p)))
+          .map((k) => caches.delete(k)),
       ))
       .then(() => self.clients.claim()),
   )

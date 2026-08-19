@@ -1,6 +1,6 @@
 # Offline wrap
 
-How The Strip installs, and how it plays with the network cut. ROADMAP item 12.
+How Minefield installs, and how it plays with the network cut. ROADMAP item 12.
 
 The game needed almost nothing to become offline-capable: `src/` contains no
 `fetch`, no `XMLHttpRequest` and no external URL, and the daily seed is computed
@@ -18,13 +18,13 @@ it verbatim would have been wrong, and each cost something to find out.
 | `scripts/sw-template.js` | the service worker, **before** the build fills it in |
 | `offlineWrap()` in `vite.config.ts` | emits `sw.js` into the build output |
 | `launcher/serve.sh` | the macOS runtime-detection ladder — **sourced by both mac launchers**, one copy |
-| `launcher/The Strip.command` | the loose-script launcher, for the mac zip |
-| `launcher/app-main.sh` | the executable inside `The Strip.app` |
+| `launcher/Minefield.command` | the loose-script launcher, for the mac zip |
+| `launcher/app-main.sh` | the executable inside `Minefield.app` |
 | `launcher/win/serve.ps1` | the Windows server — no ladder needed, PowerShell *is* the runtime |
-| `launcher/win/the-strip.ico` | the shortcut's icon (deliberately **not** in `public/`) |
+| `launcher/win/minefield.ico` | the shortcut's icon (deliberately **not** in `public/`) |
 | `scripts/pack-offline.mjs` | builds `release/*.zip` for itch.io + macOS |
-| `scripts/pack-app.mjs` | builds `The Strip.app` + `The-Strip.dmg` |
-| `scripts/pack-win.mjs` | builds `release/the-strip-offline-windows.zip` |
+| `scripts/pack-app.mjs` | builds `Minefield.app` + `minefield.dmg` |
+| `scripts/pack-win.mjs` | builds `release/minefield-offline-windows.zip` |
 
 Two ways to play offline, and they are genuinely different:
 
@@ -32,8 +32,8 @@ Two ways to play offline, and they are genuinely different:
   (Chrome/Edge "Install", Safari "Add to Dock"), and from then on it launches
   from the Dock with no network. Needs that one online visit — a worker can only
   cache what it was allowed to fetch.
-* **The downloadable package.** `release/the-strip-offline-macos.zip` (a folder
-  with a `.command`) or `release/The-Strip.dmg` (drag the `.app` to
+* **The downloadable package.** `release/minefield-offline-macos.zip` (a folder
+  with a `.command`) or `release/minefield.dmg` (drag the `.app` to
   Applications) never needs a network at all. Neither can be a plain
   double-click on `index.html`, because the bundle is an ES module and browsers
   refuse modules over `file://`; both start a local server on 127.0.0.1 instead,
@@ -70,7 +70,7 @@ do not log in a readable shape, so with them it falls back to a flat wait rather
 than pretending — 140 kB over loopback is never what takes the time.
 
 The install hint is a **notification, shown once**, marked by
-`~/Library/Application Support/The Strip/install-hint-shown`.
+`~/Library/Application Support/Minefield/install-hint-shown`.
 
 ## The three decisions worth keeping
 
@@ -131,7 +131,7 @@ your own bug). The worker itself has no environment checks.
 `skipWaiting()` + `clients.claim()` are used deliberately. The game is a single
 bundle with no dynamic imports, so there is no chunk a running page could ask
 for and miss; without them a new build would sit idle until every tab was
-closed. `activate` deletes only caches prefixed `the-strip-` — github.io is one
+closed. `activate` deletes only caches prefixed `minefield-` — github.io is one
 origin for the whole portfolio, and an unprefixed sweep would wipe the other
 games' caches.
 
@@ -188,8 +188,8 @@ sees their scores "vanish" now has something on screen that explains it.
 
 ## Windows
 
-`npm run pack:win` → `release/the-strip-offline-windows.zip`. Unzip, double-click
-**The Strip.cmd**; run **Create desktop shortcut.cmd** once for an icon.
+`npm run pack:win` → `release/minefield-offline-windows.zip`. Unzip, double-click
+**Minefield.cmd**; run **Create desktop shortcut.cmd** once for an icon.
 
 There is **no runtime ladder** here and that is the interesting part. macOS may
 or may not have python3/php/node/ruby, so `serve.sh` has to hunt. Every Windows
@@ -225,8 +225,8 @@ fixes on first contact.
 
 ## The .app bundle
 
-`npm run pack:app` builds `release/The Strip.app` and a drag-to-Applications
-`The-Strip.dmg`. No packaging tool is involved: a `.app` is a directory with an
+`npm run pack:app` builds `release/Minefield.app` and a drag-to-Applications
+`minefield.dmg`. No packaging tool is involved: a `.app` is a directory with an
 agreed shape, and `sips` + `iconutil` (both stock macOS) turn `icon-1024.png`
 into the `.icns` Finder wants. Every size is downscaled from the same 1024
 master, so nothing is ever upscaled.
@@ -278,7 +278,7 @@ use and fell back to drawing the first letter of the name. The evidence is in th
 web app Safari generates:
 
 ```
-$ plutil -p ~/Applications/The\ Strip.app/Contents/Info.plist | grep IconKind
+$ plutil -p ~/Applications/Minefield.app/Contents/Info.plist | grep IconKind
   "WKManifestIconKind" => "Monogram"
 ```
 
@@ -305,9 +305,9 @@ npm run offline       # THE one that matters: install the worker, cut the networ
                       # reload, and play a run with it still cut
 npm run persist       # survives the launcher quitting: kill the server, close the
                       # browser, reopen the same profile cold, play a run
-npm run pack:offline  # release/the-strip-web.zip + release/the-strip-offline-macos.zip
-npm run pack:app      # release/The Strip.app + release/The-Strip.dmg
-npm run pack:win      # release/the-strip-offline-windows.zip  (UNTESTED — no Windows here)
+npm run pack:offline  # release/minefield-web.zip + release/minefield-offline-macos.zip
+npm run pack:app      # release/Minefield.app + release/minefield.dmg
+npm run pack:win      # release/minefield-offline-windows.zip  (UNTESTED — no Windows here)
 ```
 
 `npm run offline` asserts `allFromServiceWorker` — Chromium's own answer to "did
@@ -333,7 +333,7 @@ cache and a green Lighthouse score are all circumstantial next to that.
   the launcher shut down minutes ago → "cannot connect". The player has no way
   to guess why.
 
-  For the local package, **`The Strip.app` is the Dock icon.** Drag it over from
+  For the local package, **`Minefield.app` is the Dock icon.** Drag it over from
   the disk image. Safari's *Add to Dock* belongs to the hosted build, where the
   server is the internet.
 
@@ -363,7 +363,7 @@ cache and a green Lighthouse score are all circumstantial next to that.
   the itch.io download and the `.dmg` is for handing over directly or for your
   own Dock. Locally built copies are never quarantined, so on this machine none
   of it applies. Fixing it properly needs a paid Apple Developer ID; a stopgap
-  for a specific recipient is `xattr -d com.apple.quarantine "The Strip.app"`.
+  for a specific recipient is `xattr -d com.apple.quarantine "Minefield.app"`.
 * **itch.io serves HTML games in a sandboxed iframe,** where service worker
   registration can be refused. The registration is in a `try`/`catch` and the
   game runs fine without it — it only loses the ability to start a second time
@@ -415,9 +415,9 @@ A shared tool would need exactly these values. Everything else is derivable:
 
 | Config | Minefield's value | Used by |
 |---|---|---|
-| `name` / `shortName` | `The Strip` | manifest, `Info.plist`, zip + app + volume names, launcher text |
-| `id` | `the-strip` | cache prefix, `.icns`/`.ico` names, `CFBundleExecutable`, archive names |
-| `bundleId` | `io.github.zrebec.the-strip` | `CFBundleIdentifier` |
+| `name` / `shortName` | `Minefield` | manifest, `Info.plist`, zip + app + volume names, launcher text |
+| `id` | `minefield` | cache prefix, `.icns`/`.ico` names, `CFBundleExecutable`, archive names |
+| `bundleId` | `io.github.zrebec.minefield` | `CFBundleIdentifier` |
 | `port` | `8137` | both servers, both launchers — **see the warning below** |
 | `homepage` | `https://zrebec.github.io/minefield/` | the "play online instead" fallback in every failure path |
 | `icon` | the SVG motif | every raster output |
@@ -439,7 +439,7 @@ on B's precache answers for `/` — including for anyone who bookmarked game A.
 Note the third column too: A's cache is still there, orphaned, because B's
 `activate` only sweeps caches matching B's own prefix.
 
-That prefix filter (`startsWith('the-strip-')`) exists because `github.io` is
+That prefix filter (`startsWith('minefield-')`) exists because `github.io` is
 one host for the whole portfolio, and there it is exactly right. It cannot help
 here: it protects caches from each other, not scopes. The same shared origin
 also merges `localStorage`, so the games' save keys would have to stay

@@ -9,7 +9,7 @@
 # only fiddly part of either launcher, and two copies of it would drift the
 # first time one of them is fixed.
 
-SERVE_LOG="${TMPDIR:-/tmp}/the-strip-serve.$$.log"
+SERVE_LOG="${TMPDIR:-/tmp}/minefield-serve.$$.log"
 
 # 127.0.0.1, never 0.0.0.0: this is your machine's game, not the coffee shop's.
 start_server() {

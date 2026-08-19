@@ -1,6 +1,6 @@
 {
-  "name": "The Strip",
-  "short_name": "The Strip",
+  "name": "Minefield",
+  "short_name": "Minefield",
   "description": "An audio-first ZX Spectrum-style game: cross a blind minefield by listening. One daily field for the whole world. Built to be playable blind and deaf.",
   "lang": "en",
   "categories": ["games"],

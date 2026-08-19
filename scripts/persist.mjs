@@ -19,7 +19,7 @@
 // (File > Add to Dock) is exactly that: its own sandboxed container, inheriting
 // no service worker and no cache from Safari. Added from the launcher's address
 // it fails on first launch, and this script stays green throughout. That is why
-// the local package's Dock icon is The Strip.app and not a Safari web app —
+// the local package's Dock icon is Minefield.app and not a Safari web app —
 // docs/offline.md, Known limits.
 //
 // Run AFTER `npm run build`:   npm run persist
@@ -35,7 +35,7 @@ const PORT = 4185
 const URL = `http://localhost:${PORT}/minefield/`
 
 const checks = {}
-const profile = await mkdtemp(join(tmpdir(), 'the-strip-profile-'))
+const profile = await mkdtemp(join(tmpdir(), 'minefield-profile-'))
 
 // ── 1. Seed, with a profile that outlives the browser ────────────────────────
 const server = await preview({ preview: { port: PORT } })
@@ -46,7 +46,7 @@ await page.waitForTimeout(1000)
 
 checks.seeded = await page.evaluate(async () => {
   const reg = await navigator.serviceWorker.ready
-  const names = (await caches.keys()).filter((k) => k.startsWith('the-strip-'))
+  const names = (await caches.keys()).filter((k) => k.startsWith('minefield-'))
   if (reg.active === null || names.length !== 1) return false
   return (await (await caches.open(names[0])).keys()).length >= 5
 })

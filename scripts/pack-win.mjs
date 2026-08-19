@@ -2,13 +2,13 @@
 //
 //   npm run pack:win        (runs build:offline first)
 //
-// Output: release/the-strip-offline-windows.zip
+// Output: release/minefield-offline-windows.zip
 //
-//   The Strip/
-//     The Strip.cmd                 double-click this
+//   Minefield/
+//     Minefield.cmd                 double-click this
 //     Create desktop shortcut.cmd   run once for an icon on the Desktop
 //     serve.ps1                     the server (PowerShell — always present)
-//     the-strip.ico                 the shortcut's icon
+//     minefield.ico                 the shortcut's icon
 //     READ ME.txt
 //     game/                         the --base=./ build
 //
@@ -30,7 +30,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const build = resolve(root, 'dist-offline')
 const out = resolve(root, 'release')
-const stage = resolve(out, 'win/The Strip')
+const stage = resolve(out, 'win/Minefield')
 
 const files = await readdir(build).catch(() => {
   console.error('pack:win: dist-offline/ is missing — run `npm run build:offline` first')
@@ -45,8 +45,8 @@ await rm(resolve(out, 'win'), { recursive: true, force: true })
 await mkdir(stage, { recursive: true })
 
 for (const name of [
-  'The Strip.cmd', 'Create desktop shortcut.cmd',
-  'serve.ps1', 'shortcut.ps1', 'the-strip.ico', 'READ ME.txt',
+  'Minefield.cmd', 'Create desktop shortcut.cmd',
+  'serve.ps1', 'shortcut.ps1', 'minefield.ico', 'READ ME.txt',
 ]) {
   await cp(resolve(root, 'launcher/win', name), resolve(stage, name))
 }
@@ -54,9 +54,9 @@ await cp(build, resolve(stage, 'game'), { recursive: true })
 
 // -X drops the Finder metadata that would otherwise ride along as __MACOSX/
 // noise in a zip a Windows user opens.
-const archive = resolve(out, 'the-strip-offline-windows.zip')
+const archive = resolve(out, 'minefield-offline-windows.zip')
 await rm(archive, { force: true })
-execFileSync('zip', ['-r', '-q', '-X', archive, 'The Strip'], { cwd: resolve(out, 'win'), stdio: 'inherit' })
+execFileSync('zip', ['-r', '-q', '-X', archive, 'Minefield'], { cwd: resolve(out, 'win'), stdio: 'inherit' })
 await rm(resolve(out, 'win'), { recursive: true, force: true })
 
 console.log(JSON.stringify({

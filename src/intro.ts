@@ -1,5 +1,5 @@
 /**
- * intro.ts — "The Strip" narrative intro.
+ * intro.ts — "Minefield" narrative intro.
  *
  * A short typewriter story shown once on cold load, before the title screen.
  * Each card (from `L.STR_STORY_CARDS`) is a small sprite vignette in the upper

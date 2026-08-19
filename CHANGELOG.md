@@ -1,3 +1,10 @@
+## [0.66.2](https://github.com/zrebec/minefield/compare/v0.66.1...v0.66.2) (2026-08-16)
+
+
+### Bug Fixes
+
+* keep the old name of the game ([#17](https://github.com/zrebec/minefield/issues/17)) ([2b25d0d](https://github.com/zrebec/minefield/commit/2b25d0d5b23d82d63706b7fb4ddb28ddd99e4c62))
+
 ## [0.66.1](https://github.com/zrebec/minefield/compare/v0.66.0...v0.66.1) (2026-08-08)
 
 
