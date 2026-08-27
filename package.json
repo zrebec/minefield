@@ -21,7 +21,7 @@
     "pack:win": "npm run build:offline && node scripts/pack-win.mjs"
   },
   "dependencies": {
-    "zx-kit": "^0.46.0"
+    "zx-kit": "^0.46.1"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^7.0.0",
