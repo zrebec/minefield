@@ -188,6 +188,19 @@ export const STR_A11Y_PLANE_APPROACHING = 'Plane approaching.'
 export const STR_A11Y_PLANE_RESEEDED = (n: number) => `${n} new ${n === 1 ? 'mine' : 'mines'}.`
 export const STR_A11Y_PLANE_PASSED = 'No new mines.'
 
+// ── Loading screen ────────────────────────────────────────────────────────
+// Drawn on cell row 4 of the loading picture, which is measured empty (see
+// loading.ts). 11 chars, centred → columns 10-20, clear of the falling mines
+// in columns 24-25.
+export const STR_LOADING_PROMPT = 'PRESS ENTER'
+// Spoken once when the loading screen appears. A game played by ear must say
+// what it is waiting for: without this a blind player meets a picture they
+// cannot see and silence they cannot interpret. It is also the only screen in
+// the game where the announcement itself cannot be heard — the sound is not on
+// yet, which is exactly what the keypress is for — so this goes to the screen
+// reader, which is not subject to the browser's audio gesture rule.
+export const STR_A11Y_LOADING = 'Minefield. Press Enter to start. This also turns the sound on.'
+
 // ── Game-over overlay ─────────────────────────────────────────────────────
 
 export const STR_GAME_OVER     = 'GAME  OVER'         // double-space styling
