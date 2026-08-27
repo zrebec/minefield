@@ -1,3 +1,10 @@
+## [0.67.2](https://github.com/zrebec/minefield/compare/v0.67.1...v0.67.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* **render:** let the canvas fill the window ([#23](https://github.com/zrebec/minefield/issues/23)) ([7a3526f](https://github.com/zrebec/minefield/commit/7a3526fea15611d82d2f477c553adfb74f868556))
+
 ## [0.67.1](https://github.com/zrebec/minefield/compare/v0.67.0...v0.67.1) (2026-08-27)
 
 
