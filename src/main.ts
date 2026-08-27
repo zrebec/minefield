@@ -8,7 +8,7 @@ import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry, runStatRows } from './renderer.ts'
 import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen } from './intro.ts'
-import { renderLoading } from './loading.ts'
+import { bootState, renderLoading, type LoadingReturn } from './loading.ts'
 import { isHighScore, saveHighScore, loadHighScores, scoreProfile } from './highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
 import { L, cycleLocale } from './lang.ts'
@@ -25,6 +25,10 @@ type AppPhase = 'loading' | 'story' | 'intro' | 'ingame' | 'hiscore'
 // House pattern: every game here opens this way.
 let appPhase: AppPhase = 'loading'
 let loadingDone = false   // set by the Enter/Start/click that leaves the picture
+// Where the picture hands off. Decided at boot by bootState(); NOT a phase, so
+// that no boot path can set the phase directly and skip the screen — which is
+// exactly what the first version of this did.
+let loadingReturn: LoadingReturn = 'intro'
 let state: GameState = createGame(0, 0, dailySeed(0))  // placeholder; replaced on resume/start
 setStateGetter(() => state)
 let lastTime = 0
@@ -221,9 +225,17 @@ function gameLoop(timestamp: number): void {
     if (loadingDone) {
       loadingDone = false
       initAudioOnce()   // the point of the screen: past here, sound exists
-      consumeAnyKey()   // drain, so the same press cannot also act on the title
+      consumeAnyKey()   // drain, so the same press cannot also act on what follows
       resetInput()
-      enterTitle()
+      if (loadingReturn === 'ingame') {
+        // Resume. The orientation line waits until now rather than firing at
+        // page load: "four north, two east of the exit" spoken over a loading
+        // picture is a sentence about a screen the player is not on yet.
+        appPhase = 'ingame'
+        status(describeOrientation(state))
+      } else {
+        enterTitle()
+      }
       finishFrame(ctx)
       return
     }
@@ -623,15 +635,16 @@ function main(): void {
   // run keeps its daily/random identity via dropSeedBase. Saves are cleared on
   // game over, so this only fires for an unfinished run. readSaveLatest mutates
   // `state` in place, so it's oriented for the resume announcement below.
-  if (readSaveLatest(saveProfile).ok) {
-    appPhase = 'ingame'
-    status(describeOrientation(state))   // re-orient a blind player on resume
-    // No exitBeacon() here: this runs at page load, before any user gesture, so
-    // the AudioContext is still locked and the tone could never sound. E replays
-    // the bearing with its beacon on demand once audio is unlocked.
-  } else {
-    enterTitle()   // cold load lands on the title — fill the sr-only menu mirror
-  }
+  // readSaveLatest mutates `state` in place, so a resumed run is oriented and
+  // ready — but the hand-off waits for the loading screen's key. Every cold load
+  // now starts on the picture; only where it goes afterwards differs. The saved
+  // run keeps its daily/random identity via dropSeedBase; saves are cleared on
+  // game over, so this only fires for an unfinished run.
+  //
+  // Still no exitBeacon() at this point: it is the loading screen's key that
+  // unlocks the AudioContext, and that has not happened yet. `E` replays the
+  // bearing with its beacon on demand once the game is up.
+  loadingReturn = bootState(readSaveLatest(saveProfile).ok).then
 
   requestAnimationFrame(gameLoop)
 }

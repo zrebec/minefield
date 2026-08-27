@@ -43,6 +43,37 @@ export const PROMPT_ROW = 4
  * blinks at `BLINK_INTERVAL_MS` for in-game state; the prompt shares that blinker
  * so nothing on screen beats against anything else.
  */
+/** Where the loading screen hands off once the key arrives. */
+export type LoadingReturn = 'intro' | 'ingame'
+
+export interface BootState {
+  /** Always `'loading'`. The type is the point — see {@link bootState}. */
+  readonly phase: 'loading'
+  readonly then: LoadingReturn
+}
+
+/**
+ * The one place that decides what the game does on a cold load.
+ *
+ * It exists because the first version of this screen did not show at all. The
+ * phase variable was *initialised* to `'loading'`, which looked like the boot
+ * decision and was not: the tail of `main()` overwrites it unconditionally —
+ * resume into the save, or `enterTitle()`. The initialiser never survived boot.
+ *
+ * So the decision is a function now, its return type says `'loading'` and
+ * nothing else, and a test pins both branches. Any future path that wants to
+ * skip the screen has to come through here, where it is visible.
+ *
+ * **A resume needs the screen more than a cold load does, not less.** It goes
+ * straight into gameplay, and until some key is pressed the AudioContext is
+ * locked — so the sonar, the mine warning and the exit beacon are all silent in
+ * a game that is played by ear. `readSaveLatest` still runs at boot (it mutates
+ * the state in place); only the handover waits for the key.
+ */
+export function bootState(hasSave: boolean): BootState {
+  return { phase: 'loading', then: hasSave ? 'ingame' : 'intro' }
+}
+
 export function renderLoading(ctx: CanvasRenderingContext2D, blink: boolean): void {
   ctx.fillStyle = C.BLACK
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)

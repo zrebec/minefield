@@ -320,7 +320,6 @@ export const STR_CTRL_PAUSE = 'P / START = PAUSE'      // 17 chars
 export const STR_GOAL       = 'CROSS THE FIELD!'       // 16 chars
 
 // Audio unlock prompt — appears under the controls list. 25 chars.
-export const STR_AUDIO_HINT = 'CLICK/TAP TO ENABLE SOUND'
 
 // "Press to start" banner — blinks. ≤ 32 chars. `I` replays the story intro.
 export const STR_START_HINT = 'SPACE=DAILY  R=RANDOM  I=INTRO'

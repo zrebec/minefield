@@ -270,7 +270,6 @@ export const STR_CTRL_FLAG  = 'F / BTN-A = OZNAC MINU'      // 22 znakov
 export const STR_CTRL_PAUSE = 'P / START = PAUZA'           // 17 znakov
 export const STR_GOAL       = 'PREJDI POLE!'                // 12 znakov
 
-export const STR_AUDIO_HINT = 'KLIK/TAP PRE ZVUK'           // 17 znakov
 
 export const STR_START_HINT = 'SPACE=DENNY R=NAHODNY I=INTRO' // 29 znakov; I = prehrať intro
 
