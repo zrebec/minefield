@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { parseSCR } from 'zx-kit'
 import { MINEFIELD_LOADING_SCR } from '../src/assets/minefield-loading.ts'
-import { PROMPT_ROW } from '../src/loading.ts'
+import { bootState, PROMPT_ROW } from '../src/loading.ts'
+// ?raw is Vite's own file-as-string import — no node types needed, and it goes
+// through the same resolver the build uses, so it cannot read a stale path.
+import mainSource from '../src/main.ts?raw'
 import { C, COLS } from '../src/constants.ts'
 import * as en from '../src/strings.ts'
 import * as sk from '../src/strings.sk.ts'
@@ -109,5 +112,39 @@ describe('the prompt text', () => {
       expect(line.length).toBeGreaterThan(0)
       expect(line.toLowerCase()).toContain('enter')
     }
+  })
+})
+
+describe('the boot decision', () => {
+  // This block exists because the first version of this screen never appeared.
+  // `appPhase` was *initialised* to 'loading', which looks like the boot decision
+  // and is not: the tail of main() overwrites it unconditionally — resume into
+  // the save, or enterTitle(). The picture was built, wired, tested and dead.
+  // The tests above all passed, because they checked the asset and where the
+  // prompt sits. Nothing checked that anyone ever looked at it.
+
+  it('starts on the loading screen whether or not a save exists', () => {
+    expect(bootState(false).phase).toBe('loading')
+    expect(bootState(true).phase).toBe('loading')
+  })
+
+  it('routes a cold load to the title and a save to the resumed run', () => {
+    expect(bootState(false).then).toBe('intro')
+    expect(bootState(true).then).toBe('ingame')
+  })
+
+  it('leaves main.ts no way to pick a phase from the save directly', () => {
+    // The guard with teeth. bootState() returning 'loading' is only worth
+    // anything if boot actually asks it — so: the save check appears once, and
+    // on the line that feeds bootState. Write `if (readSaveLatest(...).ok)
+    // appPhase = 'ingame'` again and this fails instead of the screen silently
+    // disappearing.
+    const code = mainSource
+      .split('\n')
+      .filter((line: string) => !line.trim().startsWith('//'))   // prose mentions both names
+    const saveChecks = code.filter((line: string) => line.includes('readSaveLatest('))
+    expect(saveChecks).toHaveLength(1)
+    expect(saveChecks[0]).toContain('bootState(')
+    expect(code.filter((line: string) => line.includes('bootState('))).toHaveLength(1)
   })
 })

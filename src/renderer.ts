@@ -576,7 +576,6 @@ export function renderIntro(ctx: CanvasRenderingContext2D, blink: boolean, page:
     drawTextCentered(ctx, L.STR_CTRL_FLAG, 14 * CELL, C.WHITE, C.BLACK)
     drawTextCentered(ctx, L.STR_CTRL_PAUSE, 15 * CELL, C.WHITE, C.BLACK)
     drawTextCentered(ctx, L.STR_GOAL, 16 * CELL, C.B_GREEN, C.BLACK)
-    drawTextCentered(ctx, L.STR_AUDIO_HINT, 17 * CELL, C.YELLOW, C.BLACK)
   }
 
   if (blink) {
