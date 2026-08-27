@@ -1,3 +1,10 @@
+## [0.67.1](https://github.com/zrebec/minefield/compare/v0.67.0...v0.67.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **loading:** the screen never showed — boot overwrote the phase ([#22](https://github.com/zrebec/minefield/issues/22)) ([84284c6](https://github.com/zrebec/minefield/commit/84284c63d7143b5e2775675c23e57ff3d9cd8915))
+
 # [0.67.0](https://github.com/zrebec/minefield/compare/v0.66.2...v0.67.0) (2026-08-27)
 
 
