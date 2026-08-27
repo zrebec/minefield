@@ -8,14 +8,23 @@ import { movePlayer, respawnPlayer, toggleFlag, tickPlayer } from './player.ts'
 import { updateAirplane, updateFriendlyPlane } from './airplane.ts'
 import { renderFrame, renderIntro, renderHiScoreEntry, runStatRows } from './renderer.ts'
 import { renderStoryCard, createStoryState, stepStory, isIntroDue, markIntroSeen } from './intro.ts'
+import { renderLoading } from './loading.ts'
 import { isHighScore, saveHighScore, loadHighScores, scoreProfile } from './highscore.ts'
 import { saveProfile, setStateGetter } from './save.ts'
 import { L, cycleLocale } from './lang.ts'
 import { announce, status, setLegend, setMenu, describeExit, describeGems, describeOrientation } from './a11y.ts'
 
-type AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'
+type AppPhase = 'loading' | 'story' | 'intro' | 'ingame' | 'hiscore'
 
-let appPhase: AppPhase = 'intro'
+// The loading screen comes first and everything else assumes it did. A browser
+// will not start an AudioContext before a real user gesture, so a title screen
+// that appears on its own can never be certain it is allowed to make a sound —
+// which is why the startup sting has always been fired at the *game* start
+// rather than when the menu came up. One picture asking for one key fixes that
+// at the root: past 'loading', audio is on, and the menu may have music.
+// House pattern: every game here opens this way.
+let appPhase: AppPhase = 'loading'
+let loadingDone = false   // set by the Enter/Start/click that leaves the picture
 let state: GameState = createGame(0, 0, dailySeed(0))  // placeholder; replaced on resume/start
 setStateGetter(() => state)
 let lastTime = 0
@@ -204,6 +213,24 @@ function gameLoop(timestamp: number): void {
   const ctx = getCtx()
 
   const blink = tickBlinker(blinker, dt)
+
+  if (appPhase === 'loading') {
+    setBorderColor(C.BLACK)   // the picture is a night scene; a blue border fights it
+    tickMovement(dt)          // keep the gamepad polled so Start is seen
+    if (consumePause()) loadingDone = true   // gamepad Start
+    if (loadingDone) {
+      loadingDone = false
+      initAudioOnce()   // the point of the screen: past here, sound exists
+      consumeAnyKey()   // drain, so the same press cannot also act on the title
+      resetInput()
+      enterTitle()
+      finishFrame(ctx)
+      return
+    }
+    renderLoading(ctx, blink)
+    finishFrame(ctx)
+    return
+  }
 
   if (appPhase === 'story') {
     setBorderColor(C.B_BLUE)
@@ -532,9 +559,14 @@ function main(): void {
   initInput()
   setBorderColor(C.B_BLUE)
   setLegend(L.STR_A11Y_LEGEND_HINT)   // short hint only; H announces the full guide (no wall of text at start)
+  // Say what the screen is waiting for. The reader is not gated on the audio
+  // gesture, so this is the one announcement that still works before the key.
+  announce(L.STR_A11Y_LOADING)
 
   window.addEventListener('keydown', () => initAudioOnce(), { once: true })
   window.addEventListener('click', () => initAudioOnce(), { once: true })
+  // A pointer gesture leaves the loading screen too — see the keydown comment.
+  window.addEventListener('pointerdown', () => { if (appPhase === 'loading') loadingDone = true })
 
   window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (!e.repeat && (e.key === 'o' || e.key === 'O') && !e.ctrlKey && !e.metaKey && !e.altKey && appPhase !== 'hiscore') {
@@ -551,7 +583,13 @@ function main(): void {
       return
     }
 
-    if (appPhase === 'intro') {
+    if (appPhase === 'loading') {
+      // Enter is what the picture asks for. A click or tap counts too (below):
+      // the game ships as a PWA and as desktop packages, and a phone has no
+      // Enter key at all — refusing the gesture we already accept everywhere
+      // else would strand exactly the players who cannot see the prompt.
+      if (e.key === 'Enter') loadingDone = true
+    } else if (appPhase === 'intro') {
       if (e.key === ' ' || e.key === 'Enter' || e.key === 's' || e.key === 'S') {
         startKeyPending = true
       } else if (e.key === 'i' || e.key === 'I') {

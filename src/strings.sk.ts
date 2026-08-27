@@ -173,6 +173,10 @@ export const STR_A11Y_PLANE_PASSED = 'Žiadne nové míny.'
 
 export const STR_GAME_OVER     = 'KONIEC  HRY'              // 11 znakov
 export const STR_PRESS_ANY_KEY = 'STLAC KLAVES'             // 12 znakov
+
+// ── Nacitacia obrazovka ───────────────────────────────────────────────────
+export const STR_LOADING_PROMPT = 'STLAC ENTER'                // 11 znakov
+export const STR_A11Y_LOADING = 'Minefield. Stlač Enter pre štart. Zapne to aj zvuk.'
 // Víťazný epilóg (kreslený — ASCII bez diakritiky, ≤32 stĺpcov).
 export const STR_WIN_TITLE = 'VOJNA SA SKONCILA'
 export const STR_WIN_LINE1 = 'PAS JE KONECNE CISTY'
