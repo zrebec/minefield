@@ -1,3 +1,10 @@
+# [0.67.0](https://github.com/zrebec/minefield/compare/v0.66.2...v0.67.0) (2026-08-27)
+
+
+### Features
+
+* **loading:** open on a picture that waits for one key ([#21](https://github.com/zrebec/minefield/issues/21)) ([9b61967](https://github.com/zrebec/minefield/commit/9b61967a90d3e324e0bee634bbd2dc7a9c5d788e))
+
 ## [0.66.2](https://github.com/zrebec/minefield/compare/v0.66.1...v0.66.2) (2026-08-16)
 
 
