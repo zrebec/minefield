@@ -6,6 +6,45 @@
 
 ## Resolved Issues
 
+### All three release gates reported a dead game — twice over, and neither time was the game
+
+- **Resolved:** 2026-09-01. New `scripts/lib/boot-gate.mjs` (`passBootGate`), wired into
+  `smoke.mjs`, `offline.mjs` and `persist.mjs`; and the death-walk cadence in `smoke.mjs` now
+  derives from `WALK_DURATION_MS` instead of a guessed 170 ms.
+- **What happened:** from 0.67.0 (2026-08-27) to 2026-09-01, `npm run smoke`, `npm run offline`
+  and `npm run persist` all exited 1. Each failed on exactly the check that says the game is
+  playable — `runStarted`, `playableOffline`, `playableFromColdStart` — while every other check in
+  the same report passed: the service worker installed, the precache filled, the offline reload
+  served everything from cache, the cold start survived a dead server. A game that was fine looked
+  dead in all three of its gates, right through the window where a release was being considered.
+- **Why (first cause):** 0.67.0 put a **loading screen in front of every screen**, and it is left
+  only by `Enter`, gamepad Start or a tap (`main.ts`). All three scripts went `goto` →
+  `page.keyboard.press('r')`, so they pressed `r` at a picture that does not answer to `r`, then
+  spent up to 90 further presses waiting for a run that could never start. Nothing in the scripts
+  was aware the screen existed. The fix lives in ONE place because three copies of it would drift.
+  **Do not open-code the `Enter`:** on the TITLE, `Enter` starts a **daily** run, and a daily is
+  the one thing these scripts must never touch (only random runs stay off the leaderboard), so
+  `passBootGate` waits until it can actually *see* the gate before pressing, and returns a named
+  check rather than assuming.
+- **Why (second cause, uncovered by fixing the first):** with the gate passed, `smoke` still
+  failed `reachedGameOver`. `walkUntilGameOver` pressed an arrow every **170 ms** against a
+  **220 ms** (`WALK_DURATION_MS`) step tween, and `main.ts` buffers exactly ONE move — so a large
+  share of those presses bought no movement at all. The loop spent its whole 400-press budget
+  without reaching a third death and declared the game unplayable. This bug is **older than the
+  loading screen**; the boot gate had merely been hiding it.
+- **How the second one was found (worth repeating):** by instrumenting the loop rather than
+  reasoning about it. Adding one `isIngame()` probe per press made the whole suite go green — the
+  probe's own latency pushed the cadence past 220 ms. The instrument *was* the diagnosis: if
+  slowing a loop down fixes it, the loop was outrunning something. Measured directly afterwards:
+  death 1 at press 46, death 2 at press 96, game over at press 215 — comfortably inside the
+  budget, once every press actually moved the player.
+- **Coverage:** each script now reports a `bootGate` check (smoke also reports
+  `bootGateOnResume`, which exercises the *other* branch out of the gate — a save-resume goes
+  straight back into the run and never touches the title). A gate that cannot find the loading
+  screen fails loudly instead of quietly starting a daily.
+- **Lesson for the next screen added in front of the game:** grep `scripts/` for `goto` before
+  shipping it. Three scripts, one key, five days of red.
+
 ### The airplane approach tone kept sounding through the game-over screen
 
 - **Resolved:** 2026-08-08 in `main.ts` — the gameover ENTRY hook now calls
