@@ -140,7 +140,7 @@ advances / skips.
 | Adjacent mines | Sound |
 |----------------|-------|
 | 0 | silence |
-| 1 | 880 Hz · 1 pip |
+| 1 | 250 Hz · 1 very short tick (20 ms) |
 | 2 | 740 Hz · 2 pips |
 | 3 | 587 Hz · 3 pips |
 | 4 | 440 Hz · 4 pips |
@@ -300,6 +300,26 @@ deaf players.** Not "compatible" — playable, start to finish, including the me
   high-score entry), and an **assist-mode** flag. *(A directional stereo mine
   compass was tried and reverted — it read as danger without danger; see
   `docs/accessibility-orientation.md`.)*
+
+### Wanted: blind and low-vision playtesters
+
+**The audio accessibility layer has never been tested by anyone who plays without sight — and that is
+the one test the project cannot run on itself.** Every mapping in the game (pan for east/west, pitch
+for north/south, volume for distance) was reasoned out and tuned by ear by a sighted author. They are
+internally consistent, which is not the same as readable. We do not know whether *higher = north* is
+the intuitive direction or the inverted one, whether the sonar sweep builds a picture or a chord,
+whether the earcons stay apart in real play, or whether the spoken layer arrives in time to act on.
+
+If you use a screen reader — or play with the screen off, or with low vision — **we want to hear from
+you**, and a single sentence counts: *"the sonar pitch is upside down for me"* is a complete report.
+
+- **The brief:** [`docs/accessibility-playtest.md`](docs/accessibility-playtest.md) — what each sound
+  currently encodes, the exact open questions, and what is deliberately not up for change (the mines
+  stay hidden for everyone; no continuous danger compass; no built-in TTS).
+- **Where to send it:** a comment on [itch.io](https://zrebec.itch.io/minefield) (no account with us
+  needed) or an issue at [github.com/zrebec/minefield/issues](https://github.com/zrebec/minefield/issues).
+- **Start with `H`** — it reads the full briefing (goal, controls, rules, glossary, sounds) on any
+  screen. Headphones matter: direction is carried by stereo panning, which a mono speaker discards.
 
 An audio-first "playable blind" deductive traversal is an under-served niche — this is the
 strongest moat the game has, and it ships with 1.0, not "someday". See `ROADMAP.md` (P1) and
