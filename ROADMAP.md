@@ -11,14 +11,14 @@ accessibility, and a clear RULES screen. The strongest moat is accessibility (ge
 
 ## Release — v1.0 (Minefield on itch.io)
 
-**We ship.** v1.0 is a **firm-date, feature-frozen** release of Minefield on itch.io — not perpetual
-development. After 1.0: bug-fixes and balance only, no new mechanics. (zx-kit's own road to 1.0 is a
+**We ship.** v1.0 is a **feature-frozen** release of Minefield on itch.io — not perpetual
+development. (It was firm-date too, until 2026-08-19 — see below.) After 1.0: bug-fixes and balance only, no new mechanics. (zx-kit's own road to 1.0 is a
 separate track; Minefield's release does not block on extracting anything into the kit — see Decisions.)
 
 **Definition of done for v1.0:**
 - **Win condition + post-win screen** — the daily has a definite ending (reach `WIN_LEVEL`; epilogue →
   highscore → menu). See Road to v1.0 P1 item 0. *(Added 2026-07-13 — the game currently has no ending.)*
-- Story intro complete: 4 cards with bespoke hand-drawn art, copy + tempo + AY/typewriter tuned by ear.
+- Story intro complete: **5** cards with bespoke hand-drawn art, copy + tempo + AY/typewriter tuned by ear.
 - Difficulty tuned (a daily L1–L2 reliably beatable); the **green-gem** special ✅ shipped 0.51.0
   (friendly recon plane).
 - ~~Renamed to **The Strip**~~ — **cancelled 2026-08-16, the game is Minefield.** No longer part of
@@ -29,11 +29,16 @@ separate track; Minefield's release does not block on extracting anything into t
   sounded shell, assist toggle.
 - itch.io page live (description, art, build, controls/accessibility note); all tests green.
 
-**Committed v1.0 date: `2026-09-07`** (option C — "safe", chosen 2026-06-24). This is the **firm ship
-date**; scope is frozen to the DoD below **plus the accessibility moat** (screen-reader playability +
-orientation + beacon), which C buys. Guard against scope-creep — the extra weeks are for polish + playtest + a life buffer, not
-new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin polish), B `2026-08-10`
-(balanced).
+**v1.0 date: POSTPONED (decision 2026-08-19). No new date is set.** `2026-09-07` (option C — "safe",
+chosen 2026-06-24) was the firm ship date until the feature freeze was deliberately reopened; it is kept
+here as history, not as a target, and **nothing in this file is a countdown to it**. The other candidates
+considered at the time: A `2026-07-20` (aggressive, thin polish), B `2026-08-10` (balanced).
+
+**The freeze that protected the scope is open, and that has a cost.** It held from 2026-06-24 and was the
+only thing guarding the DoD. On 2026-08-19 it was reopened for **two** items judged defensible (night glow,
+gem sweep); a **third** went in anyway on 2026-08-27 (the loading screen). The rule agreed when it was
+opened — *"a third 'just this one' will not be defensible"* — has already been spent. **Every further
+addition is a re-decision, made here, in writing.**
 
 ## Current Status
 
@@ -44,15 +49,19 @@ new mechanics. The other candidates considered: A `2026-07-20` (aggressive, thin
 | Daily fairness | **Done** — field **and** highscore dated by the run's **origin** daily (verified 2026-06-29) | 2026-06-29 |
 | Leaderboard integrity | **Done (deterrent-grade)** — random runs off-board; envelope sig on saves + hiscore table (zx-kit `hiscore` adopted, save v6) — see item 16 | 2026-07-12 |
 | Story + intro | **Done, music tuning by ear** — 5-chapter typewriter, 5 hand-drawn scenes, per-card AY score, book-style chapter titles; title-first flow, `I` replays | 2026-06-30 |
-| Tests | 548 (Vitest) — incl. run-start race battery, the earcon/result-contract batteries (flag, blocked-move, pause), a live-context audio smoke, and the offline-wrap contract | 2026-07-31 |
-| Build / release | semantic-release → GitHub Pages (latest **≥0.60.0**; the 2026-07-22 a11y batch releases per commit). Pages build keeps `base: /minefield/`; the itch.io / offline packages are a second build at `--base=./` via `npm run pack:offline` | 2026-07-31 |
+| Tests | **607 (Vitest), all green** — incl. run-start race battery, the earcon/result-contract batteries (flag, blocked-move, pause), a live-context audio smoke, the offline-wrap contract, and the loading-screen/boot-decision battery. `tsc --noEmit` + `npm run build` clean | 2026-09-01 |
+| Build / release | semantic-release → GitHub Pages (latest **0.67.1**, plus one unreleased `fix` on `main`). Pages build keeps `base: /minefield/`; the itch.io / offline packages are a second build at `--base=./` via `npm run pack:offline` | 2026-09-01 |
+| Release gates | **Green again (2026-09-01).** `npm run smoke` · `npm run offline` · `npm run persist` all pass end to end. They had all been RED since 0.67.0 — see Completed Milestones; re-run all three after any change to boot, input or the service worker | 2026-09-01 |
+| Packaged artifacts | **STALE — do not ship as they stand.** `release/*` was built 2026-08-16 (bundle 90 kB vs today's 105 kB): no loading screen, no canvas-fill fix. Rebuild before upload. `minefield-offline-windows.zip` has still **never been executed on Windows** — leave it out rather than ship an untried archive | 2026-09-01 |
+| Screenshots | **STALE** — `docs/img/play.png` + `intro.png` are 2026-07-06 (pre-loading-screen, pre-canvas-fill). The capture router must learn the fence FIRST (Technical Debt, P3), or the refresh produces a pretty picture of a nonsense route | 2026-09-01 |
 | Offline / PWA | **Done (item 12, 2026-07-31)** — installable manifest + icon set; generated service worker; `npm run offline` + `npm run persist` prove a run is playable with the network cut **and** after the launcher quits; macOS `.app`/`.dmg`, Windows zip, itch.io zip. **Windows path is written but unrun** (no machine here). Ref: `docs/offline.md` | 2026-07-31 |
 | Accessibility | **Deep — the strongest v1.0 moat.** Visual detector (deaf) ✅; ARIA live regions, no built-in TTS; orientation `E`/`G` + legend `H` ✅. **Audio earcons all shipped 2026-07-19→22:** on-demand **sonar sweep** on `D` (pan = E/W, pitch = N/S, volume = distance) + **exit beacon** on `E` (retuned 2026-07-21); **flag** place/remove; **blocked-move** descending double-beep (wall/building/edge); **pause** = assertive "PAUSE" + a descending/ascending two-tone. **Shell reworked 2026-07-22:** title trimmed to one line ("Press H for rules and help", spoken assertive) and **`H` = the full guide** (goal, controls, rules, glossary, sounds). **All three §6 audio gaps closed.** Remaining shell — **parked until a real screen-reader playtest**: `T` reads the time, high-score letter echo, `0` = help (calls the `H` guide), assist-mode toggle. Refs: `docs/accessibility-sonar-beacon.md` + `retro/docs/sk/a11y.md` §5–6 | 2026-07-22 |
+| Loading screen | **Shipped 0.67.0–0.67.1 (2026-08-27)** — the game opens on a `.scr` picture that waits for one key (Enter / Start / tap), which is where the audio gesture now lives; `bootState()` is the only thing allowed to pick the opening phase, `npm run boot` proves it headlessly, and `STR_A11Y_LOADING` is announced for screen readers | 2026-09-01 |
 | Win condition | **Shipped 0.57.0 (2026-07-14)** — reach `WIN_LEVEL` (config, default 10) → `won` phase → epilogue → highscore → menu; deterministic + announced. Owner-verified (daily records, random doesn't, ends after 1/3 levels) | 2026-07-14 |
 
-## Road to v1.0 (`2026-09-07`) — prioritised backlog
+## Road to v1.0 — prioritised backlog
 
-~10 weeks. Order = priority. Hold the freeze: everything below is **polish / finish / accessibility — no
+Order = priority (the date is postponed — see above; this is a sequence, not a schedule). Hold the freeze: everything below is **polish / finish / accessibility — no
 new mechanics** (those are Post-1.0). Each item ships with tests where behaviour changes.
 
 ### P1 — Finish & polish (the game must feel done)
@@ -220,9 +229,12 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Decision | Rationale |
 |---|---|---|
+| 2026-09-01 | **No Playwright-driven script may press a game key without going through `passBootGate()`** (`scripts/lib/boot-gate.mjs`), and no script may open-code the `Enter` itself | The loading screen gates every screen, and all three gate scripts went `goto` → `press('r')` straight through it: from 0.67.0 to 2026-09-01 `smoke`, `offline` and `persist` all reported a dead game while the game was fine. Open-coding the key is the trap, not the fix — on the TITLE, `Enter` starts a **daily** run, and a daily is the one thing these scripts must never touch (only random runs stay off the leaderboard). So the helper *probes* for the gate before pressing, and reports a named check instead of assuming |
+| 2026-09-01 | **A scripted walk's cadence is derived from `WALK_DURATION_MS`, never guessed** | `walkUntilGameOver` pressed every 170 ms against a 220 ms tween. `main.ts` buffers exactly ONE move, so a large share of those presses bought no movement: the loop spent its whole 400-press budget without a third death and called the game unplayable. It surfaced only once the boot gate was fixed — and was found by *instrumenting* the loop, where the extra probe per press slowed the cadence past 220 and every check went green. Cadence is now 280 ms with the reasoning written next to it |
 | 2026-08-27 | **The canvas fills the largest 4:3 area the viewport allows** — the same rule Ice Haul has always used. No pixel cap | `width` carried a `min(1024px, …)` term ("never exceed native 4x size"), so on a 2560-wide monitor the game sat in 40% of the window with blue either side. It was the only game in the family that did this; Ice Haul is `min(100vw, 100dvh*4/3)`. Two games, two rules, and this was the wrong one. The backing store stays 1024x768, so the display is a non-integer upscale — which is exactly what Ice Haul already ships, and `image-rendering: pixelated` keeps it a hard-edged blow-up rather than a blur |
 | 2026-08-27 | **`bootState()` is the only thing allowed to decide the opening phase**, and its return type says `'loading'` | The screen shipped and never appeared. `appPhase` was *initialised* to `'loading'`, which looks like the boot decision and is not — the tail of `main()` overwrites it unconditionally (resume the save, or `enterTitle()`). Eight tests passed because they all asked about the asset and where the prompt sits; none asked whether anyone looked at it. The decision is a function now, both branches are pinned, and a source guard fails if the save check ever picks a phase directly. `scripts/boot-shot.mjs` (`npm run boot`) drives the real thing headlessly and compares the first frame with the frame after Enter |
 | 2026-08-27 | **The game opens on a loading screen that waits for one key, and every game here will.** The picture is a native `.scr` inlined into the bundle; `Enter`, gamepad Start or a tap leaves it | A browser refuses to start an `AudioContext` before a real user gesture, so a title screen that appears on its own can never be sure it may make a sound — which is why the startup sting has always fired at the *game* start rather than when the menu came up. One picture asking for one key moves the gesture to a place where it is expected, and everything past it may assume audio exists: **the menu can carry music.** It is also period-honest — a Spectrum loading screen had no music, only the tape. Silent by construction, and the only screen whose announcement has to reach the player through the screen reader rather than the speakers. `.scr` not PNG: three bits of INK and three of PAPER cannot name an off-palette colour, and an inlined module cannot half-arrive the way a fetched image can — the Ice Haul version of this screen froze on a black canvas that never accepted a key when its PNG went missing |
+| 2026-08-19 | **The `2026-09-07` ship date is postponed and the feature freeze is deliberately reopened** — for exactly two items (night glow, gem sweep). No replacement date | Said out loud rather than left to drift: the date had been firm since 2026-06-24 and the freeze was the only thing protecting the DoD. Both additions were judged defensible — one builds atmosphere on a dark canvas that did not exist in June, the other closes the single gap where a blind player has objectively LESS information than a sighted one, in a game whose README publicly promises blind playability. The rule attached to the decision: **a third "just this one" will not be defensible.** (It was spent on 2026-08-27 by the loading screen.) Full reasoning: `retro/docs/sk/tasks-cross-project-2026-08-19.md` |
 | 2026-08-16 | **The rename to "The Strip" is cancelled — the game is Minefield**, and so are the repo, the directory, the Pages base and the URL. A red line, not another deferral | A game released for the ZX Spectrum in 1982 would have been called Minefield. The rename bought nothing and spent the identity. "The Strip" survives only as the *place* in the story (Slovak: "Pás") — the brand and the place are two different words, and both locales keep them apart. `SAVE_SECRET` still reads `minefield:the-strip:v1`: it is an opaque signing key minted during that window, and changing it would fail every existing save as `tampered` (see `config.ts`) |
 | 2026-07-31 | Offline: **generate** `sw.js` at build time; **never** hand-write the precache list | Vite hashes asset filenames — a literal list (as in `timeholder/sw.js`, the file this was adapted from) names a bundle that stops existing on the next build, and the breakage is invisible until someone goes offline |
 | 2026-07-31 | `ignoreVary: true` on every service-worker cache read | `addAll` stores entries fetched without `Origin`; the module request sends one (Vite's `crossorigin`); a host answering `Vary: Origin` then misses every lookup and the game dies offline with a full cache |
@@ -266,6 +278,8 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
 
 | Date | Milestone |
 |---|---|
+| 2026-09-01 | **The three release gates are green again** — `smoke`, `offline` and `persist` had all been RED since 0.67.0 (2026-08-27) and none of it was the game: they walked into the new loading screen and never pressed the one key that leaves it, so all three reported a dead game (`runStarted` / `playableOffline` / `playableFromColdStart` false) while every other check in them passed. Fixed once, in `scripts/lib/boot-gate.mjs`. Behind that sat a **second, older bug**: the death-walk pressed every 170 ms against a 220 ms step tween, wasting most of its 400-press budget on moves the game could not take. Both are written up in `docs/known-issues.md` |
+| 2026-08-27 | **Loading screen (0.67.0), the boot decision (0.67.1) and the full-window canvas** — the game opens on a native `.scr` that waits for one key, which is where the browser's audio gesture now lives; `bootState()` became the single place allowed to choose the opening phase after the screen shipped *dead* (initialising `appPhase` looked like the decision and was overwritten by the tail of `main()`); and the canvas now fills the largest 4:3 area the viewport allows, like Ice Haul, instead of sitting in 40% of a wide monitor |
 | 2026-07-22 | **A11y shell reworked** — pause speaks "PAUSE" (assertive, re-reads every pause) + a centred two-tone earcon (`playPauseCue`; pause descends 494→330, resume ascends); the title trimmed to ONE spoken line ("Press H for rules and help", via `announce` not `status` so it isn't missed at page load); and `STR_A11Y_LEGEND` (the `H` guide) expanded to the full briefing — goal, controls, rules, glossary, sounds — closing the old "H-for-help rework". `PAUSE_*` in config.ts; tests 528 |
 | 2026-07-22 | **Green-gem legend fixed** — the in-game gem legend (`GEM_SPECIAL`) and CLAUDE.md still called green "time only"; corrected to "2 = recon plane" / "2 = lietadlo" (the friendly-plane special shipped 0.51.0). The spoken `H` guide was already correct — only the visual legend + doc were stale |
 | 2026-07-22 | **Blocked-move earcon shipped** — a descending double beep (190→130 Hz), centred, no pan/direction, when a step is rejected by a wall/fence/building edge or the board edge (one generic cue). `movePlayer`/`tickPlayer` return a `MoveResult`; `main.ts` beeps only on `'blocked'` — the win-exit off the right edge stays `'moving'` (no buzz at the finish). Debounced vs held-key machine-gun. Closes the last of the three §6 audio gaps (east wall + building edge + fence). `BLOCKED_*` in config.ts; tests 525 (result-contract + descending/centred/debounce smoke). Ref: `docs/accessibility-sonar-beacon.md` |
