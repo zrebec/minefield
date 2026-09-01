@@ -124,6 +124,18 @@ new mechanics** (those are Post-1.0). Each item ships with tests where behaviour
    **Still parked until a real screen-reader playtest:** `T` reads the remaining time; high-score letter
    echo; `0` = help (should just call the `H` guide, i.e. `announce(STR_A11Y_LEGEND)`); assist-mode toggle
    (item 7). Deep log: `retro/docs/sk/a11y.md` §5–6 + `docs/accessibility-sonar-beacon.md`.
+6b. **Playtest call OPENED 2026-09-01 — the blocker on everything "parked until a playtest".** The
+   game is public (itch.io + Pages) and the audio a11y layer has still never been used by anyone who
+   plays without sight. The call now lives in three places: `docs/accessibility-playtest.md` (the
+   brief — every sound's current encoding, the exact open questions, and the closed doors: mines
+   hidden for all, no continuous compass, no built-in TTS), a **README** section, and a paste-ready
+   block in the itch.io description (`itch.local/working/itch-details.md` — needs comments switched
+   ON for the project). Feedback lands on itch comments + GitHub issues. The open questions, in
+   priority order: pitch direction (higher = north — intuitive or inverted?), sweep legibility with
+   many mines, the beacon's inverted volume (louder = closer) and its fine 18 Hz/row step, earcon
+   collisions (flag-removal 110 Hz vs the 7–8-mine warning 110 Hz vs blocked-move 130/190 Hz), and
+   spoken-layer latency vs the beep. **Nothing in the parked list below moves until answers arrive.**
+
 7. **~~Exit beacon tone~~ ✅ SHIPPED 2026-07-19, retuned 2026-07-21.** Remaining: **assist-mode toggle** —
    flag assisted runs (above all `D`-sonar use) so they're marked on the leaderboard. This is the one open
    a11y-*fairness* piece: the parity earcons (beacon/flag/blocked) don't need it, but the sonar gives
