@@ -30,11 +30,11 @@
     "@semantic-release/npm": "^13.1.5",
     "@types/jsdom": "^30.0.0",
     "jsdom": "^30.0.1",
-    "playwright": "^1.62.1",
+    "playwright": "^1.63.0",
     "semantic-release": "^25.0.9",
     "typescript": "~7.0.2",
-    "vite": "^8.2.1",
-    "vitest": "^4.1.10"
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
   },
   "allowScripts": {
     "fsevents@2.3.2": true,
