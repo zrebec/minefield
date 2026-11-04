@@ -25,12 +25,13 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm test          # Vitest (556 tests)
+npm test          # Vitest (607 tests)
 npm run build     # dist/ — the GitHub Pages build, base /minefield/
 npm run smoke     # browser smoke test over dist/ (Playwright; run after build, before a release)
 npm run offline   # offline proof over dist/: install the SW, CUT the network, reload, play a run
 npm run persist   # survives the launcher quitting: kill server + close browser, cold start, play
 npm run capture   # screenshots → docs/img/ (Playwright; needs chromium)
+npm run boot      # drives the real loading screen headlessly: first frame vs the frame after Enter
 npm run icons mine       # regenerate the whole icon set (PNG + SVG + .ico) from scripts/icons.mjs
 npm run pack:offline     # release/*.zip for itch.io (second build at --base=./)
 npm run pack:app         # release/Minefield.app + minefield.dmg (unsigned; sips + iconutil)
@@ -94,6 +95,8 @@ src/
 ├── player.ts      # movement, collision, flag, respawn, scoring, gem pickup, combo
 ├── a11y.ts        # screen-reader bridge: announce/status live-region writes, setLegend, describeStep sentence
 ├── airplane.ts    # aircraft timer, animation, mine drop (calls addDropMinesInBand)
+├── loading.ts     # the boot picture: bootState() decides the opening phase, renderLoading draws the .scr + prompt
+├── assets/        # minefield-loading.scr + the .ts module that inlines it (the ONE exception to "no image assets")
 ├── intro.ts       # "Minefield" intro: stepStory machine + typewriter + 5 hand-drawn scenes (8×8) + chapter titles + isIntroDue/markIntroSeen (seen-gate)
 ├── renderer.ts    # TileMap, sprites, HUD, detector, night, overlays
 ├── save.ts        # zx-kit save profile wiring (version 6, signed envelope)
@@ -107,8 +110,9 @@ test/              # all *.test.ts live here (out of src/), import product code 
 ## Important State Models
 
 - `GamePhase = 'playing' | 'exploding' | 'levelcomplete' | 'gameover'`
-- `AppPhase = 'story' | 'intro' | 'ingame' | 'hiscore'` (`'intro'` = title/landing; `'story'` = the
-  narrative pre-roll, entered from the title when "due" or via `I`, then hands off to `'ingame'`/`'intro'`)
+- `AppPhase = 'loading' | 'story' | 'intro' | 'ingame' | 'hiscore'` (`'loading'` = the boot picture that
+  waits for one key — see below; `'intro'` = title/landing; `'story'` = the narrative pre-roll, entered
+  from the title when "due" or via `I`, then hands off to `'ingame'`/`'intro'`)
 - `runState = 'idle' | 'running' | 'paused'` (idle = scout before the first step; reveal + freeze the timer)
 - **Game loop:** `gameLoop` is guard-clause style — `intro`/`hiscore` `return` early, `ingame` falls
   through. Each exit path schedules the next frame via **`finishFrame(ctx)`** (runs `endFrame(dbg)` then
@@ -117,7 +121,9 @@ test/              # all *.test.ts live here (out of src/), import product code 
 
 ## Accessibility (v1.0 promise — see README + ROADMAP P1)
 
-v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it stands in code:
+v1.0 publicly commits to full blind + deaf playability (README → Accessibility). **The `2026-09-07`
+date was postponed on 2026-08-19 and no new one is set** — the promise stands, the calendar does not.
+Where it stands in code:
 
 - **Deaf: done.** The HUD detector mirrors every audio warning (adjacent meter + beacon LED).
 - **ARIA skeleton (2026-07-03), in `index.html`:** the canvas has `role="img"` + a static English
@@ -221,6 +227,28 @@ v1.0 (`2026-09-07`) publicly commits to full blind + deaf playability. Where it 
   edge + fence); the remaining a11y work is spoken-shell (pause "PAUSE", `0`=help) — `a11y.md` §6.
 
 ## How It Works (implementation reference — verify against `game.ts`/`player.ts`)
+
+### Loading screen — `loading.ts` + the `'loading'` phase in `main.ts`
+- **The game opens on a picture that waits for one key**, and nothing else runs until it does: `Enter`,
+  gamepad Start or a tap (`main.ts` — `loadingDone`). The point is the browser's gesture rule: an
+  `AudioContext` cannot start before a real user gesture, so this moves the gesture somewhere a player
+  expects it, and **everything past it may assume sound exists** (the menu may carry music). Period-honest
+  too — a Spectrum loading screen had no music, only the tape.
+- **`bootState()` is the ONLY thing allowed to decide the opening phase**, and its return type says
+  `'loading'`. The first version of the screen shipped dead: `appPhase` was *initialised* to `'loading'`,
+  which looks like the boot decision and is not — the tail of `main()` overwrote it unconditionally.
+  A source guard now fails if the save check ever picks a phase directly. `npm run boot`
+  (`scripts/boot-shot.mjs`) drives the real thing headlessly and compares the first frame with the frame
+  after Enter.
+- **Silent by construction**, so it is the one screen whose announcement must reach the player through the
+  screen reader rather than the speakers: `announce(STR_A11Y_LOADING)` fires at boot and is pinned to name
+  the key in both locales (`test/loading.test.ts`).
+- **The picture is a native `.scr`** inlined as a module (`src/assets/`), not a PNG: three bits of INK and
+  three of PAPER cannot name an off-palette colour, and an inlined module cannot half-arrive.
+- **Every Playwright-driven script must walk through the gate before pressing a game key** —
+  `passBootGate(page)` in `scripts/lib/boot-gate.mjs`. Do not open-code an `Enter`: on the TITLE, Enter
+  starts a **daily** run, which is the one thing those scripts must never touch. `capture.mjs` is exempt
+  (it drives `window.__mf`, which sets the phase directly).
 
 ### Story intro ("Minefield") — `intro.ts` + the `'story'` phase in `main.ts`
 - **Story (5 chapters):** two countries that never declared/ended a war carve a no-man's-land (the Strip);
@@ -390,4 +418,7 @@ Every gem: **+`GEM_SCORE` (1000)** + a per-colour time bonus (`GEM_TIME_BONUS_MS
   regression; new tests go in `test/` and import product code via `../src/*.ts` (`tsconfig` includes
   `test`, Vitest auto-discovers `**/*.test.ts`). And don't recreate a pass-through `font.ts`: `FONT` /
   `getCharRow` come straight from `zx-kit`, text is drawn via zx-kit's `drawText`/`drawChar`, so the game
-  never re-exports the font. Same for `src/assets/` — sprites are `Uint8Array`, no external image files.
+  never re-exports the font. **Sprites** stay `Uint8Array` in `sprites.ts` — no external image files —
+  with ONE deliberate exception: `src/assets/minefield-loading.scr`, a native ZX screen inlined as a
+  `.ts` module by `screen-import.mjs`. It is inlined rather than fetched precisely so it cannot
+  half-arrive (the Ice Haul version of that screen froze on a black canvas when its PNG went missing).

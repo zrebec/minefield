@@ -122,9 +122,14 @@ The `E` / `G` bearings are **parity, not an assist** — a sighted player sees t
 scout screen, so a blind player hearing them evens the field (mines stay hidden for everyone). A one-line
 orientation summary is also spoken on run start and resume. No leaderboard flag.
 
+**The game opens on a loading picture** and waits for **one key** — `ENTER`, gamepad **Start**, or a tap.
+That key also switches the sound on: a browser will not let a page make a noise until someone has touched
+it, so the game asks up front rather than surprising you later. The screen is deliberately silent (so was
+a real Spectrum tape load) and announces itself to screen readers.
+
 **On the title screen:** `SPACE` / `ENTER` / `S` (or gamepad Start) = **daily** run · `R` = **random** run
 · **`I`** = (re)play the story intro · **`L`** = switch language (EN/SK, persisted; also updates the page's
-`lang` for screen readers). The title is the landing screen; a save-resume goes straight into the game.
+`lang` for screen readers). A save-resume skips the title and drops you straight back into the game.
 
 **The story intro** plays as a pre-roll when it's "due" (first time, after a content refresh, or once per
 window — daily until v1.0) or on demand via `I`. During it, **any key** finishes typing the current card /
@@ -281,8 +286,9 @@ airdrops), the two-plane seeded sky, the signed v6 save format and the full modu
 
 ## Accessibility
 
-**Our public commitment: v1.0 (Minefield, `2026-09-07`) will be fully playable by blind and by
-deaf players.** Not "compatible" — playable, start to finish, including the menus.
+**Our public commitment: v1.0 of Minefield will be fully playable by blind and by deaf players.**
+Not "compatible" — playable, start to finish, including the menus. (The commitment carried the date
+`2026-09-07` until 2026-08-19, when the release was postponed. The promise did not move; the calendar did.)
 
 - **Deaf players — done.** The game is audio-primary but **not** audio-only: the HUD detector
   (shipped 2026-06-17) mirrors every warning visually — a 4-segment adjacent-mine meter plus a
@@ -296,10 +302,14 @@ deaf players.** Not "compatible" — playable, start to finish, including the me
   labelling + live document `lang` landed 2026-07-03; the game is fully keyboard-driven. The voice is
   deliberately **your screen reader's**, not ours: everything that matters on the canvas is mirrored
   into the DOM live regions, which is the screen reader's native ground (decided 2026-07-11; no
-  built-in TTS). Still coming for v1.0: an **exit beacon** tone, the rest of the **shell** (pause,
-  high-score entry), and an **assist-mode** flag. *(A directional stereo mine
-  compass was tried and reverted — it read as danger without danger; see
-  `docs/accessibility-orientation.md`.)*
+  built-in TTS). **The sound half is done too** (2026-07-19 → 22): `D` plays an on-demand **sonar sweep**
+  of the mines around you and `E` an **exit beacon** — both encode direction the same way, *pan* for
+  east/west and *pitch* for north/south — alongside earcons for placing and taking back a **flag**, for a
+  **step refused** by a wall, and a spoken "PAUSE" with its own two-tone. `H` reads the **full briefing**
+  on demand: goal, controls, rules, a glossary, and what every sound means. Still open for v1.0: the
+  **high-score name entry** does not echo the letters you type, and an **assist-mode flag** for runs that
+  used the sonar. *(A directional stereo mine compass was tried and reverted — it read as danger without
+  danger; see `docs/accessibility-orientation.md`.)*
 
 An audio-first "playable blind" deductive traversal is an under-served niche — this is the
 strongest moat the game has, and it ships with 1.0, not "someday". See `ROADMAP.md` (P1) and

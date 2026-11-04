@@ -11,6 +11,7 @@ import { chromium } from 'playwright'
 import { preview } from 'vite'
 
 import * as probe from './lib/canvas-probe.mjs'
+import { passBootGate } from './lib/boot-gate.mjs'
 
 const B_CYAN = probe.B_CYAN       // FLAG sprite ink
 const B_YELLOW = probe.B_YELLOW   // grass visited-trail ink — unique in the L1 playfield
@@ -65,6 +66,16 @@ const clearAnnouncer = () => page.evaluate(() => {
 //   · restart the pattern on every death, because a respawn teleports the player
 //     back to the entry (col 0, where only 'right' is even legal) and continuing
 //     mid-sweep would spend dozens of presses retreading known-safe trail.
+// A step must be given longer than the game needs to take it. WALK_DURATION_MS is
+// 220 (config.ts) and main.ts buffers exactly ONE move, so a press arriving
+// mid-tween behind an already-buffered one is DROPPED. At the 170 ms this used to
+// use, a large share of the presses below bought no movement at all: the loop
+// spent its whole budget without reaching a third death, and reported the game as
+// unplayable while it was fine. Found by instrumenting it — adding a probe call
+// per press slowed the cadence past 220 and every check went green. So the cadence
+// is derived from the game's constant, not guessed, with margin for a loaded
+// machine. Slower per press, far fewer presses: every one now moves the player.
+const STEP_MS = 280
 const walkUntilGameOver = async (cap = 400) => {
   const sweep = ['ArrowRight',
     ...Array(17).fill('ArrowUp'),
@@ -74,7 +85,7 @@ const walkUntilGameOver = async (cap = 400) => {
   for (let pressed = 0; pressed < cap; pressed++) {
     await page.keyboard.press(sweep[i % sweep.length])
     i++
-    await page.waitForTimeout(170)
+    await page.waitForTimeout(STEP_MS)
     const said = (await page.textContent('#sr-announcer')) ?? ''
     if (said.includes('Game over')) {
       await page.waitForTimeout(400)   // let the phase settle (jingle + mirror)
@@ -116,7 +127,13 @@ checks.title = (await page.title()).includes('MINEFIELD')
 checks.ariaRegions = await page.evaluate(() =>
   document.getElementById('sr-announcer') !== null && document.getElementById('sr-status') !== null)
 
-// 2. Start a RANDOM run (never touches the daily leaderboard). The 5-card story
+// 2. Leave the loading picture. It gates every screen below this line, so a
+//    failure here makes the whole rest of the report meaningless — which is
+//    exactly what happened between 0.67.0 and this check existing.
+checks.bootGate = await passBootGate(page)
+if (!checks.bootGate) await finish()
+
+// 3. Start a RANDOM run (never touches the daily leaderboard). The 5-card story
 //    pre-roll may play first (2 presses per card) — keep skipping until the
 //    spawn trail shows up, then PROVE interactivity with one real step.
 await page.keyboard.press('r')
@@ -148,7 +165,7 @@ if (ingame) {
 checks.runStarted = p1 !== null
 if (!checks.runStarted) await finish()   // no interactive player -> bail with the report
 
-// 3. Flag a neighbour with SHIFT+arrow — vertical direction chosen to stay
+// 4. Flag a neighbour with SHIFT+arrow — vertical direction chosen to stay
 //    on-board (the cell is still inside the mine-free entry safe zone).
 const goDown = p1.row < 16
 const [flagArrow, backArrow] = goDown ? ['ArrowDown', 'ArrowUp'] : ['ArrowUp', 'ArrowDown']
@@ -156,12 +173,12 @@ const fc = { col: p1.col, row: p1.row + (goDown ? 1 : -1) }
 await dirFlag(flagArrow)
 checks.flagPlaced = (await cellCount(fc.col, fc.row, B_CYAN)) >= 100  // FLAG = 7 px × 16 = 112
 
-// 4. The flag-overlay rule: walking ONTO the flag must not eat it.
+// 5. The flag-overlay rule: walking ONTO the flag must not eat it.
 await walk(flagArrow)   // step onto the flagged cell (player covers it)
 await walk(backArrow)   // step back off along own (always safe) trail
 checks.flagSurvivedWalk = (await cellCount(fc.col, fc.row, B_CYAN)) >= 100
 
-// 5. Walk to night on own trail (3 steps so far + 12 = 15 = DAY_STEPS) — the
+// 6. Walk to night on own trail (3 steps so far + 12 = 15 = DAY_STEPS) — the
 //    playfield darkens but the flag stays visible (drawFlags after the sweep).
 for (let i = 0; i < 12; i++) await walk(i % 2 === 0 ? flagArrow : backArrow)
 checks.nightFell = await page.evaluate((h0) => {
@@ -173,15 +190,19 @@ checks.nightFell = await page.evaluate((h0) => {
 }, probe.PLAYFIELD_DEV_H)
 checks.flagVisibleAtNight = (await cellCount(fc.col, fc.row, B_CYAN)) >= 100
 
-// 6. Manual save, hard reload, auto-resume: trail and flag must be back.
+// 7. Manual save, hard reload, auto-resume: trail and flag must be back.
 await page.keyboard.down('Shift'); await page.keyboard.press('s'); await page.keyboard.up('Shift')
 await page.waitForTimeout(400)
 await page.reload()
+// The gate is on the resume path too — and there it takes the OTHER branch out
+// (straight back into the run, no title), which is the branch a cold start never
+// exercises. Checking it separately keeps that distinction in the report.
+checks.bootGateOnResume = await passBootGate(page)
 await page.waitForTimeout(1200)
 checks.resumedAfterReload = (await cellCount(0, p1.row, B_YELLOW)) >= 20  // the spawn trail is back (col 0 — the player resumes at col 1, covering its own cell)
 checks.flagSurvivedReload = (await cellCount(fc.col, fc.row, B_CYAN)) >= 100
 
-// 7. Run statistics span the WHOLE run, so a refresh must not restart them. The
+// 8. Run statistics span the WHOLE run, so a refresh must not restart them. The
 //    save payload is the artifact that has to carry them, so read it there rather
 //    than off the canvas: 15 steps were walked before the save above, so the
 //    stored count proves they were counted, and continuing to grow from that
@@ -202,7 +223,7 @@ const stepsAfterReload = await savedSteps('manual')
 // A wiped counter would restart near 2 here instead of continuing from 15+.
 checks.statsSurvivedReload = stepsAfterReload >= stepsBeforeReload + 2
 
-// 8. Game over: the summary has to reach the player on BOTH channels — drawn on
+// 9. Game over: the summary has to reach the player on BOTH channels — drawn on
 //    the canvas and mirrored into #sr-menu for a screen reader.
 await clearAnnouncer()
 checks.reachedGameOver = await walkUntilGameOver()
@@ -225,7 +246,7 @@ checks.statsContinuousToGameOver = shownSteps >= stepsAfterReload
 await page.waitForTimeout(1200)   // let any scheduled one-shot (the game-over jingle) finish
 checks.noLeakedAudioAtGameOver = (await leakedOscillators()).length === 0
 
-// 9. The mirror belongs to the screen that filled it. A DAILY run reaches
+// 10. The mirror belongs to the screen that filled it. A DAILY run reaches
 //    high-score name entry (the table is empty in this fresh profile), and the
 //    stats must NOT still be sitting in #sr-menu while the player types a name.
 await page.keyboard.press('x')          // leave the random run's game-over screen → title

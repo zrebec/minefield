@@ -30,6 +30,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { canvasAlive, isIngame } from './lib/canvas-probe.mjs'
+import { passBootGate } from './lib/boot-gate.mjs'
 
 const PORT = 4185
 const URL = `http://localhost:${PORT}/minefield/`
@@ -71,7 +72,10 @@ checks.bundleRan = alive.sized
 checks.canvasPainted = alive.colours >= 3
 checks.noFailedRequests = fails.length === 0
 
-// Playable, from a cold browser, with nothing serving anything.
+// Playable, from a cold browser, with nothing serving anything. The loading
+// picture stands in front of this exactly as it does online — a cold start with
+// no server is still a start.
+checks.bootGate = await passBootGate(page)
 await page.keyboard.press('r')
 let ingame = false
 for (let i = 0; i < 90 && !ingame; i++) {

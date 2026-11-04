@@ -12,6 +12,7 @@
 import { chromium } from 'playwright'
 import { preview } from 'vite'
 import { isIngame, canvasAlive } from './lib/canvas-probe.mjs'
+import { passBootGate } from './lib/boot-gate.mjs'
 
 const PORT = 4182     // not smoke.mjs's 4181, so the two can run back to back
 const URL = `http://localhost:${PORT}/minefield/`
@@ -74,6 +75,11 @@ checks.allFromServiceWorker = served.length > 0 && served.every((r) => r.sw)
 // 4. Playable, not just visible: start a random run with the network still cut
 //    and walk until the HUD hearts prove a live game. Same skip loop as smoke.mjs
 //    (the 5-card story pre-roll needs a couple of presses per card).
+//
+//    The loading picture gates this too, and offline is where it matters most:
+//    the whole point of the wrap is that a player on a train gets a GAME, not a
+//    cached picture they cannot leave.
+checks.bootGate = await passBootGate(page)
 await page.keyboard.press('r')
 let ingame = false
 for (let i = 0; i < 90 && !ingame; i++) {
