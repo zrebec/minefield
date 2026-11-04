@@ -1,3 +1,10 @@
+## [0.67.3](https://github.com/zrebec/minefield/compare/v0.67.2...v0.67.3) (2026-11-04)
+
+
+### Bug Fixes
+
+* **scripts:** walk every release gate through the boot gate ([#25](https://github.com/zrebec/minefield/issues/25)) ([afe8aa1](https://github.com/zrebec/minefield/commit/afe8aa12f746ec5894d2ca3620b6a0a99dd74585))
+
 ## [0.67.2](https://github.com/zrebec/minefield/compare/v0.67.1...v0.67.2) (2026-08-27)
 
 
