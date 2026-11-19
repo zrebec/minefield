@@ -26,15 +26,15 @@
   "devDependencies": {
     "@semantic-release/changelog": "^7.0.0",
     "@semantic-release/git": "^11.0.1",
-    "@semantic-release/github": "^12.0.9",
-    "@semantic-release/npm": "^13.1.5",
+    "@semantic-release/github": "^12.0.11",
+    "@semantic-release/npm": "^13.2.0",
     "@types/jsdom": "^30.0.0",
-    "jsdom": "^30.0.1",
-    "playwright": "^1.62.1",
-    "semantic-release": "^25.0.9",
+    "jsdom": "^31.0.1",
+    "playwright": "^1.65.1",
+    "semantic-release": "^26.0.1",
     "typescript": "~7.0.2",
-    "vite": "^8.2.1",
-    "vitest": "^4.1.10"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
   },
   "allowScripts": {
     "fsevents@2.3.2": true,
